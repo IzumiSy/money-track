@@ -8,6 +8,9 @@ export interface Investment {
   monthlyAmount: number; // 月額積立額
   returnRate: number; // 年間リターン率（例：0.05 = 5%）
   color: string; // グラフの色
+  sellbackEnabled: boolean; // 定期売却の有効/無効
+  monthlySellback: number; // 月額売却額
+  sellbackStartYear: number; // 売却開始年（0年目から）
 }
 
 export interface FinancialAsset {
@@ -64,6 +67,9 @@ export default function FinancialAssetsForm({
       monthlyAmount: 0,
       returnRate: 0.05, // デフォルト5%
       color: getDefaultColor(investments.length),
+      sellbackEnabled: false, // デフォルトは無効
+      monthlySellback: 0, // デフォルト0円
+      sellbackStartYear: 0, // デフォルト0年目から
     };
     setInvestments([...investments, newInvestment]);
   };
@@ -71,7 +77,7 @@ export default function FinancialAssetsForm({
   const updateInvestment = (
     id: string,
     field: keyof Investment,
-    value: string | number
+    value: string | number | boolean
   ) => {
     setInvestments(
       investments.map((inv) =>
@@ -159,7 +165,7 @@ export default function FinancialAssetsForm({
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                     {/* 投資名 */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -257,6 +263,97 @@ export default function FinancialAssetsForm({
                         />
                       </div>
                     </div>
+                  </div>
+
+                  {/* 定期売却設定 */}
+                  <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                        定期売却設定
+                      </h5>
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={investment.sellbackEnabled}
+                          onChange={(e) =>
+                            updateInvestment(
+                              investment.id,
+                              "sellbackEnabled",
+                              e.target.checked
+                            )
+                          }
+                          className="sr-only"
+                        />
+                        <div className="relative">
+                          <div
+                            className={`block w-10 h-6 rounded-full transition-colors duration-200 ${
+                              investment.sellbackEnabled
+                                ? "bg-blue-600"
+                                : "bg-gray-300 dark:bg-gray-600"
+                            }`}
+                          ></div>
+                          <div
+                            className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ${
+                              investment.sellbackEnabled
+                                ? "transform translate-x-4"
+                                : ""
+                            }`}
+                          ></div>
+                        </div>
+                        <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">
+                          {investment.sellbackEnabled ? "ON" : "OFF"}
+                        </span>
+                      </label>
+                    </div>
+
+                    {investment.sellbackEnabled && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            月額売却額（円）
+                          </label>
+                          <input
+                            type="number"
+                            value={investment.monthlySellback || ""}
+                            onChange={(e) =>
+                              updateInvestment(
+                                investment.id,
+                                "monthlySellback",
+                                Number(e.target.value) || 0
+                              )
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
+                            placeholder="0"
+                            min="0"
+                          />
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            投資の評価額から毎月現金化される金額
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            売却開始年
+                          </label>
+                          <input
+                            type="number"
+                            value={investment.sellbackStartYear || ""}
+                            onChange={(e) =>
+                              updateInvestment(
+                                investment.id,
+                                "sellbackStartYear",
+                                Number(e.target.value) || 0
+                              )
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
+                            placeholder="0"
+                            min="0"
+                          />
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            売却を開始する年（0年目から）
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

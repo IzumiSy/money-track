@@ -30,24 +30,26 @@ export function FinancialAssetsProvider({ children }: { children: ReactNode }) {
     investments: [],
   });
 
-  // 投資データに色が設定されていない場合にデフォルト色を設定する関数
-  const setFinancialAssetsWithColors = (assets: FinancialAsset) => {
-    const investmentsWithColors = assets.investments.map(
+  // 投資データに色や売却設定が設定されていない場合にデフォルト値を設定する関数
+  const setFinancialAssetsWithDefaults = (assets: FinancialAsset) => {
+    const investmentsWithDefaults = assets.investments.map(
       (investment, index) => {
-        // 色が設定されていない場合はデフォルト色を設定
-        if (!investment.color) {
-          return {
-            ...investment,
-            color: DEFAULT_COLORS[index % DEFAULT_COLORS.length],
-          };
-        }
-        return investment;
+        return {
+          ...investment,
+          // 色が設定されていない場合はデフォルト色を設定
+          color:
+            investment.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length],
+          // 売却設定が未定義の場合はデフォルト値を設定
+          sellbackEnabled: investment.sellbackEnabled ?? false,
+          monthlySellback: investment.monthlySellback ?? 0,
+          sellbackStartYear: investment.sellbackStartYear ?? 0,
+        };
       }
     );
 
     setFinancialAssets({
       ...assets,
-      investments: investmentsWithColors,
+      investments: investmentsWithDefaults,
     });
   };
 
@@ -55,7 +57,7 @@ export function FinancialAssetsProvider({ children }: { children: ReactNode }) {
     <FinancialAssetsContext.Provider
       value={{
         financialAssets,
-        setFinancialAssets: setFinancialAssetsWithColors,
+        setFinancialAssets: setFinancialAssetsWithDefaults,
       }}
     >
       {children}

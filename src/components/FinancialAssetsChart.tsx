@@ -36,6 +36,12 @@ export default function FinancialAssetsChart({
     0
   );
 
+  // 月額売却の合計額を計算
+  const totalMonthlySellbacks = investments.reduce(
+    (sum, inv) => sum + (inv.sellbackEnabled ? inv.monthlySellback : 0),
+    0
+  );
+
   // 月額支出の合計額を計算
   const totalMonthlyExpenses = expenses.reduce(
     (sum, exp) => sum + exp.monthlyAmount,
@@ -44,7 +50,7 @@ export default function FinancialAssetsChart({
 
   const total = deposits; // 初期値は預金のみ
 
-  // 資産推移シミュレーション計算（投資ごとに個別計算、支出を考慮）
+  // 資産推移シミュレーション計算（投資ごとに個別計算、支出と売却を考慮）
   const generateSimulationData = () => {
     const data = [];
     let currentDeposits = deposits;
@@ -52,14 +58,30 @@ export default function FinancialAssetsChart({
     for (let year = 0; year <= simulationYears; year++) {
       // 支出による預金の減少を計算（年間支出額）
       const yearlyExpenses = totalMonthlyExpenses * 12 * year;
-      const depositsAfterExpenses = Math.max(
+      // 売却による預金の増加を計算（売却開始年以降の年間売却額）
+      let yearlySellbacks = 0;
+      investments.forEach((inv) => {
+        if (
+          inv.sellbackEnabled &&
+          inv.monthlySellback > 0 &&
+          year >= inv.sellbackStartYear
+        ) {
+          const sellbackMonths = Math.max(
+            0,
+            (year - inv.sellbackStartYear) * 12
+          );
+          yearlySellbacks += inv.monthlySellback * sellbackMonths;
+        }
+      });
+
+      const depositsAfterExpensesAndSellbacks = Math.max(
         0,
-        currentDeposits - yearlyExpenses
+        currentDeposits - yearlyExpenses + yearlySellbacks
       );
 
       const yearData: any = {
         year: `${year}年目`,
-        deposits: Math.round(depositsAfterExpenses),
+        deposits: Math.round(depositsAfterExpensesAndSellbacks),
       };
 
       let totalInvestmentValue = 0;
@@ -82,6 +104,21 @@ export default function FinancialAssetsChart({
             futureValue = inv.monthlyAmount * months;
           }
 
+          // 定期売却が有効な場合、売却開始年以降の売却額を投資評価額から差し引く
+          if (
+            inv.sellbackEnabled &&
+            inv.monthlySellback > 0 &&
+            year >= inv.sellbackStartYear
+          ) {
+            // 売却開始年以降の月数を計算
+            const sellbackMonths = Math.max(
+              0,
+              (year - inv.sellbackStartYear) * 12
+            );
+            const totalSellbackAmount = inv.monthlySellback * sellbackMonths;
+            futureValue = Math.max(0, futureValue - totalSellbackAmount);
+          }
+
           const investmentKey = `investment_${inv.id}`;
           yearData[investmentKey] = Math.round(futureValue);
           totalInvestmentValue += futureValue;
@@ -93,7 +130,9 @@ export default function FinancialAssetsChart({
         yearData.expenses = -Math.round(totalMonthlyExpenses * 12);
       }
 
-      yearData.total = Math.round(depositsAfterExpenses + totalInvestmentValue);
+      yearData.total = Math.round(
+        depositsAfterExpensesAndSellbacks + totalInvestmentValue
+      );
       data.push(yearData);
     }
 
@@ -145,7 +184,7 @@ export default function FinancialAssetsChart({
   return (
     <div className="space-y-6">
       {/* シミュレーション結果サマリー */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
@@ -239,6 +278,36 @@ export default function FinancialAssetsChart({
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-purple-600 dark:text-purple-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 16l-4-4m0 0l4-4m-4 4h18"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                月額売却合計
+              </p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                {formatNumber(totalMonthlySellbacks)}円/月
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
               <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
                 <svg
                   className="w-5 h-5 text-orange-600 dark:text-orange-400"
@@ -312,7 +381,6 @@ export default function FinancialAssetsChart({
                 stackId="a"
                 fill={COLORS.deposits}
                 name="預金"
-                radius={[0, 0, 0, 0]}
               />
               {investments.map((investment, index) => (
                 <Bar
@@ -321,11 +389,6 @@ export default function FinancialAssetsChart({
                   stackId="a"
                   fill={investment.color}
                   name={investment.name || `投資 #${index + 1}`}
-                  radius={
-                    index === investments.length - 1
-                      ? [4, 4, 0, 0]
-                      : [0, 0, 0, 0]
-                  }
                 />
               ))}
               {totalMonthlyExpenses > 0 && (
