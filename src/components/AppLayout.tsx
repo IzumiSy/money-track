@@ -203,7 +203,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
         {/* Main Content */}
         <main className="flex-1 p-4">
-          <div className="max-w-7xl mx-auto">{children}</div>
+          <div className="max-w-full mx-auto">{children}</div>
         </main>
       </div>
     </div>
