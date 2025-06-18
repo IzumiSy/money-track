@@ -2,15 +2,32 @@
 
 import { useState, useEffect } from "react";
 
+export interface InvestmentOption {
+  id: string;
+  startYear: number; // 積立開始年
+  startMonth: number; // 積立開始月（1-12）
+  endYear: number; // 積立終了年
+  endMonth: number; // 積立終了月（1-12）
+  monthlyAmount: number; // 月額積立額
+}
+
+export interface SellbackOption {
+  id: string;
+  startYear: number; // 売却開始年
+  startMonth: number; // 売却開始月（1-12）
+  endYear: number; // 売却終了年
+  endMonth: number; // 売却終了月（1-12）
+  monthlyAmount: number; // 月額売却額
+}
+
 export interface Investment {
   id: string;
   name: string;
-  monthlyAmount: number; // 月額積立額
   returnRate: number; // 年間リターン率（例：0.05 = 5%）
   color: string; // グラフの色
-  sellbackEnabled: boolean; // 定期売却の有効/無効
-  monthlySellback: number; // 月額売却額
-  sellbackStartYear: number; // 売却開始年（0年目から）
+  baseAmount: number; // ベースとなる評価額（初期投資額）
+  investmentOptions: InvestmentOption[]; // 積立オプション
+  sellbackOptions: SellbackOption[]; // 売却オプション
 }
 
 export interface FinancialAsset {
@@ -64,12 +81,11 @@ export default function FinancialAssetsForm({
     const newInvestment: Investment = {
       id: Date.now().toString(),
       name: "",
-      monthlyAmount: 0,
       returnRate: 0.05, // デフォルト5%
       color: getDefaultColor(investments.length),
-      sellbackEnabled: false, // デフォルトは無効
-      monthlySellback: 0, // デフォルト0円
-      sellbackStartYear: 0, // デフォルト0年目から
+      baseAmount: 0, // デフォルト0円（ベース評価額）
+      investmentOptions: [], // 積立オプション
+      sellbackOptions: [], // 売却オプション
     };
     setInvestments([...investments, newInvestment]);
   };
@@ -77,7 +93,7 @@ export default function FinancialAssetsForm({
   const updateInvestment = (
     id: string,
     field: keyof Investment,
-    value: string | number | boolean
+    value: string | number | boolean | InvestmentOption[] | SellbackOption[]
   ) => {
     setInvestments(
       investments.map((inv) =>
@@ -88,6 +104,114 @@ export default function FinancialAssetsForm({
 
   const removeInvestment = (id: string) => {
     setInvestments(investments.filter((inv) => inv.id !== id));
+  };
+
+  const addInvestmentOption = (investmentId: string) => {
+    const newOption: InvestmentOption = {
+      id: Date.now().toString(),
+      startYear: 0,
+      startMonth: 1,
+      endYear: 10,
+      endMonth: 12,
+      monthlyAmount: 0,
+    };
+
+    setInvestments(
+      investments.map((inv) =>
+        inv.id === investmentId
+          ? { ...inv, investmentOptions: [...inv.investmentOptions, newOption] }
+          : inv
+      )
+    );
+  };
+
+  const updateInvestmentOption = (
+    investmentId: string,
+    optionId: string,
+    field: keyof InvestmentOption,
+    value: string | number
+  ) => {
+    setInvestments(
+      investments.map((inv) =>
+        inv.id === investmentId
+          ? {
+              ...inv,
+              investmentOptions: inv.investmentOptions.map((option) =>
+                option.id === optionId ? { ...option, [field]: value } : option
+              ),
+            }
+          : inv
+      )
+    );
+  };
+
+  const removeInvestmentOption = (investmentId: string, optionId: string) => {
+    setInvestments(
+      investments.map((inv) =>
+        inv.id === investmentId
+          ? {
+              ...inv,
+              investmentOptions: inv.investmentOptions.filter(
+                (option) => option.id !== optionId
+              ),
+            }
+          : inv
+      )
+    );
+  };
+
+  const addSellbackOption = (investmentId: string) => {
+    const newOption: SellbackOption = {
+      id: Date.now().toString(),
+      startYear: 0,
+      startMonth: 1,
+      endYear: 10,
+      endMonth: 12,
+      monthlyAmount: 0,
+    };
+
+    setInvestments(
+      investments.map((inv) =>
+        inv.id === investmentId
+          ? { ...inv, sellbackOptions: [...inv.sellbackOptions, newOption] }
+          : inv
+      )
+    );
+  };
+
+  const updateSellbackOption = (
+    investmentId: string,
+    optionId: string,
+    field: keyof SellbackOption,
+    value: string | number
+  ) => {
+    setInvestments(
+      investments.map((inv) =>
+        inv.id === investmentId
+          ? {
+              ...inv,
+              sellbackOptions: inv.sellbackOptions.map((option) =>
+                option.id === optionId ? { ...option, [field]: value } : option
+              ),
+            }
+          : inv
+      )
+    );
+  };
+
+  const removeSellbackOption = (investmentId: string, optionId: string) => {
+    setInvestments(
+      investments.map((inv) =>
+        inv.id === investmentId
+          ? {
+              ...inv,
+              sellbackOptions: inv.sellbackOptions.filter(
+                (option) => option.id !== optionId
+              ),
+            }
+          : inv
+      )
+    );
   };
 
   return (
@@ -186,18 +310,18 @@ export default function FinancialAssetsForm({
                       />
                     </div>
 
-                    {/* 月額積立額 */}
+                    {/* ベース評価額 */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                        月額積立額（円）
+                        ベース評価額（円）
                       </label>
                       <input
                         type="number"
-                        value={investment.monthlyAmount || ""}
+                        value={investment.baseAmount || ""}
                         onChange={(e) =>
                           updateInvestment(
                             investment.id,
-                            "monthlyAmount",
+                            "baseAmount",
                             Number(e.target.value) || 0
                           )
                         }
@@ -205,6 +329,9 @@ export default function FinancialAssetsForm({
                         placeholder="0"
                         min="0"
                       />
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        既存の投資評価額
+                      </p>
                     </div>
 
                     {/* リターン率 */}
@@ -265,93 +392,334 @@ export default function FinancialAssetsForm({
                     </div>
                   </div>
 
-                  {/* 定期売却設定 */}
+                  {/* 積立オプション設定 */}
+                  <div className="border-t border-gray-200 dark:border-gray-600 pt-3 mt-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                        積立オプション
+                      </h5>
+                      <button
+                        type="button"
+                        onClick={() => addInvestmentOption(investment.id)}
+                        className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-md transition-colors duration-200"
+                      >
+                        + オプション追加
+                      </button>
+                    </div>
+
+                    {investment.investmentOptions.length === 0 ? (
+                      <div className="text-center py-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          積立オプションを追加してください
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {investment.investmentOptions.map(
+                          (option, optionIndex) => (
+                            <div
+                              key={option.id}
+                              className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-600"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                  オプション #{optionIndex + 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeInvestmentOption(
+                                      investment.id,
+                                      option.id
+                                    )
+                                  }
+                                  className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs"
+                                >
+                                  削除
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                                {/* 開始年 */}
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    開始年
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={option.startYear || ""}
+                                    onChange={(e) =>
+                                      updateInvestmentOption(
+                                        investment.id,
+                                        option.id,
+                                        "startYear",
+                                        Number(e.target.value) || 0
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                    placeholder="0"
+                                    min="0"
+                                  />
+                                </div>
+                                {/* 開始月 */}
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    開始月
+                                  </label>
+                                  <select
+                                    value={option.startMonth}
+                                    onChange={(e) =>
+                                      updateInvestmentOption(
+                                        investment.id,
+                                        option.id,
+                                        "startMonth",
+                                        Number(e.target.value)
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                  >
+                                    {Array.from({ length: 12 }, (_, i) => (
+                                      <option key={i + 1} value={i + 1}>
+                                        {i + 1}月
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                {/* 終了年 */}
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    終了年
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={option.endYear || ""}
+                                    onChange={(e) =>
+                                      updateInvestmentOption(
+                                        investment.id,
+                                        option.id,
+                                        "endYear",
+                                        Number(e.target.value) || 0
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                    placeholder="10"
+                                    min="0"
+                                  />
+                                </div>
+                                {/* 終了月 */}
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    終了月
+                                  </label>
+                                  <select
+                                    value={option.endMonth}
+                                    onChange={(e) =>
+                                      updateInvestmentOption(
+                                        investment.id,
+                                        option.id,
+                                        "endMonth",
+                                        Number(e.target.value)
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                  >
+                                    {Array.from({ length: 12 }, (_, i) => (
+                                      <option key={i + 1} value={i + 1}>
+                                        {i + 1}月
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                {/* 月額投資額 */}
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    月額投資額（円）
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={option.monthlyAmount || ""}
+                                    onChange={(e) =>
+                                      updateInvestmentOption(
+                                        investment.id,
+                                        option.id,
+                                        "monthlyAmount",
+                                        Number(e.target.value) || 0
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                    placeholder="0"
+                                    min="0"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 売却オプション設定 */}
                   <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
                     <div className="flex items-center justify-between mb-3">
                       <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                        定期売却設定
+                        売却オプション
                       </h5>
-                      <label className="flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={investment.sellbackEnabled}
-                          onChange={(e) =>
-                            updateInvestment(
-                              investment.id,
-                              "sellbackEnabled",
-                              e.target.checked
-                            )
-                          }
-                          className="sr-only"
-                        />
-                        <div className="relative">
-                          <div
-                            className={`block w-10 h-6 rounded-full transition-colors duration-200 ${
-                              investment.sellbackEnabled
-                                ? "bg-blue-600"
-                                : "bg-gray-300 dark:bg-gray-600"
-                            }`}
-                          ></div>
-                          <div
-                            className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ${
-                              investment.sellbackEnabled
-                                ? "transform translate-x-4"
-                                : ""
-                            }`}
-                          ></div>
-                        </div>
-                        <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">
-                          {investment.sellbackEnabled ? "ON" : "OFF"}
-                        </span>
-                      </label>
+                      <button
+                        type="button"
+                        onClick={() => addSellbackOption(investment.id)}
+                        className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded-md transition-colors duration-200"
+                      >
+                        + オプション追加
+                      </button>
                     </div>
 
-                    {investment.sellbackEnabled && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                            月額売却額（円）
-                          </label>
-                          <input
-                            type="number"
-                            value={investment.monthlySellback || ""}
-                            onChange={(e) =>
-                              updateInvestment(
-                                investment.id,
-                                "monthlySellback",
-                                Number(e.target.value) || 0
-                              )
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                            placeholder="0"
-                            min="0"
-                          />
-                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            投資の評価額から毎月現金化される金額
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                            売却開始年
-                          </label>
-                          <input
-                            type="number"
-                            value={investment.sellbackStartYear || ""}
-                            onChange={(e) =>
-                              updateInvestment(
-                                investment.id,
-                                "sellbackStartYear",
-                                Number(e.target.value) || 0
-                              )
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                            placeholder="0"
-                            min="0"
-                          />
-                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            売却を開始する年（0年目から）
-                          </p>
-                        </div>
+                    {investment.sellbackOptions.length === 0 ? (
+                      <div className="text-center py-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          売却オプションを追加してください
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {investment.sellbackOptions.map(
+                          (option, optionIndex) => (
+                            <div
+                              key={option.id}
+                              className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-600"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                  オプション #{optionIndex + 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeSellbackOption(
+                                      investment.id,
+                                      option.id
+                                    )
+                                  }
+                                  className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs"
+                                >
+                                  削除
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                                {/* 開始年 */}
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    開始年
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={option.startYear || ""}
+                                    onChange={(e) =>
+                                      updateSellbackOption(
+                                        investment.id,
+                                        option.id,
+                                        "startYear",
+                                        Number(e.target.value) || 0
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                    placeholder="0"
+                                    min="0"
+                                  />
+                                </div>
+                                {/* 開始月 */}
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    開始月
+                                  </label>
+                                  <select
+                                    value={option.startMonth}
+                                    onChange={(e) =>
+                                      updateSellbackOption(
+                                        investment.id,
+                                        option.id,
+                                        "startMonth",
+                                        Number(e.target.value)
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                  >
+                                    {Array.from({ length: 12 }, (_, i) => (
+                                      <option key={i + 1} value={i + 1}>
+                                        {i + 1}月
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                {/* 終了年 */}
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    終了年
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={option.endYear || ""}
+                                    onChange={(e) =>
+                                      updateSellbackOption(
+                                        investment.id,
+                                        option.id,
+                                        "endYear",
+                                        Number(e.target.value) || 0
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                    placeholder="10"
+                                    min="0"
+                                  />
+                                </div>
+                                {/* 終了月 */}
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    終了月
+                                  </label>
+                                  <select
+                                    value={option.endMonth}
+                                    onChange={(e) =>
+                                      updateSellbackOption(
+                                        investment.id,
+                                        option.id,
+                                        "endMonth",
+                                        Number(e.target.value)
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                  >
+                                    {Array.from({ length: 12 }, (_, i) => (
+                                      <option key={i + 1} value={i + 1}>
+                                        {i + 1}月
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                {/* 月額売却額 */}
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    月額売却額（円）
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={option.monthlyAmount || ""}
+                                    onChange={(e) =>
+                                      updateSellbackOption(
+                                        investment.id,
+                                        option.id,
+                                        "monthlyAmount",
+                                        Number(e.target.value) || 0
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                    placeholder="0"
+                                    min="0"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        )}
                       </div>
                     )}
                   </div>

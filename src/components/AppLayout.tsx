@@ -21,7 +21,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <Sidebar />
 
         {/* Main Content */}
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-4">
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>

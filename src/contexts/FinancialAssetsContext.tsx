@@ -39,10 +39,12 @@ export function FinancialAssetsProvider({ children }: { children: ReactNode }) {
           // 色が設定されていない場合はデフォルト色を設定
           color:
             investment.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length],
-          // 売却設定が未定義の場合はデフォルト値を設定
-          sellbackEnabled: investment.sellbackEnabled ?? false,
-          monthlySellback: investment.monthlySellback ?? 0,
-          sellbackStartYear: investment.sellbackStartYear ?? 0,
+          // ベース評価額が未定義の場合はデフォルト値を設定
+          baseAmount: investment.baseAmount ?? 0,
+          // 積立オプションが未定義の場合はデフォルト値を設定
+          investmentOptions: investment.investmentOptions ?? [],
+          // 売却オプションが未定義の場合はデフォルト値を設定
+          sellbackOptions: investment.sellbackOptions ?? [],
         };
       }
     );
