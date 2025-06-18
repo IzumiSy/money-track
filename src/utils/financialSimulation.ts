@@ -395,6 +395,48 @@ export function calculateFinancialSimulation({
       yearData[incomeKey] = Math.round(yearlyIncomeAmount);
     });
 
+    // 売却益を収入として追加（実際の売却可能額に制限）
+    investments.forEach((inv) => {
+      if (inv.sellbackOptions.length > 0) {
+        const sellbackIncomeKey = `sellback_income_${inv.id}`;
+        let yearlySellbackIncome = 0;
+
+        // この投資の現在価値を取得
+        const investmentKey = `investment_${inv.id}`;
+        let remainingValue = (yearData[investmentKey] as number) || 0;
+
+        // その年の各月における売却額を計算
+        for (let month = 1; month <= 12; month++) {
+          const targetTotalMonths = year * 12 + (month - 1);
+
+          inv.sellbackOptions.forEach((option) => {
+            const startTotalMonths =
+              option.startYear * 12 + (option.startMonth - 1);
+            const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
+
+            // 現在の年月が売却期間内かチェック
+            if (
+              targetTotalMonths >= startTotalMonths &&
+              targetTotalMonths <= endTotalMonths &&
+              option.monthlyAmount > 0
+            ) {
+              // 実際に売却可能な額を計算（残高を超えない）
+              const actualSellAmount = Math.min(
+                option.monthlyAmount,
+                remainingValue
+              );
+              yearlySellbackIncome += actualSellAmount;
+              remainingValue -= actualSellAmount;
+            }
+          });
+        }
+
+        if (yearlySellbackIncome > 0) {
+          yearData[sellbackIncomeKey] = Math.round(yearlySellbackIncome);
+        }
+      }
+    });
+
     yearData.total = Math.round(adjustedDeposits + totalInvestmentValue);
     simulationData.push(yearData);
   }

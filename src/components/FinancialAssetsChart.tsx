@@ -148,6 +148,26 @@ export default function FinancialAssetsChart({
                   name={income.name}
                 />
               ))}
+              {investments.map((investment) => {
+                const hasSellbackOptions =
+                  investment.sellbackOptions &&
+                  investment.sellbackOptions.length > 0;
+                if (!hasSellbackOptions) return null;
+
+                return (
+                  <Bar
+                    key={`sellback_income_${investment.id}`}
+                    dataKey={`sellback_income_${investment.id}`}
+                    stackId="b"
+                    fill={investment.color}
+                    name={`${
+                      investment.name ||
+                      `投資 #${investments.indexOf(investment) + 1}`
+                    } 売却益`}
+                    opacity={0.8}
+                  />
+                );
+              })}
               {expenses.map((expense) => (
                 <Bar
                   key={expense.id}
