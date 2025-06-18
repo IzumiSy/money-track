@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export interface FinancialAsset {
   deposits: number;
@@ -19,6 +19,14 @@ export default function FinancialAssetsForm({
   const [deposits, setDeposits] = useState(initialData?.deposits || 0);
   const [investments, setInvestments] = useState(initialData?.investments || 0);
 
+  // initialDataが変更されたときにフォームの状態を更新
+  useEffect(() => {
+    if (initialData) {
+      setDeposits(initialData.deposits);
+      setInvestments(initialData.investments);
+    }
+  }, [initialData]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({ deposits, investments });
@@ -26,11 +34,6 @@ export default function FinancialAssetsForm({
 
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat("ja-JP").format(value);
-  };
-
-  const handleNumberInput = (value: string, setter: (val: number) => void) => {
-    const numericValue = value.replace(/[^\d]/g, "");
-    setter(Number(numericValue));
   };
 
   return (
@@ -50,12 +53,13 @@ export default function FinancialAssetsForm({
           </label>
           <div className="relative">
             <input
-              type="text"
+              type="number"
               id="deposits"
-              value={formatNumber(deposits)}
-              onChange={(e) => handleNumberInput(e.target.value, setDeposits)}
+              value={deposits || ""}
+              onChange={(e) => setDeposits(Number(e.target.value) || 0)}
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               placeholder="0"
+              min="0"
             />
             <span className="absolute right-3 top-3 text-gray-500 dark:text-gray-400">
               円
@@ -76,14 +80,13 @@ export default function FinancialAssetsForm({
           </label>
           <div className="relative">
             <input
-              type="text"
+              type="number"
               id="investments"
-              value={formatNumber(investments)}
-              onChange={(e) =>
-                handleNumberInput(e.target.value, setInvestments)
-              }
+              value={investments || ""}
+              onChange={(e) => setInvestments(Number(e.target.value) || 0)}
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               placeholder="0"
+              min="0"
             />
             <span className="absolute right-3 top-3 text-gray-500 dark:text-gray-400">
               円
