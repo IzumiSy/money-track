@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useIncome, Income } from "@/contexts/IncomeContext";
+import { YearMonthDuration } from "@/types/YearMonth";
 
 export default function IncomeForm() {
   const { incomes, addIncome, updateIncome, removeIncome } = useIncome();
@@ -32,9 +33,35 @@ export default function IncomeForm() {
   const handleUpdateIncome = (
     id: string,
     field: keyof Omit<Income, "id">,
-    value: string | number | undefined
+    value: string | number | YearMonthDuration | undefined
   ) => {
     updateIncome(id, { [field]: value });
+  };
+
+  const handleUpdateYear = (
+    id: string,
+    field: "startYearMonth" | "endYearMonth",
+    year: number | undefined
+  ) => {
+    const income = incomes.find((i) => i.id === id);
+    if (!income) return;
+
+    const currentYearMonth = income[field] || YearMonthDuration.from();
+    const updatedYearMonth = currentYearMonth.withYear(year);
+    updateIncome(id, { [field]: updatedYearMonth });
+  };
+
+  const handleUpdateMonth = (
+    id: string,
+    field: "startYearMonth" | "endYearMonth",
+    month: number | undefined
+  ) => {
+    const income = incomes.find((i) => i.id === id);
+    if (!income) return;
+
+    const currentYearMonth = income[field] || YearMonthDuration.from();
+    const updatedYearMonth = currentYearMonth.withMonth(month);
+    updateIncome(id, { [field]: updatedYearMonth });
   };
 
   const handleRemoveIncome = (id: string) => {
@@ -161,11 +188,11 @@ export default function IncomeForm() {
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         type="number"
-                        value={income.startYear || ""}
+                        value={income.startYearMonth?.getYear() || ""}
                         onChange={(e) =>
-                          handleUpdateIncome(
+                          handleUpdateYear(
                             income.id,
-                            "startYear",
+                            "startYearMonth",
                             Number(e.target.value) || undefined
                           )
                         }
@@ -175,11 +202,11 @@ export default function IncomeForm() {
                         max="2100"
                       />
                       <select
-                        value={income.startMonth || ""}
+                        value={income.startYearMonth?.getMonth() || ""}
                         onChange={(e) =>
-                          handleUpdateIncome(
+                          handleUpdateMonth(
                             income.id,
-                            "startMonth",
+                            "startYearMonth",
                             Number(e.target.value) || undefined
                           )
                         }
@@ -203,11 +230,11 @@ export default function IncomeForm() {
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         type="number"
-                        value={income.endYear || ""}
+                        value={income.endYearMonth?.getYear() || ""}
                         onChange={(e) =>
-                          handleUpdateIncome(
+                          handleUpdateYear(
                             income.id,
-                            "endYear",
+                            "endYearMonth",
                             Number(e.target.value) || undefined
                           )
                         }
@@ -217,11 +244,11 @@ export default function IncomeForm() {
                         max="2100"
                       />
                       <select
-                        value={income.endMonth || ""}
+                        value={income.endYearMonth?.getMonth() || ""}
                         onChange={(e) =>
-                          handleUpdateIncome(
+                          handleUpdateMonth(
                             income.id,
-                            "endMonth",
+                            "endYearMonth",
                             Number(e.target.value) || undefined
                           )
                         }

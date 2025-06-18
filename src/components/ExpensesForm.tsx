@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useExpenses, Expense } from "@/contexts/ExpensesContext";
+import { YearMonthDuration } from "@/types/YearMonth";
 
 export default function ExpensesForm() {
   const { expenses, addExpense, updateExpense, removeExpense } = useExpenses();
@@ -32,9 +33,35 @@ export default function ExpensesForm() {
   const handleUpdateExpense = (
     id: string,
     field: keyof Omit<Expense, "id">,
-    value: string | number | undefined
+    value: string | number | YearMonthDuration | undefined
   ) => {
     updateExpense(id, { [field]: value });
+  };
+
+  const handleUpdateYear = (
+    id: string,
+    field: "startYearMonth" | "endYearMonth",
+    year: number | undefined
+  ) => {
+    const expense = expenses.find((e) => e.id === id);
+    if (!expense) return;
+
+    const currentYearMonth = expense[field] || YearMonthDuration.from();
+    const updatedYearMonth = currentYearMonth.withYear(year);
+    updateExpense(id, { [field]: updatedYearMonth });
+  };
+
+  const handleUpdateMonth = (
+    id: string,
+    field: "startYearMonth" | "endYearMonth",
+    month: number | undefined
+  ) => {
+    const expense = expenses.find((e) => e.id === id);
+    if (!expense) return;
+
+    const currentYearMonth = expense[field] || YearMonthDuration.from();
+    const updatedYearMonth = currentYearMonth.withMonth(month);
+    updateExpense(id, { [field]: updatedYearMonth });
   };
 
   const handleRemoveExpense = (id: string) => {
@@ -169,11 +196,11 @@ export default function ExpensesForm() {
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         type="number"
-                        value={expense.startYear || ""}
+                        value={expense.startYearMonth?.getYear() || ""}
                         onChange={(e) =>
-                          handleUpdateExpense(
+                          handleUpdateYear(
                             expense.id,
-                            "startYear",
+                            "startYearMonth",
                             Number(e.target.value) || undefined
                           )
                         }
@@ -183,11 +210,11 @@ export default function ExpensesForm() {
                         max="2100"
                       />
                       <select
-                        value={expense.startMonth || ""}
+                        value={expense.startYearMonth?.getMonth() || ""}
                         onChange={(e) =>
-                          handleUpdateExpense(
+                          handleUpdateMonth(
                             expense.id,
-                            "startMonth",
+                            "startYearMonth",
                             Number(e.target.value) || undefined
                           )
                         }
@@ -211,11 +238,11 @@ export default function ExpensesForm() {
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         type="number"
-                        value={expense.endYear || ""}
+                        value={expense.endYearMonth?.getYear() || ""}
                         onChange={(e) =>
-                          handleUpdateExpense(
+                          handleUpdateYear(
                             expense.id,
-                            "endYear",
+                            "endYearMonth",
                             Number(e.target.value) || undefined
                           )
                         }
@@ -225,11 +252,11 @@ export default function ExpensesForm() {
                         max="2100"
                       />
                       <select
-                        value={expense.endMonth || ""}
+                        value={expense.endYearMonth?.getMonth() || ""}
                         onChange={(e) =>
-                          handleUpdateExpense(
+                          handleUpdateMonth(
                             expense.id,
-                            "endMonth",
+                            "endYearMonth",
                             Number(e.target.value) || undefined
                           )
                         }

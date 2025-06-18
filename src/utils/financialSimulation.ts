@@ -1,6 +1,7 @@
 import { FinancialAsset } from "@/components/FinancialAssetsForm";
 import { Expense } from "@/contexts/ExpensesContext";
 import { Income } from "@/contexts/IncomeContext";
+import { YearMonthDuration } from "@/types/YearMonth";
 
 interface SimulationDataPoint {
   year: string;
@@ -31,23 +32,28 @@ function getActiveIncomeForMonth(
   year: number,
   month: number
 ): number {
+  const targetYearMonth = YearMonthDuration.from(year, month);
+
   return incomes.reduce((sum, income) => {
-    // startYear/startMonthがundefinedの場合はデフォルト値を使用
-    const startYear = income.startYear ?? 0;
-    const startMonth = income.startMonth ?? 1;
-
-    // 開始年月をチェック
-    const startYearMonth = startYear * 12 + startMonth - 1;
-    const targetYearMonth = year * 12 + month - 1;
-
-    if (targetYearMonth >= startYearMonth) {
-      // 終了年月が設定されていない、または終了年月以前の場合は有効
-      if (income.endYear === undefined || !income.endMonth) {
+    // 開始年月が設定されていない場合は常に有効
+    if (!income.startYearMonth) {
+      // 終了年月が設定されていない、または終了年月以降の場合は有効
+      if (
+        !income.endYearMonth ||
+        targetYearMonth.isBeforeOrEqual(income.endYearMonth)
+      ) {
         return sum + income.monthlyAmount;
       }
+      return sum;
+    }
 
-      const endYearMonth = income.endYear * 12 + income.endMonth - 1;
-      if (targetYearMonth <= endYearMonth) {
+    // 開始年月以降かチェック
+    if (targetYearMonth.isAfterOrEqual(income.startYearMonth)) {
+      // 終了年月が設定されていない、または終了年月以前の場合は有効
+      if (
+        !income.endYearMonth ||
+        targetYearMonth.isBeforeOrEqual(income.endYearMonth)
+      ) {
         return sum + income.monthlyAmount;
       }
     }
@@ -62,24 +68,28 @@ function getActiveExpenseForMonth(
   year: number,
   month: number
 ): number {
+  const targetYearMonth = YearMonthDuration.from(year, month);
+
   return expenses.reduce((sum, expense) => {
     // 開始年月が設定されていない場合は常に有効
-    if (!expense.startYear || !expense.startMonth) {
-      return sum + expense.monthlyAmount;
-    }
-
-    // 開始年月をチェック
-    const startYearMonth = expense.startYear * 12 + expense.startMonth - 1;
-    const targetYearMonth = year * 12 + month - 1;
-
-    if (targetYearMonth >= startYearMonth) {
-      // 終了年月が設定されていない、または終了年月以前の場合は有効
-      if (!expense.endYear || !expense.endMonth) {
+    if (!expense.startYearMonth) {
+      // 終了年月が設定されていない、または終了年月以降の場合は有効
+      if (
+        !expense.endYearMonth ||
+        targetYearMonth.isBeforeOrEqual(expense.endYearMonth)
+      ) {
         return sum + expense.monthlyAmount;
       }
+      return sum;
+    }
 
-      const endYearMonth = expense.endYear * 12 + expense.endMonth - 1;
-      if (targetYearMonth <= endYearMonth) {
+    // 開始年月以降かチェック
+    if (targetYearMonth.isAfterOrEqual(expense.startYearMonth)) {
+      // 終了年月が設定されていない、または終了年月以前の場合は有効
+      if (
+        !expense.endYearMonth ||
+        targetYearMonth.isBeforeOrEqual(expense.endYearMonth)
+      ) {
         return sum + expense.monthlyAmount;
       }
     }
@@ -298,34 +308,8 @@ export function calculateFinancialSimulation({
       // その年の各月における有効な支出額を計算
       let yearlyExpenseAmount = 0;
       for (let month = 1; month <= 12; month++) {
-        // シミュレーション開始年を基準とした年数で計算
-        const simulationYear = year;
-        const simulationMonth = month;
-
-        // この支出項目が有効な月のみ加算
-        if (expense.startYear && expense.startMonth) {
-          // 開始年月をシミュレーション開始からの月数で計算
-          const startMonthFromStart =
-            (expense.startYear - 1) * 12 + expense.startMonth - 1;
-          const currentMonthFromStart =
-            simulationYear * 12 + simulationMonth - 1;
-
-          if (currentMonthFromStart >= startMonthFromStart) {
-            if (!expense.endYear || !expense.endMonth) {
-              yearlyExpenseAmount += expense.monthlyAmount;
-            } else {
-              // 終了年月をシミュレーション開始からの月数で計算
-              const endMonthFromStart =
-                (expense.endYear - 1) * 12 + expense.endMonth - 1;
-              if (currentMonthFromStart <= endMonthFromStart) {
-                yearlyExpenseAmount += expense.monthlyAmount;
-              }
-            }
-          }
-        } else {
-          // 期間設定がない場合は常に有効
-          yearlyExpenseAmount += expense.monthlyAmount;
-        }
+        const monthlyExpense = getActiveExpenseForMonth([expense], year, month);
+        yearlyExpenseAmount += monthlyExpense;
       }
       yearData[expenseKey] = -Math.round(yearlyExpenseAmount);
     });
@@ -336,30 +320,8 @@ export function calculateFinancialSimulation({
       // その年の各月における有効な収入額を計算
       let yearlyIncomeAmount = 0;
       for (let month = 1; month <= 12; month++) {
-        // シミュレーション開始年を基準とした年数で計算
-        const simulationYear = year;
-        const simulationMonth = month;
-
-        // この収入項目が有効な月のみ加算
-        // startYear/startMonthがundefinedの場合はデフォルト値を使用
-        const startYear = income.startYear ?? 0;
-        const startMonth = income.startMonth ?? 1;
-
-        // 開始年月をシミュレーション開始からの月数で計算
-        const startMonthFromStart = startYear * 12 + startMonth - 1;
-        const currentMonthFromStart = simulationYear * 12 + simulationMonth - 1;
-
-        if (currentMonthFromStart >= startMonthFromStart) {
-          if (!income.endYear || !income.endMonth) {
-            yearlyIncomeAmount += income.monthlyAmount;
-          } else {
-            // 終了年月をシミュレーション開始からの月数で計算
-            const endMonthFromStart = income.endYear * 12 + income.endMonth - 1;
-            if (currentMonthFromStart <= endMonthFromStart) {
-              yearlyIncomeAmount += income.monthlyAmount;
-            }
-          }
-        }
+        const monthlyIncome = getActiveIncomeForMonth([income], year, month);
+        yearlyIncomeAmount += monthlyIncome;
       }
       yearData[incomeKey] = Math.round(yearlyIncomeAmount);
     });

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { calculateFinancialSimulation } from "@/utils/financialSimulation";
 import { FinancialAsset } from "@/components/FinancialAssetsForm";
 import { Income } from "@/contexts/IncomeContext";
+import { YearMonthDuration } from "@/types/YearMonth";
 
 // テスト用のヘルパー関数：calculateFinancialSimulation関数を直接呼び出す
 function runSimulation(
@@ -30,10 +31,8 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
         name: "期間限定収入",
         monthlyAmount: 100000, // 月10万円
         color: "#10B981",
-        startYear: 0, // 0年目から開始
-        startMonth: 1, // 1月から開始
-        endYear: 1, // 1年目で終了
-        endMonth: 6, // 6月で終了
+        startYearMonth: YearMonthDuration.from(0, 1), // 0年目1月から開始
+        endYearMonth: YearMonthDuration.from(1, 6), // 1年目6月で終了
       },
     ];
 
@@ -52,7 +51,7 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
     expect(result.simulationData[3].deposits).toBe(1000000 + 100000 * 18);
   });
 
-  it("startYear/startMonthがundefinedの場合、0年/1月からスタートする", () => {
+  it("startYearMonthがundefinedの場合、常に有効として扱われる", () => {
     const baseAssets: FinancialAsset = {
       deposits: 500000, // 初期預金50万円
       investments: [],
@@ -64,8 +63,7 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
         name: "開始期間未設定収入",
         monthlyAmount: 50000, // 月5万円
         color: "#10B981",
-        endYear: 1, // 1年目で終了
-        endMonth: 12, // 12月で終了
+        endYearMonth: YearMonthDuration.from(1, 12), // 1年目12月で終了
       },
     ];
 
@@ -84,7 +82,7 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
     expect(result.simulationData[3].deposits).toBe(500000 + 50000 * 24);
   });
 
-  it("startYearのみundefinedの場合、0年からスタートする", () => {
+  it("6月から開始して年内で終了する収入", () => {
     const baseAssets: FinancialAsset = {
       deposits: 300000, // 初期預金30万円
       investments: [],
@@ -93,12 +91,11 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
     const incomes: Income[] = [
       {
         id: "income1",
-        name: "開始年未設定収入",
+        name: "年内限定収入",
         monthlyAmount: 30000, // 月3万円
         color: "#10B981",
-        startMonth: 6, // 6月から開始
-        endYear: 0, // 0年目で終了
-        endMonth: 12, // 12月で終了
+        startYearMonth: YearMonthDuration.from(0, 6), // 0年目6月から開始
+        endYearMonth: YearMonthDuration.from(0, 12), // 0年目12月で終了
       },
     ];
 
@@ -114,7 +111,7 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
     expect(result.simulationData[2].deposits).toBe(300000 + 30000 * 7);
   });
 
-  it("startMonthのみundefinedの場合、1月からスタートする", () => {
+  it("1年目から開始して同年内で終了する収入", () => {
     const baseAssets: FinancialAsset = {
       deposits: 200000, // 初期預金20万円
       investments: [],
@@ -123,12 +120,11 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
     const incomes: Income[] = [
       {
         id: "income1",
-        name: "開始月未設定収入",
+        name: "1年目限定収入",
         monthlyAmount: 20000, // 月2万円
         color: "#10B981",
-        startYear: 1, // 1年目から開始
-        endYear: 1, // 1年目で終了
-        endMonth: 6, // 6月で終了
+        startYearMonth: YearMonthDuration.from(1, 1), // 1年目1月から開始
+        endYearMonth: YearMonthDuration.from(1, 6), // 1年目6月で終了
       },
     ];
 
