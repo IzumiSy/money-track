@@ -157,6 +157,26 @@ export default function FinancialAssetsChart({
                   name={expense.name}
                 />
               ))}
+              {investments.map((investment) => {
+                const hasInvestmentOptions =
+                  investment.investmentOptions &&
+                  investment.investmentOptions.length > 0;
+                if (!hasInvestmentOptions) return null;
+
+                return (
+                  <Bar
+                    key={`investment_expense_${investment.id}`}
+                    dataKey={`investment_expense_${investment.id}`}
+                    stackId="c"
+                    fill={investment.color}
+                    name={`${
+                      investment.name ||
+                      `投資 #${investments.indexOf(investment) + 1}`
+                    } 積立`}
+                    opacity={0.7}
+                  />
+                );
+              })}
             </BarChart>
           </ResponsiveContainer>
         </div>

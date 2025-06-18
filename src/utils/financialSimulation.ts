@@ -98,6 +98,37 @@ function getActiveExpenseForMonth(
   }, 0);
 }
 
+// 指定された年月における有効な投資積立額の合計を計算
+function getActiveInvestmentForMonth(
+  investments: FinancialAsset["investments"],
+  year: number,
+  month: number
+): number {
+  const targetTotalMonths = year * 12 + (month - 1);
+
+  return investments.reduce((sum, investment) => {
+    const investmentSum = investment.investmentOptions.reduce(
+      (optionSum, option) => {
+        const startTotalMonths =
+          option.startYear * 12 + (option.startMonth - 1);
+        const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
+
+        // 現在の年月が積立期間内かチェック
+        if (
+          targetTotalMonths >= startTotalMonths &&
+          targetTotalMonths <= endTotalMonths &&
+          option.monthlyAmount > 0
+        ) {
+          return optionSum + option.monthlyAmount;
+        }
+        return optionSum;
+      },
+      0
+    );
+    return sum + investmentSum;
+  }, 0);
+}
+
 export function calculateFinancialSimulation({
   assets,
   expenses = [],
@@ -168,7 +199,13 @@ export function calculateFinancialSimulation({
       for (let month = 1; month <= 12; month++) {
         const monthlyIncome = getActiveIncomeForMonth(incomes, year, month);
         const monthlyExpense = getActiveExpenseForMonth(expenses, year, month);
-        totalCashFlow += monthlyIncome - monthlyExpense;
+        const monthlyInvestment = getActiveInvestmentForMonth(
+          investments,
+          year,
+          month
+        );
+        // 投資積立額も支出として扱う
+        totalCashFlow += monthlyIncome - monthlyExpense - monthlyInvestment;
       }
     }
 
@@ -312,6 +349,38 @@ export function calculateFinancialSimulation({
         yearlyExpenseAmount += monthlyExpense;
       }
       yearData[expenseKey] = -Math.round(yearlyExpenseAmount);
+    });
+
+    // 各投資の積立額を支出として追加
+    investments.forEach((inv) => {
+      if (inv.investmentOptions.length > 0) {
+        const investmentExpenseKey = `investment_expense_${inv.id}`;
+        let yearlyInvestmentAmount = 0;
+
+        // その年の各月における有効な積立額を計算
+        for (let month = 1; month <= 12; month++) {
+          const targetTotalMonths = year * 12 + (month - 1);
+
+          inv.investmentOptions.forEach((option) => {
+            const startTotalMonths =
+              option.startYear * 12 + (option.startMonth - 1);
+            const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
+
+            // 現在の年月が積立期間内かチェック
+            if (
+              targetTotalMonths >= startTotalMonths &&
+              targetTotalMonths <= endTotalMonths &&
+              option.monthlyAmount > 0
+            ) {
+              yearlyInvestmentAmount += option.monthlyAmount;
+            }
+          });
+        }
+
+        if (yearlyInvestmentAmount > 0) {
+          yearData[investmentExpenseKey] = -Math.round(yearlyInvestmentAmount);
+        }
+      }
     });
 
     // 各収入項目を個別にPositiveバーとして追加（期間を考慮）
