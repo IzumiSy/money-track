@@ -13,212 +13,39 @@ import {
 } from "recharts";
 import { FinancialAsset } from "./FinancialAssetsForm";
 import { Expense } from "@/contexts/ExpensesContext";
+import { Income } from "@/contexts/IncomeContext";
+import { useFinancialSimulation } from "@/hooks/useFinancialSimulation";
 
 interface FinancialAssetsChartProps {
   assets: FinancialAsset;
   expenses?: Expense[];
+  incomes?: Income[];
 }
 
 const COLORS = {
   deposits: "#3B82F6", // Blue
+  income: "#10B981", // Green
 };
 
 export default function FinancialAssetsChart({
   assets,
   expenses = [],
+  incomes = [],
 }: FinancialAssetsChartProps) {
-  const { deposits, investments } = assets;
+  const { investments } = assets;
   const [simulationYears, setSimulationYears] = useState(30);
 
-  // 月額積立の合計額を計算（積立オプションから）
-  const totalMonthlyInvestments = investments.reduce((sum, inv) => {
-    return (
-      sum +
-      inv.investmentOptions.reduce((optionSum, option) => {
-        return optionSum + option.monthlyAmount;
-      }, 0)
-    );
-  }, 0);
-
-  // 月額売却の合計額を計算（売却オプションから）
-  const totalMonthlySellbacks = investments.reduce((sum, inv) => {
-    return (
-      sum +
-      inv.sellbackOptions.reduce((optionSum, option) => {
-        return optionSum + option.monthlyAmount;
-      }, 0)
-    );
-  }, 0);
-
-  // 月額支出の合計額を計算
-  const totalMonthlyExpenses = expenses.reduce(
-    (sum, exp) => sum + exp.monthlyAmount,
-    0
-  );
-
-  // ベース評価額の合計を計算
-  const totalBaseAmount = investments.reduce(
-    (sum, inv) => sum + inv.baseAmount,
-    0
-  );
-
-  const total = deposits + totalBaseAmount; // 初期値は預金 + ベース評価額
-
-  // 資産推移シミュレーション計算（投資ごとに個別計算、支出と売却を考慮）
-  const generateSimulationData = () => {
-    const data = [];
-    let currentDeposits = deposits;
-
-    for (let year = 0; year <= simulationYears; year++) {
-      // 支出による預金の減少を計算（年間支出額）
-      const yearlyExpenses = totalMonthlyExpenses * 12 * year;
-      // 売却による預金の増加を計算（売却オプションから）
-      let yearlySellbacks = 0;
-      investments.forEach((inv) => {
-        inv.sellbackOptions.forEach((option) => {
-          const startTotalMonths =
-            option.startYear * 12 + (option.startMonth - 1);
-          const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
-          const currentTotalMonths = year * 12;
-
-          // 現在の年月が売却期間内かチェック
-          if (
-            currentTotalMonths >= startTotalMonths &&
-            option.monthlyAmount > 0
-          ) {
-            // 実際の売却期間を計算
-            const actualEndMonths = Math.min(
-              endTotalMonths,
-              currentTotalMonths
-            );
-            const sellbackMonths = actualEndMonths - startTotalMonths + 1;
-
-            if (sellbackMonths > 0) {
-              yearlySellbacks += option.monthlyAmount * sellbackMonths;
-            }
-          }
-        });
-      });
-
-      const depositsAfterExpensesAndSellbacks = Math.max(
-        0,
-        currentDeposits - yearlyExpenses + yearlySellbacks
-      );
-
-      const yearData: any = {
-        year: `${year}年目`,
-        deposits: Math.round(depositsAfterExpensesAndSellbacks),
-      };
-
-      let totalInvestmentValue = 0;
-
-      // 各投資の将来価値を個別に計算
-      investments.forEach((inv, index) => {
-        // ベース評価額の成長を計算
-        let baseValue = 0;
-        if (inv.baseAmount > 0) {
-          const annualRate = inv.returnRate;
-          baseValue = inv.baseAmount * Math.pow(1 + annualRate, year);
-        }
-
-        // 積立オプションの将来価値を計算
-        let monthlyInvestmentValue = 0;
-        inv.investmentOptions.forEach((option) => {
-          // 各オプションの開始・終了時期を計算
-          const startTotalMonths =
-            option.startYear * 12 + (option.startMonth - 1);
-          const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
-          const currentTotalMonths = year * 12;
-
-          // 現在の年月が積立期間内かチェック
-          if (
-            currentTotalMonths >= startTotalMonths &&
-            option.monthlyAmount > 0
-          ) {
-            // 実際の積立期間を計算
-            const actualEndMonths = Math.min(
-              endTotalMonths,
-              currentTotalMonths
-            );
-            const investmentMonths = actualEndMonths - startTotalMonths + 1;
-
-            if (investmentMonths > 0) {
-              const monthlyRate = inv.returnRate / 12;
-              let optionValue = 0;
-
-              if (monthlyRate > 0) {
-                // 複利計算式: PMT * (((1 + r)^n - 1) / r)
-                optionValue =
-                  (option.monthlyAmount *
-                    (Math.pow(1 + monthlyRate, investmentMonths) - 1)) /
-                  monthlyRate;
-
-                // 積立終了後の成長を計算
-                if (currentTotalMonths > endTotalMonths) {
-                  const growthMonths = currentTotalMonths - endTotalMonths;
-                  optionValue =
-                    optionValue * Math.pow(1 + monthlyRate, growthMonths);
-                }
-              } else {
-                // リターン率が0の場合は単純な積立額の合計
-                optionValue = option.monthlyAmount * investmentMonths;
-              }
-
-              monthlyInvestmentValue += optionValue;
-            }
-          }
-        });
-
-        // 総投資価値（ベース評価額 + 積立投資価値）
-        let futureValue = baseValue + monthlyInvestmentValue;
-
-        // 売却オプションによる投資価値の減少を計算
-        inv.sellbackOptions.forEach((option) => {
-          const startTotalMonths =
-            option.startYear * 12 + (option.startMonth - 1);
-          const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
-          const currentTotalMonths = year * 12;
-
-          // 現在の年月が売却期間内かチェック
-          if (
-            currentTotalMonths >= startTotalMonths &&
-            option.monthlyAmount > 0
-          ) {
-            // 実際の売却期間を計算
-            const actualEndMonths = Math.min(
-              endTotalMonths,
-              currentTotalMonths
-            );
-            const sellbackMonths = actualEndMonths - startTotalMonths + 1;
-
-            if (sellbackMonths > 0) {
-              const totalSellbackAmount = option.monthlyAmount * sellbackMonths;
-              futureValue = Math.max(0, futureValue - totalSellbackAmount);
-            }
-          }
-        });
-
-        const investmentKey = `investment_${inv.id}`;
-        yearData[investmentKey] = Math.round(futureValue);
-        totalInvestmentValue += futureValue;
-      });
-
-      // 年間支出額をマイナスのバーとして追加（0年目以降）
-      if (totalMonthlyExpenses > 0) {
-        yearData.expenses = -Math.round(totalMonthlyExpenses * 12);
-      }
-
-      yearData.total = Math.round(
-        depositsAfterExpensesAndSellbacks + totalInvestmentValue
-      );
-      data.push(yearData);
-    }
-
-    return data;
-  };
+  // シミュレーション計算ロジックをhookに委譲
+  const { simulationData, hasData, totalMonthlyInvestments } =
+    useFinancialSimulation({
+      assets,
+      expenses,
+      incomes,
+      simulationYears,
+    });
 
   // データが0の場合の処理
-  if (total === 0 && totalMonthlyInvestments === 0) {
+  if (!hasData) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
@@ -248,9 +75,6 @@ export default function FinancialAssetsChart({
     );
   }
 
-  const simulationData = generateSimulationData();
-  const finalYear = simulationData[simulationData.length - 1];
-
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat("ja-JP").format(value);
   };
@@ -261,159 +85,6 @@ export default function FinancialAssetsChart({
 
   return (
     <div className="space-y-6">
-      {/* シミュレーション結果サマリー */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-blue-600 dark:text-blue-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
-                  />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                現在の預金
-              </p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {formatNumber(deposits)}円
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-green-600 dark:text-green-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                  />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                月額積立合計
-              </p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {formatNumber(totalMonthlyInvestments)}円/月
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-red-600 dark:text-red-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                  />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                月額支出合計
-              </p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {formatNumber(totalMonthlyExpenses)}円/月
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-purple-600 dark:text-purple-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16l-4-4m0 0l4-4m-4 4h18"
-                  />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                月額売却合計
-              </p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {formatNumber(totalMonthlySellbacks)}円/月
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-orange-600 dark:text-orange-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
-                  />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                {simulationYears}年後予想
-              </p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {formatNumber(finalYear.total)}円
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* 資産推移シミュレーション */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex justify-between items-center mb-4">
@@ -458,7 +129,7 @@ export default function FinancialAssetsChart({
                 dataKey="deposits"
                 stackId="a"
                 fill={COLORS.deposits}
-                name="預金"
+                name="資産"
               />
               {investments.map((investment, index) => (
                 <Bar
@@ -469,9 +140,24 @@ export default function FinancialAssetsChart({
                   name={investment.name || `投資 #${index + 1}`}
                 />
               ))}
-              {totalMonthlyExpenses > 0 && (
-                <Bar dataKey="expenses" fill="#EF4444" name="年間支出" />
-              )}
+              {incomes.map((income) => (
+                <Bar
+                  key={income.id}
+                  dataKey={`income_${income.id}`}
+                  stackId="b"
+                  fill={income.color}
+                  name={income.name}
+                />
+              ))}
+              {expenses.map((expense) => (
+                <Bar
+                  key={expense.id}
+                  dataKey={`expense_${expense.id}`}
+                  stackId="c"
+                  fill={expense.color}
+                  name={expense.name}
+                />
+              ))}
             </BarChart>
           </ResponsiveContainer>
         </div>

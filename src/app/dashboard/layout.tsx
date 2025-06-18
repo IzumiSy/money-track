@@ -1,14 +1,20 @@
 import AppLayout from "@/components/AppLayout";
 import { FinancialAssetsProvider } from "@/contexts/FinancialAssetsContext";
 import { ExpensesProvider } from "@/contexts/ExpensesContext";
+import { IncomeProvider } from "@/contexts/IncomeContext";
+import { SimulationProvider } from "@/contexts/SimulationContext";
 
 const Layout = (props: React.PropsWithChildren) => {
   return (
-    <FinancialAssetsProvider>
-      <ExpensesProvider>
-        <AppLayout>{props.children}</AppLayout>
-      </ExpensesProvider>
-    </FinancialAssetsProvider>
+    <SimulationProvider>
+      <FinancialAssetsProvider>
+        <ExpensesProvider>
+          <IncomeProvider>
+            <AppLayout>{props.children}</AppLayout>
+          </IncomeProvider>
+        </ExpensesProvider>
+      </FinancialAssetsProvider>
+    </SimulationProvider>
   );
 };
 
