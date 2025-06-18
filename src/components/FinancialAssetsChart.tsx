@@ -36,13 +36,12 @@ export default function FinancialAssetsChart({
   const [simulationYears, setSimulationYears] = useState(30);
 
   // シミュレーション計算ロジックをhookに委譲
-  const { simulationData, hasData, totalMonthlyInvestments } =
-    useFinancialSimulation({
-      assets,
-      expenses,
-      incomes,
-      simulationYears,
-    });
+  const { simulationData, hasData } = useFinancialSimulation({
+    assets,
+    expenses,
+    incomes,
+    simulationYears,
+  });
 
   // データが0の場合の処理
   if (!hasData) {
