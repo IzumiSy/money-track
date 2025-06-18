@@ -32,7 +32,7 @@ export default function IncomeForm() {
   const handleUpdateIncome = (
     id: string,
     field: keyof Omit<Income, "id">,
-    value: string | number
+    value: string | number | undefined
   ) => {
     updateIncome(id, { [field]: value });
   };
@@ -87,7 +87,7 @@ export default function IncomeForm() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   {/* 収入名 */}
                   <div>
                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -148,6 +148,92 @@ export default function IncomeForm() {
                         className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-600 dark:text-white"
                         placeholder="#10B981"
                       />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* 開始年月 */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      開始年月
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="number"
+                        value={income.startYear || ""}
+                        onChange={(e) =>
+                          handleUpdateIncome(
+                            income.id,
+                            "startYear",
+                            Number(e.target.value) || undefined
+                          )
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
+                        placeholder="年"
+                        min="2000"
+                        max="2100"
+                      />
+                      <select
+                        value={income.startMonth || ""}
+                        onChange={(e) =>
+                          handleUpdateIncome(
+                            income.id,
+                            "startMonth",
+                            Number(e.target.value) || undefined
+                          )
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
+                      >
+                        <option value="">月</option>
+                        {Array.from({ length: 12 }, (_, i) => (
+                          <option key={i + 1} value={i + 1}>
+                            {i + 1}月
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* 終了年月 */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      終了年月（任意）
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="number"
+                        value={income.endYear || ""}
+                        onChange={(e) =>
+                          handleUpdateIncome(
+                            income.id,
+                            "endYear",
+                            Number(e.target.value) || undefined
+                          )
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
+                        placeholder="年"
+                        min="2000"
+                        max="2100"
+                      />
+                      <select
+                        value={income.endMonth || ""}
+                        onChange={(e) =>
+                          handleUpdateIncome(
+                            income.id,
+                            "endMonth",
+                            Number(e.target.value) || undefined
+                          )
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
+                      >
+                        <option value="">月</option>
+                        {Array.from({ length: 12 }, (_, i) => (
+                          <option key={i + 1} value={i + 1}>
+                            {i + 1}月
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>

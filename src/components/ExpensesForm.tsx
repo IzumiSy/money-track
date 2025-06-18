@@ -32,7 +32,7 @@ export default function ExpensesForm() {
   const handleUpdateExpense = (
     id: string,
     field: keyof Omit<Expense, "id">,
-    value: string | number
+    value: string | number | undefined
   ) => {
     updateExpense(id, { [field]: value });
   };
@@ -87,7 +87,7 @@ export default function ExpensesForm() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   {/* 支出名 */}
                   <div>
                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -156,6 +156,92 @@ export default function ExpensesForm() {
                         className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-600 dark:text-white"
                         placeholder="#EF4444"
                       />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* 開始年月 */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      開始年月
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="number"
+                        value={expense.startYear || ""}
+                        onChange={(e) =>
+                          handleUpdateExpense(
+                            expense.id,
+                            "startYear",
+                            Number(e.target.value) || undefined
+                          )
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
+                        placeholder="年"
+                        min="2000"
+                        max="2100"
+                      />
+                      <select
+                        value={expense.startMonth || ""}
+                        onChange={(e) =>
+                          handleUpdateExpense(
+                            expense.id,
+                            "startMonth",
+                            Number(e.target.value) || undefined
+                          )
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
+                      >
+                        <option value="">月</option>
+                        {Array.from({ length: 12 }, (_, i) => (
+                          <option key={i + 1} value={i + 1}>
+                            {i + 1}月
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* 終了年月 */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      終了年月（任意）
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="number"
+                        value={expense.endYear || ""}
+                        onChange={(e) =>
+                          handleUpdateExpense(
+                            expense.id,
+                            "endYear",
+                            Number(e.target.value) || undefined
+                          )
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
+                        placeholder="年"
+                        min="2000"
+                        max="2100"
+                      />
+                      <select
+                        value={expense.endMonth || ""}
+                        onChange={(e) =>
+                          handleUpdateExpense(
+                            expense.id,
+                            "endMonth",
+                            Number(e.target.value) || undefined
+                          )
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
+                      >
+                        <option value="">月</option>
+                        {Array.from({ length: 12 }, (_, i) => (
+                          <option key={i + 1} value={i + 1}>
+                            {i + 1}月
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>

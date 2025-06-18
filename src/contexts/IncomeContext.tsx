@@ -7,6 +7,10 @@ export interface Income {
   name: string;
   monthlyAmount: number; // 月間収入額
   color: string; // グラフ上での色
+  startYear?: number; // 開始年
+  startMonth?: number; // 開始月 (1-12)
+  endYear?: number; // 終了年
+  endMonth?: number; // 終了月 (1-12)
 }
 
 interface IncomeContextType {
