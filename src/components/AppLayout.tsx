@@ -63,7 +63,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <div className="px-6 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              キャッシュフローシミュレータ
+              MoneyTrack
             </h1>
             {currentSimulation && (
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">

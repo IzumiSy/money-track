@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "キャッシュフローシミュレータ",
+  title: "MoneyTrack",
   description:
     "個人の資産管理とキャッシュフローをシミュレーションするアプリケーション",
 };
