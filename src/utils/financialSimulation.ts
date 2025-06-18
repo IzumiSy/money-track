@@ -147,16 +147,6 @@ export function calculateFinancialSimulation({
     );
   }, 0);
 
-  // 月額売却の合計額を計算（売却オプションから）
-  const totalMonthlySellbacks = investments.reduce((sum, inv) => {
-    return (
-      sum +
-      inv.sellbackOptions.reduce((optionSum, option) => {
-        return optionSum + option.monthlyAmount;
-      }, 0)
-    );
-  }, 0);
-
   // 月額収入の合計額を計算（現在時点での有効な収入のみ）
   const currentDate = new Date();
   const totalMonthlyIncomes = getActiveIncomeForMonth(
@@ -186,7 +176,6 @@ export function calculateFinancialSimulation({
 
   // 資産推移シミュレーション計算（収入・支出・投資を考慮）
   const simulationData: SimulationDataPoint[] = [];
-  const currentYear = currentDate.getFullYear();
 
   // 累積キャッシュフローを事前に計算
   const cumulativeCashFlows: number[] = [];
