@@ -158,13 +158,13 @@ export function calculateFinancialSimulation({
   const currentYear = currentDate.getFullYear();
 
   // 累積キャッシュフローを事前に計算
-  const cumulativeCashFlows: number[] = [0]; // 0年目は0
+  const cumulativeCashFlows: number[] = [];
 
   for (let targetYear = 1; targetYear <= simulationYears; targetYear++) {
     let totalCashFlow = 0;
 
-    // 0年目からtargetYear-1年目までの全ての月のキャッシュフローを累積
-    for (let year = 0; year < targetYear; year++) {
+    // 1年目からtargetYear年目までの全ての月のキャッシュフローを累積
+    for (let year = 1; year <= targetYear; year++) {
       for (let month = 1; month <= 12; month++) {
         const monthlyIncome = getActiveIncomeForMonth(incomes, year, month);
         const monthlyExpense = getActiveExpenseForMonth(expenses, year, month);
@@ -175,8 +175,8 @@ export function calculateFinancialSimulation({
     cumulativeCashFlows.push(totalCashFlow);
   }
 
-  for (let year = 0; year <= simulationYears; year++) {
-    const cumulativeCashFlow = cumulativeCashFlows[year];
+  for (let year = 1; year <= simulationYears; year++) {
+    const cumulativeCashFlow = cumulativeCashFlows[year - 1];
 
     // 売却による預金の増加を計算（売却オプションから）
     let yearlySellbacks = 0;
