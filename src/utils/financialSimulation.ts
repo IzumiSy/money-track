@@ -204,6 +204,18 @@ export function calculateFinancialSimulation({
   // 累積売却額を追跡
   let cumulativeSellbacksTotal = 0;
 
+  // 各投資の残高を追跡（年ごと）
+  const investmentBalances = new Map<string, number[]>();
+  investments.forEach((inv) => {
+    investmentBalances.set(inv.id, []);
+  });
+
+  // 各投資の実際の売却額を記録
+  const actualYearlySellbacks = new Map<string, number[]>();
+  investments.forEach((inv) => {
+    actualYearlySellbacks.set(inv.id, []);
+  });
+
   for (let year = 1; year <= simulationYears; year++) {
     const cumulativeCashFlow = cumulativeCashFlows[year - 1];
 
@@ -273,30 +285,53 @@ export function calculateFinancialSimulation({
         }
       });
 
-      // 総投資価値（ベース評価額 + 積立投資価値）
-      let futureValue = baseValue + monthlyInvestmentValue;
+      // 前年の残高を取得
+      const balanceHistory = investmentBalances.get(inv.id) || [];
+      let futureValue: number;
 
-      // 売却オプションによる投資価値の減少を計算（前年までの累積売却額）
-      let cumulativeSellbackAmount = 0;
-      for (let y = 1; y < year; y++) {
-        inv.sellbackOptions.forEach((option) => {
+      if (year === 1) {
+        // 初年度は通常の計算を使用
+        futureValue = baseValue + monthlyInvestmentValue;
+      } else {
+        // 2年目以降は前年の残高を基に計算
+        const previousBalance = balanceHistory[year - 2] || 0;
+
+        // 前年の残高が成長
+        let currentValue = previousBalance;
+        if (previousBalance > 0 && inv.returnRate > 0) {
+          currentValue = previousBalance * (1 + inv.returnRate);
+        }
+
+        // 今年の積立を追加
+        let thisYearAddition = 0;
+        inv.investmentOptions.forEach((option) => {
           const startTotalMonths =
             option.startYear * 12 + (option.startMonth - 1);
           const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
 
-          // y年目の売却額を計算
           for (let m = 1; m <= 12; m++) {
-            const targetTotalMonths = y * 12 + (m - 1);
+            const targetTotalMonths = (year - 1) * 12 + m;
 
             if (
               targetTotalMonths >= startTotalMonths &&
               targetTotalMonths <= endTotalMonths &&
               option.monthlyAmount > 0
             ) {
-              cumulativeSellbackAmount += option.monthlyAmount;
+              const monthlyRate = inv.returnRate / 12;
+
+              if (monthlyRate > 0) {
+                // この月の積立が年末までに成長
+                const monthsToYearEnd = 12 - m + 1;
+                const growthFactor = Math.pow(1 + monthlyRate, monthsToYearEnd);
+                thisYearAddition += option.monthlyAmount * growthFactor;
+              } else {
+                thisYearAddition += option.monthlyAmount;
+              }
             }
           }
         });
+
+        futureValue = currentValue + thisYearAddition;
       }
 
       // 今年の売却額を計算
@@ -320,36 +355,24 @@ export function calculateFinancialSimulation({
         }
       });
 
-      // 総売却額（前年までの累積 + 今年の売却額）
-      const totalSellbackAmount =
-        cumulativeSellbackAmount + currentYearSellbackAmount;
-
-      // 売却額が投資価値を超えないように制限
-      // 前年までに実際に売却された額を計算
-      let actualCumulativeSellback = 0;
-      const remainingAfterPreviousSellbacks = Math.max(
-        0,
-        futureValue - cumulativeSellbackAmount
-      );
-
-      if (cumulativeSellbackAmount <= futureValue) {
-        actualCumulativeSellback = cumulativeSellbackAmount;
-      } else {
-        actualCumulativeSellback = futureValue;
-      }
-
       // 今年売却可能な額
       const actualCurrentYearSellback = Math.min(
         currentYearSellbackAmount,
-        remainingAfterPreviousSellbacks
+        futureValue
       );
 
-      // 総売却額（実際の値）
-      const actualTotalSellbackAmount =
-        actualCumulativeSellback + actualCurrentYearSellback;
-
-      futureValue = Math.max(0, futureValue - actualTotalSellbackAmount);
+      // 売却後の価値
+      futureValue = Math.max(0, futureValue - actualCurrentYearSellback);
       yearlySellbacks += actualCurrentYearSellback;
+
+      // この投資の残高を記録
+      balanceHistory.push(futureValue);
+      investmentBalances.set(inv.id, balanceHistory);
+
+      // この投資の今年の実際の売却額を記録
+      const sellbacksForThisInv = actualYearlySellbacks.get(inv.id) || [];
+      sellbacksForThisInv.push(actualCurrentYearSellback);
+      actualYearlySellbacks.set(inv.id, sellbacksForThisInv);
 
       const investmentKey = `investment_${inv.id}`;
       yearData[investmentKey] = Math.round(futureValue);
@@ -425,127 +448,18 @@ export function calculateFinancialSimulation({
     });
 
     // 売却益を収入として追加（その年の売却額のみ）
-    let investmentIndex = 0;
     investments.forEach((inv) => {
       if (inv.sellbackOptions.length > 0) {
         const sellbackIncomeKey = `sellback_income_${inv.id}`;
 
-        // この投資の今年の売却額を取得
-        // yearlySellbacksは全投資の合計なので、個別の投資の売却額を再計算
-        let thisInvestmentYearlySellback = 0;
+        // 記録された実際の売却額を使用
+        const sellbacksForThisInv = actualYearlySellbacks.get(inv.id) || [];
+        const thisYearSellback = sellbacksForThisInv[year - 1] || 0;
 
-        // ベース評価額の成長を計算
-        let baseValue = 0;
-        if (inv.baseAmount > 0) {
-          const annualRate = inv.returnRate;
-          baseValue = inv.baseAmount * Math.pow(1 + annualRate, year);
-        }
-
-        // 積立オプションの将来価値を計算
-        let monthlyInvestmentValue = 0;
-        inv.investmentOptions.forEach((option) => {
-          const startTotalMonths =
-            option.startYear * 12 + (option.startMonth - 1);
-          const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
-          const currentTotalMonths = year * 12;
-
-          if (
-            currentTotalMonths >= startTotalMonths &&
-            option.monthlyAmount > 0
-          ) {
-            const actualEndMonths = Math.min(
-              endTotalMonths,
-              currentTotalMonths
-            );
-            const investmentMonths = actualEndMonths - startTotalMonths + 1;
-
-            if (investmentMonths > 0) {
-              const monthlyRate = inv.returnRate / 12;
-              let optionValue = 0;
-
-              if (monthlyRate > 0) {
-                optionValue =
-                  (option.monthlyAmount *
-                    (Math.pow(1 + monthlyRate, investmentMonths) - 1)) /
-                  monthlyRate;
-
-                if (currentTotalMonths > endTotalMonths) {
-                  const growthMonths = currentTotalMonths - endTotalMonths;
-                  optionValue =
-                    optionValue * Math.pow(1 + monthlyRate, growthMonths);
-                }
-              } else {
-                optionValue = option.monthlyAmount * investmentMonths;
-              }
-
-              monthlyInvestmentValue += optionValue;
-            }
-          }
-        });
-
-        // 総投資価値（ベース評価額 + 積立投資価値）
-        let futureValue = baseValue + monthlyInvestmentValue;
-
-        // 前年までの累積売却額を計算
-        let cumulativeSellbackAmount = 0;
-        for (let y = 1; y < year; y++) {
-          inv.sellbackOptions.forEach((option) => {
-            const startTotalMonths =
-              option.startYear * 12 + (option.startMonth - 1);
-            const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
-
-            for (let m = 1; m <= 12; m++) {
-              const targetTotalMonths = y * 12 + (m - 1);
-
-              if (
-                targetTotalMonths >= startTotalMonths &&
-                targetTotalMonths <= endTotalMonths &&
-                option.monthlyAmount > 0
-              ) {
-                cumulativeSellbackAmount += option.monthlyAmount;
-              }
-            }
-          });
-        }
-
-        // 今年の売却額を計算
-        let currentYearSellbackAmount = 0;
-        inv.sellbackOptions.forEach((option) => {
-          const startTotalMonths =
-            option.startYear * 12 + (option.startMonth - 1);
-          const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
-
-          for (let m = 1; m <= 12; m++) {
-            const targetTotalMonths = year * 12 + (m - 1);
-
-            if (
-              targetTotalMonths >= startTotalMonths &&
-              targetTotalMonths <= endTotalMonths &&
-              option.monthlyAmount > 0
-            ) {
-              currentYearSellbackAmount += option.monthlyAmount;
-            }
-          }
-        });
-
-        // 実際の売却可能額を計算
-        const remainingAfterPreviousSellbacks = Math.max(
-          0,
-          futureValue - cumulativeSellbackAmount
-        );
-
-        thisInvestmentYearlySellback = Math.min(
-          currentYearSellbackAmount,
-          remainingAfterPreviousSellbacks
-        );
-
-        if (thisInvestmentYearlySellback > 0) {
-          yearData[sellbackIncomeKey] = Math.round(
-            thisInvestmentYearlySellback
-          );
+        if (thisYearSellback > 0) {
+          yearData[sellbackIncomeKey] = Math.round(thisYearSellback);
         }
       }
-      investmentIndex++;
     });
 
     yearData.total = Math.round(adjustedDeposits + totalInvestmentValue);
