@@ -99,7 +99,7 @@ export default function FinancialAssetsChart({
               onChange={(e) => setSimulationYears(Number(e.target.value))}
               className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
             >
-              <option value={10}>10年</option>
+              <option value={15}>15年</option>
               <option value={30}>30年</option>
               <option value={50}>50年</option>
             </select>
