@@ -17,6 +17,84 @@ interface UseFinancialSimulationProps {
   simulationYears: number;
 }
 
+// チャート用のデータポイント型
+interface SimulationDataPoint {
+  year: string;
+  deposits: number;
+  total: number;
+  [key: string]: string | number; // 動的なキー（investment_*, income_*, expense_*）
+}
+
+// チャート用の結果型
+interface ChartSimulationResult {
+  simulationData: SimulationDataPoint[];
+  finalYearData: SimulationDataPoint;
+  hasData: boolean;
+  netMonthlyCashFlow: number;
+  totalBaseAmount: number;
+  initialTotal: number;
+}
+
+/**
+ * 計算結果をチャート用のデータ形式に変換する関数
+ */
+function convertToChartData(
+  calculationResult: ReturnType<typeof calculateFinancialSimulation>,
+  unifiedCalculator: ReturnType<typeof createCalculator<CalculatorSource>>
+): ChartSimulationResult {
+  const { yearlyData, currentMonthlyCashFlow, hasData } = calculationResult;
+
+  // チャート用のデータ形式に変換
+  const simulationData: SimulationDataPoint[] = yearlyData.map((yearData) => {
+    const chartData: SimulationDataPoint = {
+      year: `${yearData.year}年目`,
+      deposits: yearData.deposits,
+      total: yearData.deposits,
+    };
+
+    // unifiedCalculatorから全てのソースを取得
+    const sources = unifiedCalculator.getSources();
+
+    // 各支出項目を個別にマイナスのバーとして追加
+    sources
+      .filter((source) => source.type === "expense")
+      .forEach((expenseSource) => {
+        const expenseKey = `expense_${expenseSource.id}`;
+        const yearlyExpenseAmount =
+          yearData.expenseBreakdown.get(expenseSource.id) || 0;
+        chartData[expenseKey] = -Math.round(yearlyExpenseAmount);
+      });
+
+    // 各収入項目を個別にPositiveバーとして追加
+    sources
+      .filter((source) => source.type === "income")
+      .forEach((incomeSource) => {
+        const incomeKey = `income_${incomeSource.id}`;
+        const yearlyIncomeAmount =
+          yearData.incomeBreakdown.get(incomeSource.id) || 0;
+        chartData[incomeKey] = Math.round(yearlyIncomeAmount);
+      });
+
+    return chartData;
+  });
+
+  // 最終年のデータ
+  const finalYearData = simulationData[simulationData.length - 1] || {
+    year: "0年目",
+    deposits: 0,
+    total: 0,
+  };
+
+  return {
+    simulationData,
+    finalYearData,
+    hasData,
+    netMonthlyCashFlow: currentMonthlyCashFlow.net,
+    totalBaseAmount: 0, // 投資は無視するため0
+    initialTotal: yearlyData[0]?.deposits || 0,
+  };
+}
+
 /**
  * 新しいIncomeCalculatorを使用したファイナンシャルシミュレーションフック
  * 既存のuseFinancialSimulationと同じインターフェースを維持
@@ -42,10 +120,13 @@ export function useFinancialSimulation({
     });
 
     // 新しい計算ロジックを使用
-    return calculateFinancialSimulation({
+    const calculationResult = calculateFinancialSimulation({
       initialDeposits: assets.deposits,
       unifiedCalculator,
       simulationYears,
     });
+
+    // チャート用のデータ形式に変換
+    return convertToChartData(calculationResult, unifiedCalculator);
   }, [assets, expenses, incomes, simulationYears]);
 }

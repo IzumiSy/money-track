@@ -1,10 +1,10 @@
 import { Calculator, CalculatorSource } from "@/domains/shared";
 
-interface SimulationDataPoint {
-  year: string;
+interface YearlySimulationData {
+  year: number;
   deposits: number;
-  total: number;
-  [key: string]: string | number; // 動的なキー（investment_*, income_*, expense_*）
+  incomeBreakdown: Map<string, number>;
+  expenseBreakdown: Map<string, number>;
 }
 
 interface FinancialSimulationParams {
@@ -14,12 +14,13 @@ interface FinancialSimulationParams {
 }
 
 interface FinancialSimulationResult {
-  simulationData: SimulationDataPoint[];
-  finalYearData: SimulationDataPoint;
+  yearlyData: YearlySimulationData[];
+  currentMonthlyCashFlow: {
+    income: number;
+    expense: number;
+    net: number;
+  };
   hasData: boolean;
-  netMonthlyCashFlow: number;
-  totalBaseAmount: number;
-  initialTotal: number;
 }
 
 export function calculateFinancialSimulation({
@@ -38,14 +39,11 @@ export function calculateFinancialSimulation({
   const netMonthlyCashFlow =
     totalMonthlyCashFlow.income - totalMonthlyCashFlow.expense;
 
-  // ベース評価額の合計を計算（investmentsは無視するため0）
-  const totalBaseAmount = 0;
-
   // 初期総資産額
   const initialTotal = initialDeposits;
 
-  // 資産推移シミュレーション計算（収入・支出・投資を考慮）
-  const simulationData: SimulationDataPoint[] = [];
+  // 年ごとのシミュレーションデータを計算
+  const yearlyData: YearlySimulationData[] = [];
 
   // 累積キャッシュフローを事前に計算
   const cumulativeCashFlows: number[] = [];
@@ -68,18 +66,8 @@ export function calculateFinancialSimulation({
   for (let year = 1; year <= simulationYears; year++) {
     const cumulativeCashFlow = cumulativeCashFlows[year - 1];
 
-    // yearDataを先に定義
-    const yearData: SimulationDataPoint = {
-      year: `${year}年目`,
-      deposits: 0, // 後で更新
-      total: 0, // 後で計算
-    };
-
     // 調整済み預金額（基本預金 + 純キャッシュフロー）
     const adjustedDeposits = Math.max(0, initialDeposits + cumulativeCashFlow);
-
-    // 預金額を更新
-    yearData.deposits = Math.round(adjustedDeposits);
 
     // 年間の収入・支出を集計するためのマップ（IDをキーとする）
     const yearlyIncomeMap = new Map<string, number>();
@@ -104,47 +92,25 @@ export function calculateFinancialSimulation({
       });
     }
 
-    // unifiedCalculatorから全てのソースを取得して分類
-    const sources = unifiedCalculator.getSources();
-
-    // 各支出項目を個別にマイナスのバーとして追加
-    sources
-      .filter((source) => source.type === "expense")
-      .forEach((expenseSource) => {
-        const expenseKey = `expense_${expenseSource.id}`;
-        const yearlyExpenseAmount = yearlyExpenseMap.get(expenseSource.id) || 0;
-        yearData[expenseKey] = -Math.round(yearlyExpenseAmount);
-      });
-
-    // 投資関連の処理は削除
-
-    // 各収入項目を個別にPositiveバーとして追加
-    sources
-      .filter((source) => source.type === "income")
-      .forEach((incomeSource) => {
-        const incomeKey = `income_${incomeSource.id}`;
-        const yearlyIncomeAmount = yearlyIncomeMap.get(incomeSource.id) || 0;
-        yearData[incomeKey] = Math.round(yearlyIncomeAmount);
-      });
-
-    // 投資関連の処理は削除
-
-    yearData.total = Math.round(adjustedDeposits);
-    simulationData.push(yearData);
+    // 年ごとのデータを作成
+    yearlyData.push({
+      year,
+      deposits: Math.round(adjustedDeposits),
+      incomeBreakdown: yearlyIncomeMap,
+      expenseBreakdown: yearlyExpenseMap,
+    });
   }
-
-  // 最終年のデータ
-  const finalYearData = simulationData[simulationData.length - 1];
 
   // データが存在するかどうかの判定
   const hasData = initialTotal > 0 || totalMonthlyCashFlow.income > 0;
 
   return {
-    simulationData,
-    finalYearData,
+    yearlyData,
+    currentMonthlyCashFlow: {
+      income: totalMonthlyCashFlow.income,
+      expense: totalMonthlyCashFlow.expense,
+      net: netMonthlyCashFlow,
+    },
     hasData,
-    netMonthlyCashFlow,
-    totalBaseAmount,
-    initialTotal,
   };
 }

@@ -409,21 +409,33 @@ describe("unifiedCalculator.getBreakdown", () => {
       });
 
       // 月間純キャッシュフロー = 300000 - 200000 = 100000
-      expect(result.netMonthlyCashFlow).toBe(100000);
+      expect(result.currentMonthlyCashFlow.net).toBe(100000);
+      expect(result.currentMonthlyCashFlow.income).toBe(300000);
+      expect(result.currentMonthlyCashFlow.expense).toBe(200000);
 
       // 年間純キャッシュフロー = 100000 * 12 = 1200000
       // 1年目: 1000000 + 1200000 = 2200000
-      expect(result.simulationData[0].deposits).toBe(2200000);
+      expect(result.yearlyData[0].deposits).toBe(2200000);
+      expect(result.yearlyData[0].year).toBe(1);
 
-      // IDにハイフンが含まれているため、正しいキー名を使用
-      expect(result.simulationData[0]["income_income-1"]).toBe(3600000); // 300000 * 12
-      expect(result.simulationData[0]["expense_expense-1"]).toBe(-2400000); // -200000 * 12
+      // 収入・支出のブレークダウンを確認
+      expect(result.yearlyData[0].incomeBreakdown.get("income-1")).toBe(
+        3600000
+      ); // 300000 * 12
+      expect(result.yearlyData[0].expenseBreakdown.get("expense-1")).toBe(
+        2400000
+      ); // 200000 * 12
 
       // 2年目: 1000000 + 2400000 = 3400000
-      expect(result.simulationData[1].deposits).toBe(3400000);
+      expect(result.yearlyData[1].deposits).toBe(3400000);
+      expect(result.yearlyData[1].year).toBe(2);
 
       // 3年目: 1000000 + 3600000 = 4600000
-      expect(result.simulationData[2].deposits).toBe(4600000);
+      expect(result.yearlyData[2].deposits).toBe(4600000);
+      expect(result.yearlyData[2].year).toBe(3);
+
+      // hasDataフラグの確認
+      expect(result.hasData).toBe(true);
     });
   });
 });

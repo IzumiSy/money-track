@@ -34,7 +34,7 @@ function runSimulation(
     simulationYears,
   });
 
-  const deposits = r.simulationData.map((d) => d.deposits);
+  const deposits = r.yearlyData.map((d) => d.deposits);
 
   return {
     deposits,
