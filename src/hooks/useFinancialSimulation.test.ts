@@ -2,14 +2,13 @@ import { describe, it, expect } from "vitest";
 import {
   calculateFinancialSimulation,
   convertIncomeToIncomeSource,
-  convertExpenseToExpenseSource,
 } from "@/utils/financialSimulation";
-import { createIncomeCalculator } from "@/domains/income/IncomeCalculator";
-import { createExpenseCalculator } from "@/domains/expense/ExpenseCalculator";
+import { createCalculator, CalculatorSource } from "@/domains/shared";
 import { FinancialAsset } from "@/components/FinancialAssetsForm";
 import { Income } from "@/contexts/IncomeContext";
 import { Expense } from "@/contexts/ExpensesContext";
 import { YearMonthDuration } from "@/types/YearMonth";
+import { convertExpenseToExpenseSource } from "@/domains/expense/source";
 
 // テスト用のヘルパー関数：calculateFinancialSimulation関数を直接呼び出す
 function runSimulation(
@@ -18,27 +17,23 @@ function runSimulation(
   expenses: Expense[] = [],
   simulationYears: number = 3
 ) {
-  // IncomeCalculatorインスタンスを作成
-  const incomeCalculator = createIncomeCalculator();
+  // 統合されたCalculatorインスタンスを作成
+  const unifiedCalculator = createCalculator<CalculatorSource>();
 
   // Income[]をIncomeSourceに変換してCalculatorに追加
   incomes.forEach((income) => {
-    incomeCalculator.addSource(convertIncomeToIncomeSource(income));
+    unifiedCalculator.addSource(convertIncomeToIncomeSource(income));
   });
-
-  // ExpenseCalculatorインスタンスを作成
-  const expenseCalculator = createExpenseCalculator();
 
   // Expense[]をExpenseSourceに変換してCalculatorに追加
   expenses.forEach((expense) => {
-    expenseCalculator.addSource(convertExpenseToExpenseSource(expense));
+    unifiedCalculator.addSource(convertExpenseToExpenseSource(expense));
   });
 
   const r = calculateFinancialSimulation({
     assets,
     expenses,
-    incomeCalculator,
-    expenseCalculator,
+    unifiedCalculator,
     incomes,
     simulationYears,
   });

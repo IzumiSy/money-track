@@ -1,4 +1,5 @@
 import { TimeRange } from "./TimeRange";
+import { CashFlowChange } from "./CashFlowChange";
 
 /**
  * 共通のCalculatorソースインターフェース
@@ -9,22 +10,25 @@ export interface CalculatorSource {
   name: string;
   type: string;
   timeRange?: TimeRange;
-  calculate: (year: number, month: number) => number;
+  calculate: (year: number, month: number) => CashFlowChange;
   getMetadata?: () => Record<string, any>;
 }
 
 /**
  * 内訳を表す共通型
+ * 各ソースのCashFlowChangeを保持
  */
 export interface CalculatorBreakdown {
-  [sourceName: string]: number;
+  [sourceName: string]: CashFlowChange;
 }
 
 /**
  * 計算結果を表す共通型
  */
 export interface CalculationResult {
-  total: number;
+  totalIncome: number;
+  totalExpense: number;
+  netCashFlow: number; // totalIncome - totalExpense
   breakdown: CalculatorBreakdown;
   year: number;
   month: number;

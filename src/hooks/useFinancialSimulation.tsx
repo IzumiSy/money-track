@@ -4,13 +4,11 @@ import { useMemo } from "react";
 import { FinancialAsset } from "@/components/FinancialAssetsForm";
 import { Expense } from "@/contexts/ExpensesContext";
 import { Income } from "@/contexts/IncomeContext";
-import { createIncomeCalculator } from "@/domains/income/IncomeCalculator";
-import { createExpenseCalculator } from "@/domains/expense/ExpenseCalculator";
-import {
-  calculateFinancialSimulation,
-  convertIncomeToIncomeSource,
-  convertExpenseToExpenseSource,
-} from "@/utils/financialSimulation";
+import { createCalculator } from "@/domains/shared/createCalculator";
+import { CalculatorSource } from "@/domains/shared/CalculatorSource";
+import { calculateFinancialSimulation } from "@/utils/financialSimulation";
+import { convertExpenseToExpenseSource } from "@/domains/expense/source";
+import { convertIncomeToIncomeSource } from "@/domains/income/source";
 
 interface UseFinancialSimulationProps {
   assets: FinancialAsset;
@@ -30,28 +28,24 @@ export function useFinancialSimulation({
   simulationYears,
 }: UseFinancialSimulationProps) {
   return useMemo(() => {
-    // IncomeCalculatorインスタンスを作成
-    const incomeCalculator = createIncomeCalculator();
+    // 統合されたCalculatorインスタンスを作成
+    const unifiedCalculator = createCalculator<CalculatorSource>();
 
     // Income[]をIncomeSourceに変換してCalculatorに追加
     incomes.forEach((income) => {
-      incomeCalculator.addSource(convertIncomeToIncomeSource(income));
+      unifiedCalculator.addSource(convertIncomeToIncomeSource(income));
     });
-
-    // ExpenseCalculatorインスタンスを作成
-    const expenseCalculator = createExpenseCalculator();
 
     // Expense[]をExpenseSourceに変換してCalculatorに追加
     expenses.forEach((expense) => {
-      expenseCalculator.addSource(convertExpenseToExpenseSource(expense));
+      unifiedCalculator.addSource(convertExpenseToExpenseSource(expense));
     });
 
     // 新しい計算ロジックを使用
     return calculateFinancialSimulation({
       assets,
       expenses,
-      incomeCalculator,
-      expenseCalculator,
+      unifiedCalculator,
       incomes, // チャート表示用に元のIncome配列も渡す
       simulationYears,
     });

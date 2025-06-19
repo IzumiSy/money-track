@@ -3,6 +3,11 @@ import {
   CalculatorBreakdown,
   CalculationResult,
 } from "./CalculatorSource";
+import {
+  CashFlowChange,
+  createEmptyCashFlowChange,
+  sumCashFlowChanges,
+} from "./CashFlowChange";
 
 /**
  * 汎用Calculatorインターフェース
@@ -10,7 +15,7 @@ import {
 export interface Calculator<T extends CalculatorSource> {
   addSource: (source: T) => void;
   removeSource: (id: string) => void;
-  calculateTotal: (year: number, month: number) => number;
+  calculateTotal: (year: number, month: number) => CashFlowChange;
   getBreakdown: (year: number, month: number) => CalculatorBreakdown;
   calculateForPeriod: (year: number, month: number) => CalculationResult;
   getSources: () => readonly T[];
@@ -59,33 +64,31 @@ export function createCalculator<T extends CalculatorSource>(): Calculator<T> {
    * 指定された年月の総計を計算する
    * @param year - 計算対象の年
    * @param month - 計算対象の月（1-12）
-   * @returns 全てのアクティブなソースの合計金額
+   * @returns 全てのアクティブなソースの合計キャッシュフロー
    * @description
    * - 各ソースのcalculateメソッドを呼び出して合計
-   * - calculateが0を返すソースは自動的に除外される
+   * - income/expenseそれぞれを集計
    */
-  const calculateTotal = (year: number, month: number): number => {
-    return sources.reduce(
-      (total, source) => total + source.calculate(year, month),
-      0
-    );
+  const calculateTotal = (year: number, month: number): CashFlowChange => {
+    const changes = sources.map((source) => source.calculate(year, month));
+    return sumCashFlowChanges(changes);
   };
 
   /**
    * 指定された年月の内訳を取得する
    * @param year - 計算対象の年
    * @param month - 計算対象の月（1-12）
-   * @returns ソース名をキー、金額を値とするオブジェクト
+   * @returns ソース名をキー、CashFlowChangeを値とするオブジェクト
    * @description
-   * - 各ソースの名前と計算された金額のマッピングを返す
-   * - calculateが0を返すソースは内訳に含まれない
+   * - 各ソースの名前と計算されたキャッシュフロー変化のマッピングを返す
+   * - income/expenseが両方0のソースは内訳に含まれない
    */
   const getBreakdown = (year: number, month: number): CalculatorBreakdown => {
     const breakdown: CalculatorBreakdown = {};
     sources.forEach((source) => {
-      const amount = source.calculate(year, month);
-      if (amount > 0) {
-        breakdown[source.name] = amount;
+      const change = source.calculate(year, month);
+      if (change.income > 0 || change.expense > 0) {
+        breakdown[source.name] = change;
       }
     });
     return breakdown;
@@ -106,13 +109,12 @@ export function createCalculator<T extends CalculatorSource>(): Calculator<T> {
     month: number
   ): CalculationResult => {
     const breakdown = getBreakdown(year, month);
-    const total = Object.values(breakdown).reduce(
-      (sum, amount) => sum + amount,
-      0
-    );
+    const totals = sumCashFlowChanges(Object.values(breakdown));
 
     return {
-      total,
+      totalIncome: totals.income,
+      totalExpense: totals.expense,
+      netCashFlow: totals.income - totals.expense,
       breakdown,
       year,
       month,
