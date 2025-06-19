@@ -78,9 +78,9 @@ export function createCalculator<T extends CalculatorSource>(): Calculator<T> {
    * 指定された年月の内訳を取得する
    * @param year - 計算対象の年
    * @param month - 計算対象の月（1-12）
-   * @returns ソース名をキー、CashFlowChangeを値とするオブジェクト
+   * @returns ソースIDをキー、CashFlowChangeを値とするオブジェクト
    * @description
-   * - 各ソースの名前と計算されたキャッシュフロー変化のマッピングを返す
+   * - 各ソースのIDと計算されたキャッシュフロー変化のマッピングを返す
    * - income/expenseが両方0のソースは内訳に含まれない
    */
   const getBreakdown = (year: number, month: number): CalculatorBreakdown => {
@@ -88,7 +88,7 @@ export function createCalculator<T extends CalculatorSource>(): Calculator<T> {
     sources.forEach((source) => {
       const change = source.calculate(year, month);
       if (change.income > 0 || change.expense > 0) {
-        breakdown[source.name] = change;
+        breakdown[source.id] = change;
       }
     });
     return breakdown;

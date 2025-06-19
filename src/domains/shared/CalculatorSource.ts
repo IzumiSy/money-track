@@ -19,7 +19,7 @@ export interface CalculatorSource {
  * 各ソースのCashFlowChangeを保持
  */
 export interface CalculatorBreakdown {
-  [sourceName: string]: CashFlowChange;
+  [sourceId: string]: CashFlowChange;
 }
 
 /**

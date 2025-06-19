@@ -81,33 +81,27 @@ export function calculateFinancialSimulation({
     // 預金額を更新
     yearData.deposits = Math.round(adjustedDeposits);
 
-    // 年間の収入・支出を集計するためのマップ
+    // 年間の収入・支出を集計するためのマップ（IDをキーとする）
     const yearlyIncomeMap = new Map<string, number>();
     const yearlyExpenseMap = new Map<string, number>();
 
     // 各月のbreakdownを一度だけ取得して、収入・支出を集計
     for (let month = 1; month <= 12; month++) {
       const monthlyBreakdown = unifiedCalculator.getBreakdown(year, month);
-
-      // breakdownから全ての収入・支出を集計
-      Object.entries(monthlyBreakdown).forEach(
-        ([sourceName, cashFlowChange]) => {
-          if (cashFlowChange.income > 0) {
-            const currentIncome = yearlyIncomeMap.get(sourceName) || 0;
-            yearlyIncomeMap.set(
-              sourceName,
-              currentIncome + cashFlowChange.income
-            );
-          }
-          if (cashFlowChange.expense > 0) {
-            const currentExpense = yearlyExpenseMap.get(sourceName) || 0;
-            yearlyExpenseMap.set(
-              sourceName,
-              currentExpense + cashFlowChange.expense
-            );
-          }
+      // breakdownから全ての収入・支出を集計（キーはsourceId）
+      Object.entries(monthlyBreakdown).forEach(([sourceId, cashFlowChange]) => {
+        if (cashFlowChange.income > 0) {
+          const currentIncome = yearlyIncomeMap.get(sourceId) || 0;
+          yearlyIncomeMap.set(sourceId, currentIncome + cashFlowChange.income);
         }
-      );
+        if (cashFlowChange.expense > 0) {
+          const currentExpense = yearlyExpenseMap.get(sourceId) || 0;
+          yearlyExpenseMap.set(
+            sourceId,
+            currentExpense + cashFlowChange.expense
+          );
+        }
+      });
     }
 
     // unifiedCalculatorから全てのソースを取得して分類
@@ -118,8 +112,7 @@ export function calculateFinancialSimulation({
       .filter((source) => source.type === "expense")
       .forEach((expenseSource) => {
         const expenseKey = `expense_${expenseSource.id}`;
-        const yearlyExpenseAmount =
-          yearlyExpenseMap.get(expenseSource.name) || 0;
+        const yearlyExpenseAmount = yearlyExpenseMap.get(expenseSource.id) || 0;
         yearData[expenseKey] = -Math.round(yearlyExpenseAmount);
       });
 
@@ -130,7 +123,7 @@ export function calculateFinancialSimulation({
       .filter((source) => source.type === "income")
       .forEach((incomeSource) => {
         const incomeKey = `income_${incomeSource.id}`;
-        const yearlyIncomeAmount = yearlyIncomeMap.get(incomeSource.name) || 0;
+        const yearlyIncomeAmount = yearlyIncomeMap.get(incomeSource.id) || 0;
         yearData[incomeKey] = Math.round(yearlyIncomeAmount);
       });
 
