@@ -2,17 +2,11 @@ import { FinancialAsset } from "@/components/FinancialAssetsForm";
 import { Expense } from "@/contexts/ExpensesContext";
 import { Income } from "@/contexts/IncomeContext";
 import { YearMonthDuration } from "@/types/YearMonth";
-import {
-  IncomeCalculator,
-  createIncomeCalculator,
-} from "@/domains/income/IncomeCalculator";
+import { IncomeCalculator } from "@/domains/income/IncomeCalculator";
 import { IncomeSource } from "@/domains/income/types";
-import {
-  ExpenseCalculator,
-  createExpenseCalculator,
-} from "@/domains/expense/ExpenseCalculator";
+import { ExpenseCalculator } from "@/domains/expense/ExpenseCalculator";
 import { ExpenseSource } from "@/domains/expense/types";
-import { TimeRange, createTimeRange } from "@/domains/shared/TimeRange";
+import { createTimeRange } from "@/domains/shared/TimeRange";
 
 interface SimulationDataPoint {
   year: string;
@@ -137,13 +131,13 @@ export function calculateFinancialSimulationV2({
 
   // 月額収入の合計額を計算（現在時点での有効な収入のみ）
   const currentDate = new Date();
-  const totalMonthlyIncomes = incomeCalculator.calculateTotalIncome(
+  const totalMonthlyIncomes = incomeCalculator.calculateTotal(
     currentDate.getFullYear(),
     currentDate.getMonth() + 1
   );
 
   // 月額支出の合計額を計算（現在時点での有効な支出のみ）
-  const totalMonthlyExpenses = expenseCalculator.calculateTotalExpense(
+  const totalMonthlyExpenses = expenseCalculator.calculateTotal(
     currentDate.getFullYear(),
     currentDate.getMonth() + 1
   );
@@ -169,14 +163,8 @@ export function calculateFinancialSimulationV2({
     // 1年目からtargetYear年目までの全ての月のキャッシュフローを累積
     for (let year = 1; year <= targetYear; year++) {
       for (let month = 1; month <= 12; month++) {
-        const monthlyIncome = incomeCalculator.calculateTotalIncome(
-          year,
-          month
-        );
-        const monthlyExpense = expenseCalculator.calculateTotalExpense(
-          year,
-          month
-        );
+        const monthlyIncome = incomeCalculator.calculateTotal(year, month);
+        const monthlyExpense = expenseCalculator.calculateTotal(year, month);
         // 投資は無視するため、収入から支出を引くだけ
         totalCashFlow += monthlyIncome - monthlyExpense;
       }
@@ -210,10 +198,7 @@ export function calculateFinancialSimulationV2({
 
       // 各月の支出を合計
       for (let month = 1; month <= 12; month++) {
-        const monthlyBreakdown = expenseCalculator.getExpenseBreakdown(
-          year,
-          month
-        );
+        const monthlyBreakdown = expenseCalculator.getBreakdown(year, month);
         // expense.nameで対応する支出を取得
         yearlyExpenseAmount += monthlyBreakdown[expense.name] || 0;
       }
@@ -225,7 +210,7 @@ export function calculateFinancialSimulationV2({
 
     // 各収入項目を個別にPositiveバーとして追加（期間を考慮）
     // IncomeCalculatorを使用して個別の収入を取得
-    const incomeBreakdown = incomeCalculator.getIncomeBreakdown(year, 1); // 年の最初の月で取得
+    const incomeBreakdown = incomeCalculator.getBreakdown(year, 1); // 年の最初の月で取得
 
     // 各収入源について年間の合計を計算
     incomes.forEach((income) => {
@@ -235,10 +220,7 @@ export function calculateFinancialSimulationV2({
 
       // 各月の収入を合計
       for (let month = 1; month <= 12; month++) {
-        const monthlyBreakdown = incomeCalculator.getIncomeBreakdown(
-          year,
-          month
-        );
+        const monthlyBreakdown = incomeCalculator.getBreakdown(year, month);
         // income.nameで対応する収入を取得
         yearlyIncomeAmount += monthlyBreakdown[income.name] || 0;
       }
