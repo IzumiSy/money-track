@@ -1,14 +1,12 @@
 import { describe, it, expect } from "vitest";
-import {
-  calculateFinancialSimulation,
-  convertIncomeToIncomeSource,
-} from "@/utils/financialSimulation";
+import { calculateFinancialSimulation } from "@/utils/financialSimulation";
 import { createCalculator, CalculatorSource } from "@/domains/shared";
 import { FinancialAsset } from "@/components/FinancialAssetsForm";
 import { Income } from "@/contexts/IncomeContext";
 import { Expense } from "@/contexts/ExpensesContext";
 import { YearMonthDuration } from "@/types/YearMonth";
 import { convertExpenseToExpenseSource } from "@/domains/expense/source";
+import { convertIncomeToIncomeSource } from "@/domains/income/source";
 
 // テスト用のヘルパー関数：calculateFinancialSimulation関数を直接呼び出す
 function runSimulation(
@@ -31,10 +29,8 @@ function runSimulation(
   });
 
   const r = calculateFinancialSimulation({
-    assets,
-    expenses,
+    initialDeposits: assets.deposits,
     unifiedCalculator,
-    incomes,
     simulationYears,
   });
 

@@ -1,6 +1,3 @@
-import { FinancialAsset } from "@/components/FinancialAssetsForm";
-import { Expense } from "@/contexts/ExpensesContext";
-import { Income } from "@/contexts/IncomeContext";
 import { Calculator, CalculatorSource } from "@/domains/shared";
 
 interface SimulationDataPoint {
@@ -11,10 +8,8 @@ interface SimulationDataPoint {
 }
 
 interface FinancialSimulationParams {
-  assets: FinancialAsset;
-  expenses?: Expense[];
+  initialDeposits: number;
   unifiedCalculator: Calculator<CalculatorSource>;
-  incomes: Income[]; // チャート表示用に元のIncome配列も保持
   simulationYears: number;
 }
 
@@ -28,14 +23,10 @@ interface FinancialSimulationResult {
 }
 
 export function calculateFinancialSimulation({
-  assets,
-  expenses = [],
+  initialDeposits,
   unifiedCalculator,
-  incomes,
   simulationYears,
 }: FinancialSimulationParams): FinancialSimulationResult {
-  const { deposits } = assets;
-
   // 月額のキャッシュフローを計算（現在時点での有効な収入・支出）
   const currentDate = new Date();
   const totalMonthlyCashFlow = unifiedCalculator.calculateTotal(
@@ -51,7 +42,7 @@ export function calculateFinancialSimulation({
   const totalBaseAmount = 0;
 
   // 初期総資産額
-  const initialTotal = deposits;
+  const initialTotal = initialDeposits;
 
   // 資産推移シミュレーション計算（収入・支出・投資を考慮）
   const simulationData: SimulationDataPoint[] = [];
@@ -85,7 +76,7 @@ export function calculateFinancialSimulation({
     };
 
     // 調整済み預金額（基本預金 + 純キャッシュフロー）
-    const adjustedDeposits = Math.max(0, deposits + cumulativeCashFlow);
+    const adjustedDeposits = Math.max(0, initialDeposits + cumulativeCashFlow);
 
     // 預金額を更新
     yearData.deposits = Math.round(adjustedDeposits);
@@ -119,21 +110,29 @@ export function calculateFinancialSimulation({
       );
     }
 
+    // unifiedCalculatorから全てのソースを取得して分類
+    const sources = unifiedCalculator.getSources();
+
     // 各支出項目を個別にマイナスのバーとして追加
-    expenses.forEach((expense) => {
-      const expenseKey = `expense_${expense.id}`;
-      const yearlyExpenseAmount = yearlyExpenseMap.get(expense.name) || 0;
-      yearData[expenseKey] = -Math.round(yearlyExpenseAmount);
-    });
+    sources
+      .filter((source) => source.type === "expense")
+      .forEach((expenseSource) => {
+        const expenseKey = `expense_${expenseSource.id}`;
+        const yearlyExpenseAmount =
+          yearlyExpenseMap.get(expenseSource.name) || 0;
+        yearData[expenseKey] = -Math.round(yearlyExpenseAmount);
+      });
 
     // 投資関連の処理は削除
 
     // 各収入項目を個別にPositiveバーとして追加
-    incomes.forEach((income) => {
-      const incomeKey = `income_${income.id}`;
-      const yearlyIncomeAmount = yearlyIncomeMap.get(income.name) || 0;
-      yearData[incomeKey] = Math.round(yearlyIncomeAmount);
-    });
+    sources
+      .filter((source) => source.type === "income")
+      .forEach((incomeSource) => {
+        const incomeKey = `income_${incomeSource.id}`;
+        const yearlyIncomeAmount = yearlyIncomeMap.get(incomeSource.name) || 0;
+        yearData[incomeKey] = Math.round(yearlyIncomeAmount);
+      });
 
     // 投資関連の処理は削除
 

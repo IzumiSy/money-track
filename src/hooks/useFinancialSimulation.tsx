@@ -43,10 +43,8 @@ export function useFinancialSimulation({
 
     // 新しい計算ロジックを使用
     return calculateFinancialSimulation({
-      assets,
-      expenses,
+      initialDeposits: assets.deposits,
       unifiedCalculator,
-      incomes, // チャート表示用に元のIncome配列も渡す
       simulationYears,
     });
   }, [assets, expenses, incomes, simulationYears]);
