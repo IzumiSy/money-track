@@ -6,18 +6,14 @@ import {
 } from "@/domains/shared";
 import { YearMonthDuration } from "@/types/YearMonth";
 
-interface IncomeSource extends CalculatorSource {
-  type: "salary" | "investment" | "business" | "rental";
-}
-
 /**
  * IncomeContextのIncome型をIncomeCalculatorのIncomeSource型に変換
  */
-export function convertIncomeToIncomeSource(income: Income): IncomeSource {
+export function convertIncomeToIncomeSource(income: Income): CalculatorSource {
   return {
     id: income.id,
     name: income.name,
-    type: "salary", // デフォルトでsalaryタイプとする
+    type: "income",
     timeRange:
       income.startYearMonth && income.endYearMonth
         ? createTimeRange(income.startYearMonth, income.endYearMonth)

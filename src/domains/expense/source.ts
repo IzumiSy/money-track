@@ -2,18 +2,16 @@ import { Expense } from "@/contexts/ExpensesContext";
 import { YearMonthDuration } from "@/types/YearMonth";
 import { CalculatorSource, createTimeRange, CashFlowChange } from "../shared";
 
-interface ExpenseSource extends CalculatorSource {
-  type: "living" | "housing" | "transport" | "entertainment" | "other";
-}
-
 /**
  * ExpenseContextのExpense型をExpenseCalculatorのExpenseSource型に変換
  */
-export function convertExpenseToExpenseSource(expense: Expense): ExpenseSource {
+export function convertExpenseToExpenseSource(
+  expense: Expense
+): CalculatorSource {
   return {
     id: expense.id,
     name: expense.name,
-    type: "living", // デフォルトでlivingタイプとする
+    type: "expense",
     timeRange:
       expense.startYearMonth && expense.endYearMonth
         ? createTimeRange(expense.startYearMonth, expense.endYearMonth)
