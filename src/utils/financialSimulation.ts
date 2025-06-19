@@ -90,41 +90,48 @@ export function calculateFinancialSimulation({
     // 預金額を更新
     yearData.deposits = Math.round(adjustedDeposits);
 
-    // 各支出項目を個別にマイナスのバーとして追加（期間を考慮）
-    // ExpenseCalculatorを使用して個別の支出を取得
+    // 年間の収入・支出を集計するためのマップ
+    const yearlyIncomeMap = new Map<string, number>();
+    const yearlyExpenseMap = new Map<string, number>();
+
+    // 各月のbreakdownを一度だけ取得して、収入・支出を集計
+    for (let month = 1; month <= 12; month++) {
+      const monthlyBreakdown = unifiedCalculator.getBreakdown(year, month);
+
+      // breakdownから全ての収入・支出を集計
+      Object.entries(monthlyBreakdown).forEach(
+        ([sourceName, cashFlowChange]) => {
+          if (cashFlowChange.income > 0) {
+            const currentIncome = yearlyIncomeMap.get(sourceName) || 0;
+            yearlyIncomeMap.set(
+              sourceName,
+              currentIncome + cashFlowChange.income
+            );
+          }
+          if (cashFlowChange.expense > 0) {
+            const currentExpense = yearlyExpenseMap.get(sourceName) || 0;
+            yearlyExpenseMap.set(
+              sourceName,
+              currentExpense + cashFlowChange.expense
+            );
+          }
+        }
+      );
+    }
+
+    // 各支出項目を個別にマイナスのバーとして追加
     expenses.forEach((expense) => {
       const expenseKey = `expense_${expense.id}`;
-      // その年の各月における有効な支出額を計算
-      let yearlyExpenseAmount = 0;
-
-      // 各月の支出を合計
-      for (let month = 1; month <= 12; month++) {
-        const monthlyBreakdown = unifiedCalculator.getBreakdown(year, month);
-        // expense.nameで対応する支出を取得
-        const cashFlowChange = monthlyBreakdown[expense.name];
-        yearlyExpenseAmount += cashFlowChange ? cashFlowChange.expense : 0;
-      }
-
+      const yearlyExpenseAmount = yearlyExpenseMap.get(expense.name) || 0;
       yearData[expenseKey] = -Math.round(yearlyExpenseAmount);
     });
 
     // 投資関連の処理は削除
 
-    // 各収入項目を個別にPositiveバーとして追加（期間を考慮）
-    // 各収入源について年間の合計を計算
+    // 各収入項目を個別にPositiveバーとして追加
     incomes.forEach((income) => {
       const incomeKey = `income_${income.id}`;
-      // その年の各月における有効な収入額を計算
-      let yearlyIncomeAmount = 0;
-
-      // 各月の収入を合計
-      for (let month = 1; month <= 12; month++) {
-        const monthlyBreakdown = unifiedCalculator.getBreakdown(year, month);
-        // income.nameで対応する収入を取得
-        const cashFlowChange = monthlyBreakdown[income.name];
-        yearlyIncomeAmount += cashFlowChange ? cashFlowChange.income : 0;
-      }
-
+      const yearlyIncomeAmount = yearlyIncomeMap.get(income.name) || 0;
       yearData[incomeKey] = Math.round(yearlyIncomeAmount);
     });
 
