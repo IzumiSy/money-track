@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { calculateFinancialSimulation } from "./financialSimulation";
+import { createSimulator } from "./createSimulator";
 import {
   createCalculator,
   Calculator,
@@ -381,7 +381,7 @@ describe("unifiedCalculator.getBreakdown", () => {
     });
   });
 
-  describe("calculateFinancialSimulationとの統合テスト", () => {
+  describe("createSimulatorとの統合テスト", () => {
     it("収入と支出の両方を含むシミュレーションが正しく動作する", () => {
       // 収入ソース
       const income: CalculatorSource = {
@@ -402,11 +402,12 @@ describe("unifiedCalculator.getBreakdown", () => {
       calculator.addSource(income);
       calculator.addSource(expense);
 
-      const result = calculateFinancialSimulation({
+      const simulator = createSimulator(calculator, {
         initialDeposits: 1000000,
-        unifiedCalculator: calculator,
         simulationYears: 3,
       });
+
+      const result = simulator.simulate();
 
       // 月間純キャッシュフロー = 300000 - 200000 = 100000
       expect(result.currentMonthlyCashFlow.net).toBe(100000);

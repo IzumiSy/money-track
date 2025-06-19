@@ -6,7 +6,7 @@ import { Expense } from "@/contexts/ExpensesContext";
 import { Income } from "@/contexts/IncomeContext";
 import { createCalculator } from "@/domains/shared/createCalculator";
 import { CalculatorSource } from "@/domains/shared/CalculatorSource";
-import { calculateFinancialSimulation } from "@/utils/financialSimulation";
+import { createSimulator } from "@/domains/simulation";
 import { convertExpenseToExpenseSource } from "@/domains/expense/source";
 import { convertIncomeToIncomeSource } from "@/domains/income/source";
 
@@ -39,10 +39,10 @@ interface ChartSimulationResult {
  * 計算結果をチャート用のデータ形式に変換する関数
  */
 function convertToChartData(
-  calculationResult: ReturnType<typeof calculateFinancialSimulation>,
+  simulationResult: ReturnType<ReturnType<typeof createSimulator>["simulate"]>,
   unifiedCalculator: ReturnType<typeof createCalculator<CalculatorSource>>
 ): ChartSimulationResult {
-  const { yearlyData, currentMonthlyCashFlow, hasData } = calculationResult;
+  const { yearlyData, currentMonthlyCashFlow, hasData } = simulationResult;
 
   // チャート用のデータ形式に変換
   const simulationData: SimulationDataPoint[] = yearlyData.map((yearData) => {
@@ -119,14 +119,16 @@ export function useFinancialSimulation({
       unifiedCalculator.addSource(convertExpenseToExpenseSource(expense));
     });
 
-    // 新しい計算ロジックを使用
-    const calculationResult = calculateFinancialSimulation({
+    // シミュレーターを作成
+    const simulator = createSimulator(unifiedCalculator, {
       initialDeposits: assets.deposits,
-      unifiedCalculator,
       simulationYears,
     });
 
+    // シミュレーションを実行
+    const simulationResult = simulator.simulate();
+
     // チャート用のデータ形式に変換
-    return convertToChartData(calculationResult, unifiedCalculator);
+    return convertToChartData(simulationResult, unifiedCalculator);
   }, [assets, expenses, incomes, simulationYears]);
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { calculateFinancialSimulation } from "@/utils/financialSimulation";
 import { createCalculator, CalculatorSource } from "@/domains/shared";
+import { createSimulator } from "@/domains/simulation";
 import { FinancialAsset } from "@/components/FinancialAssetsForm";
 import { Income } from "@/contexts/IncomeContext";
 import { Expense } from "@/contexts/ExpensesContext";
@@ -28,13 +28,13 @@ function runSimulation(
     unifiedCalculator.addSource(convertExpenseToExpenseSource(expense));
   });
 
-  const r = calculateFinancialSimulation({
+  const simulator = createSimulator(unifiedCalculator, {
     initialDeposits: assets.deposits,
-    unifiedCalculator,
     simulationYears,
   });
 
-  const deposits = r.yearlyData.map((d) => d.deposits);
+  const result = simulator.simulate();
+  const deposits = result.yearlyData.map((d) => d.deposits);
 
   return {
     deposits,
