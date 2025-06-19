@@ -2,6 +2,11 @@ import { FinancialAsset } from "@/components/FinancialAssetsForm";
 import { Expense } from "@/contexts/ExpensesContext";
 import { Income } from "@/contexts/IncomeContext";
 import { YearMonthDuration } from "@/types/YearMonth";
+import { IncomeCalculator } from "@/domains/income/IncomeCalculator";
+import { IncomeSource } from "@/domains/income/types";
+import { ExpenseCalculator } from "@/domains/expense/ExpenseCalculator";
+import { ExpenseSource } from "@/domains/expense/types";
+import { createTimeRange } from "@/domains/shared/TimeRange";
 
 interface SimulationDataPoint {
   year: string;
@@ -13,7 +18,9 @@ interface SimulationDataPoint {
 interface FinancialSimulationParams {
   assets: FinancialAsset;
   expenses?: Expense[];
-  incomes?: Income[];
+  incomeCalculator: IncomeCalculator;
+  expenseCalculator: ExpenseCalculator;
+  incomes: Income[]; // チャート表示用に元のIncome配列も保持
   simulationYears: number;
 }
 
@@ -26,138 +33,111 @@ interface FinancialSimulationResult {
   initialTotal: number;
 }
 
-// 指定された年月における有効な収入の合計額を計算
-function getActiveIncomeForMonth(
-  incomes: Income[],
-  year: number,
-  month: number
-): number {
-  const targetYearMonth = YearMonthDuration.from(year, month);
+/**
+ * IncomeContextのIncome型をIncomeCalculatorのIncomeSource型に変換
+ */
+export function convertIncomeToIncomeSource(income: Income): IncomeSource {
+  return {
+    id: income.id,
+    name: income.name,
+    type: "salary", // デフォルトでsalaryタイプとする
+    timeRange:
+      income.startYearMonth && income.endYearMonth
+        ? createTimeRange(income.startYearMonth, income.endYearMonth)
+        : undefined,
+    calculate: (year: number, month: number) => {
+      // 期間チェック
+      if (income.startYearMonth || income.endYearMonth) {
+        const targetYearMonth = YearMonthDuration.from(year, month);
 
-  return incomes.reduce((sum, income) => {
-    // 開始年月が設定されていない場合は常に有効
-    if (!income.startYearMonth) {
-      // 終了年月が設定されていない、または終了年月以降の場合は有効
-      if (
-        !income.endYearMonth ||
-        targetYearMonth.isBeforeOrEqual(income.endYearMonth)
-      ) {
-        return sum + income.monthlyAmount;
-      }
-      return sum;
-    }
-
-    // 開始年月以降かチェック
-    if (targetYearMonth.isAfterOrEqual(income.startYearMonth)) {
-      // 終了年月が設定されていない、または終了年月以前の場合は有効
-      if (
-        !income.endYearMonth ||
-        targetYearMonth.isBeforeOrEqual(income.endYearMonth)
-      ) {
-        return sum + income.monthlyAmount;
-      }
-    }
-
-    return sum;
-  }, 0);
-}
-
-// 指定された年月における有効な支出の合計額を計算
-function getActiveExpenseForMonth(
-  expenses: Expense[],
-  year: number,
-  month: number
-): number {
-  const targetYearMonth = YearMonthDuration.from(year, month);
-
-  return expenses.reduce((sum, expense) => {
-    // 開始年月が設定されていない場合は常に有効
-    if (!expense.startYearMonth) {
-      // 終了年月が設定されていない、または終了年月以降の場合は有効
-      if (
-        !expense.endYearMonth ||
-        targetYearMonth.isBeforeOrEqual(expense.endYearMonth)
-      ) {
-        return sum + expense.monthlyAmount;
-      }
-      return sum;
-    }
-
-    // 開始年月以降かチェック
-    if (targetYearMonth.isAfterOrEqual(expense.startYearMonth)) {
-      // 終了年月が設定されていない、または終了年月以前の場合は有効
-      if (
-        !expense.endYearMonth ||
-        targetYearMonth.isBeforeOrEqual(expense.endYearMonth)
-      ) {
-        return sum + expense.monthlyAmount;
-      }
-    }
-
-    return sum;
-  }, 0);
-}
-
-// 指定された年月における有効な投資積立額の合計を計算
-function getActiveInvestmentForMonth(
-  investments: FinancialAsset["investments"],
-  year: number,
-  month: number
-): number {
-  const targetTotalMonths = year * 12 + (month - 1);
-
-  return investments.reduce((sum, investment) => {
-    const investmentSum = investment.investmentOptions.reduce(
-      (optionSum, option) => {
-        const startTotalMonths =
-          option.startYear * 12 + (option.startMonth - 1);
-        const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
-
-        // 現在の年月が積立期間内かチェック
+        // 開始年月のチェック
         if (
-          targetTotalMonths >= startTotalMonths &&
-          targetTotalMonths <= endTotalMonths &&
-          option.monthlyAmount > 0
+          income.startYearMonth &&
+          !targetYearMonth.isAfterOrEqual(income.startYearMonth)
         ) {
-          return optionSum + option.monthlyAmount;
+          return 0;
         }
-        return optionSum;
-      },
-      0
-    );
-    return sum + investmentSum;
-  }, 0);
+
+        // 終了年月のチェック
+        if (
+          income.endYearMonth &&
+          !targetYearMonth.isBeforeOrEqual(income.endYearMonth)
+        ) {
+          return 0;
+        }
+      }
+
+      return income.monthlyAmount;
+    },
+    getMetadata: () => ({
+      color: income.color,
+      originalIncome: income,
+    }),
+  };
+}
+
+/**
+ * ExpenseContextのExpense型をExpenseCalculatorのExpenseSource型に変換
+ */
+export function convertExpenseToExpenseSource(expense: Expense): ExpenseSource {
+  return {
+    id: expense.id,
+    name: expense.name,
+    type: "living", // デフォルトでlivingタイプとする
+    timeRange:
+      expense.startYearMonth && expense.endYearMonth
+        ? createTimeRange(expense.startYearMonth, expense.endYearMonth)
+        : undefined,
+    calculate: (year: number, month: number) => {
+      // 期間チェック
+      if (expense.startYearMonth || expense.endYearMonth) {
+        const targetYearMonth = YearMonthDuration.from(year, month);
+
+        // 開始年月のチェック
+        if (
+          expense.startYearMonth &&
+          !targetYearMonth.isAfterOrEqual(expense.startYearMonth)
+        ) {
+          return 0;
+        }
+
+        // 終了年月のチェック
+        if (
+          expense.endYearMonth &&
+          !targetYearMonth.isBeforeOrEqual(expense.endYearMonth)
+        ) {
+          return 0;
+        }
+      }
+
+      return expense.monthlyAmount;
+    },
+    getMetadata: () => ({
+      color: expense.color,
+      originalExpense: expense,
+    }),
+  };
 }
 
 export function calculateFinancialSimulation({
   assets,
   expenses = [],
-  incomes = [],
+  incomeCalculator,
+  expenseCalculator,
+  incomes,
   simulationYears,
 }: FinancialSimulationParams): FinancialSimulationResult {
-  const { deposits, investments } = assets;
-
-  // 月額積立の合計額を計算（積立オプションから）
-  const totalMonthlyInvestments = investments.reduce((sum, inv) => {
-    return (
-      sum +
-      inv.investmentOptions.reduce((optionSum, option) => {
-        return optionSum + option.monthlyAmount;
-      }, 0)
-    );
-  }, 0);
+  const { deposits } = assets;
 
   // 月額収入の合計額を計算（現在時点での有効な収入のみ）
   const currentDate = new Date();
-  const totalMonthlyIncomes = getActiveIncomeForMonth(
-    incomes,
+  const totalMonthlyIncomes = incomeCalculator.calculateTotal(
     currentDate.getFullYear(),
     currentDate.getMonth() + 1
   );
 
   // 月額支出の合計額を計算（現在時点での有効な支出のみ）
-  const totalMonthlyExpenses = getActiveExpenseForMonth(
-    expenses,
+  const totalMonthlyExpenses = expenseCalculator.calculateTotal(
     currentDate.getFullYear(),
     currentDate.getMonth() + 1
   );
@@ -165,14 +145,11 @@ export function calculateFinancialSimulation({
   // 純キャッシュフロー（収入 - 支出）を計算
   const netMonthlyCashFlow = totalMonthlyIncomes - totalMonthlyExpenses;
 
-  // ベース評価額の合計を計算
-  const totalBaseAmount = investments.reduce(
-    (sum, inv) => sum + inv.baseAmount,
-    0
-  );
+  // ベース評価額の合計を計算（investmentsは無視するため0）
+  const totalBaseAmount = 0;
 
   // 初期総資産額
-  const initialTotal = deposits + totalBaseAmount;
+  const initialTotal = deposits;
 
   // 資産推移シミュレーション計算（収入・支出・投資を考慮）
   const simulationData: SimulationDataPoint[] = [];
@@ -186,41 +163,18 @@ export function calculateFinancialSimulation({
     // 1年目からtargetYear年目までの全ての月のキャッシュフローを累積
     for (let year = 1; year <= targetYear; year++) {
       for (let month = 1; month <= 12; month++) {
-        const monthlyIncome = getActiveIncomeForMonth(incomes, year, month);
-        const monthlyExpense = getActiveExpenseForMonth(expenses, year, month);
-        const monthlyInvestment = getActiveInvestmentForMonth(
-          investments,
-          year,
-          month
-        );
-        // 投資積立額も支出として扱う
-        totalCashFlow += monthlyIncome - monthlyExpense - monthlyInvestment;
+        const monthlyIncome = incomeCalculator.calculateTotal(year, month);
+        const monthlyExpense = expenseCalculator.calculateTotal(year, month);
+        // 投資は無視するため、収入から支出を引くだけ
+        totalCashFlow += monthlyIncome - monthlyExpense;
       }
     }
 
     cumulativeCashFlows.push(totalCashFlow);
   }
 
-  // 累積売却額を追跡
-  let cumulativeSellbacksTotal = 0;
-
-  // 各投資の残高を追跡（年ごと）
-  const investmentBalances = new Map<string, number[]>();
-  investments.forEach((inv) => {
-    investmentBalances.set(inv.id, []);
-  });
-
-  // 各投資の実際の売却額を記録
-  const actualYearlySellbacks = new Map<string, number[]>();
-  investments.forEach((inv) => {
-    actualYearlySellbacks.set(inv.id, []);
-  });
-
   for (let year = 1; year <= simulationYears; year++) {
     const cumulativeCashFlow = cumulativeCashFlows[year - 1];
-
-    // 売却による預金の増加を計算
-    let yearlySellbacks = 0;
 
     // yearDataを先に定義
     const yearData: SimulationDataPoint = {
@@ -229,240 +183,54 @@ export function calculateFinancialSimulation({
       total: 0, // 後で計算
     };
 
-    let totalInvestmentValue = 0;
-
-    // 各投資の将来価値を個別に計算
-    investments.forEach((inv) => {
-      // ベース評価額の成長を計算
-      let baseValue = 0;
-      if (inv.baseAmount > 0) {
-        const annualRate = inv.returnRate;
-        baseValue = inv.baseAmount * Math.pow(1 + annualRate, year);
-      }
-
-      // 積立オプションの将来価値を計算
-      let monthlyInvestmentValue = 0;
-      inv.investmentOptions.forEach((option) => {
-        // 各オプションの開始・終了時期を計算
-        const startTotalMonths =
-          option.startYear * 12 + (option.startMonth - 1);
-        const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
-        const currentTotalMonths = year * 12;
-
-        // 現在の年月が積立期間内かチェック
-        if (
-          currentTotalMonths >= startTotalMonths &&
-          option.monthlyAmount > 0
-        ) {
-          // 実際の積立期間を計算
-          const actualEndMonths = Math.min(endTotalMonths, currentTotalMonths);
-          const investmentMonths = actualEndMonths - startTotalMonths + 1;
-
-          if (investmentMonths > 0) {
-            const monthlyRate = inv.returnRate / 12;
-            let optionValue = 0;
-
-            if (monthlyRate > 0) {
-              // 複利計算式: PMT * (((1 + r)^n - 1) / r)
-              optionValue =
-                (option.monthlyAmount *
-                  (Math.pow(1 + monthlyRate, investmentMonths) - 1)) /
-                monthlyRate;
-
-              // 積立終了後の成長を計算
-              if (currentTotalMonths > endTotalMonths) {
-                const growthMonths = currentTotalMonths - endTotalMonths;
-                optionValue =
-                  optionValue * Math.pow(1 + monthlyRate, growthMonths);
-              }
-            } else {
-              // リターン率が0の場合は単純な積立額の合計
-              optionValue = option.monthlyAmount * investmentMonths;
-            }
-
-            monthlyInvestmentValue += optionValue;
-          }
-        }
-      });
-
-      // 前年の残高を取得
-      const balanceHistory = investmentBalances.get(inv.id) || [];
-      let futureValue: number;
-
-      if (year === 1) {
-        // 初年度は通常の計算を使用
-        futureValue = baseValue + monthlyInvestmentValue;
-      } else {
-        // 2年目以降は前年の残高を基に計算
-        const previousBalance = balanceHistory[year - 2] || 0;
-
-        // 前年の残高が成長
-        let currentValue = previousBalance;
-        if (previousBalance > 0 && inv.returnRate > 0) {
-          currentValue = previousBalance * (1 + inv.returnRate);
-        }
-
-        // 今年の積立を追加
-        let thisYearAddition = 0;
-        inv.investmentOptions.forEach((option) => {
-          const startTotalMonths =
-            option.startYear * 12 + (option.startMonth - 1);
-          const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
-
-          for (let m = 1; m <= 12; m++) {
-            const targetTotalMonths = (year - 1) * 12 + m;
-
-            if (
-              targetTotalMonths >= startTotalMonths &&
-              targetTotalMonths <= endTotalMonths &&
-              option.monthlyAmount > 0
-            ) {
-              const monthlyRate = inv.returnRate / 12;
-
-              if (monthlyRate > 0) {
-                // この月の積立が年末までに成長
-                const monthsToYearEnd = 12 - m + 1;
-                const growthFactor = Math.pow(1 + monthlyRate, monthsToYearEnd);
-                thisYearAddition += option.monthlyAmount * growthFactor;
-              } else {
-                thisYearAddition += option.monthlyAmount;
-              }
-            }
-          }
-        });
-
-        futureValue = currentValue + thisYearAddition;
-      }
-
-      // 今年の売却額を計算
-      let currentYearSellbackAmount = 0;
-      inv.sellbackOptions.forEach((option) => {
-        const startTotalMonths =
-          option.startYear * 12 + (option.startMonth - 1);
-        const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
-
-        // 今年の各月の売却額を計算
-        for (let m = 1; m <= 12; m++) {
-          const targetTotalMonths = year * 12 + (m - 1);
-
-          if (
-            targetTotalMonths >= startTotalMonths &&
-            targetTotalMonths <= endTotalMonths &&
-            option.monthlyAmount > 0
-          ) {
-            currentYearSellbackAmount += option.monthlyAmount;
-          }
-        }
-      });
-
-      // 今年売却可能な額
-      const actualCurrentYearSellback = Math.min(
-        currentYearSellbackAmount,
-        futureValue
-      );
-
-      // 売却後の価値
-      futureValue = Math.max(0, futureValue - actualCurrentYearSellback);
-      yearlySellbacks += actualCurrentYearSellback;
-
-      // この投資の残高を記録
-      balanceHistory.push(futureValue);
-      investmentBalances.set(inv.id, balanceHistory);
-
-      // この投資の今年の実際の売却額を記録
-      const sellbacksForThisInv = actualYearlySellbacks.get(inv.id) || [];
-      sellbacksForThisInv.push(actualCurrentYearSellback);
-      actualYearlySellbacks.set(inv.id, sellbacksForThisInv);
-
-      const investmentKey = `investment_${inv.id}`;
-      yearData[investmentKey] = Math.round(futureValue);
-      totalInvestmentValue += futureValue;
-    });
-
-    // 累積売却額を更新
-    cumulativeSellbacksTotal += yearlySellbacks;
-
-    // 調整済み預金額（基本預金 + 純キャッシュフロー + 累積売却収入）
-    const adjustedDeposits = Math.max(
-      0,
-      deposits + cumulativeCashFlow + cumulativeSellbacksTotal
-    );
+    // 調整済み預金額（基本預金 + 純キャッシュフロー）
+    const adjustedDeposits = Math.max(0, deposits + cumulativeCashFlow);
 
     // 預金額を更新
     yearData.deposits = Math.round(adjustedDeposits);
 
     // 各支出項目を個別にマイナスのバーとして追加（期間を考慮）
+    // ExpenseCalculatorを使用して個別の支出を取得
     expenses.forEach((expense) => {
       const expenseKey = `expense_${expense.id}`;
       // その年の各月における有効な支出額を計算
       let yearlyExpenseAmount = 0;
+
+      // 各月の支出を合計
       for (let month = 1; month <= 12; month++) {
-        const monthlyExpense = getActiveExpenseForMonth([expense], year, month);
-        yearlyExpenseAmount += monthlyExpense;
+        const monthlyBreakdown = expenseCalculator.getBreakdown(year, month);
+        // expense.nameで対応する支出を取得
+        yearlyExpenseAmount += monthlyBreakdown[expense.name] || 0;
       }
+
       yearData[expenseKey] = -Math.round(yearlyExpenseAmount);
     });
 
-    // 各投資の積立額を支出として追加
-    investments.forEach((inv) => {
-      if (inv.investmentOptions.length > 0) {
-        const investmentExpenseKey = `investment_expense_${inv.id}`;
-        let yearlyInvestmentAmount = 0;
-
-        // その年の各月における有効な積立額を計算
-        for (let month = 1; month <= 12; month++) {
-          const targetTotalMonths = year * 12 + (month - 1);
-
-          inv.investmentOptions.forEach((option) => {
-            const startTotalMonths =
-              option.startYear * 12 + (option.startMonth - 1);
-            const endTotalMonths = option.endYear * 12 + (option.endMonth - 1);
-
-            // 現在の年月が積立期間内かチェック
-            if (
-              targetTotalMonths >= startTotalMonths &&
-              targetTotalMonths <= endTotalMonths &&
-              option.monthlyAmount > 0
-            ) {
-              yearlyInvestmentAmount += option.monthlyAmount;
-            }
-          });
-        }
-
-        if (yearlyInvestmentAmount > 0) {
-          yearData[investmentExpenseKey] = -Math.round(yearlyInvestmentAmount);
-        }
-      }
-    });
+    // 投資関連の処理は削除
 
     // 各収入項目を個別にPositiveバーとして追加（期間を考慮）
+    // IncomeCalculatorを使用して個別の収入を取得
+    const incomeBreakdown = incomeCalculator.getBreakdown(year, 1); // 年の最初の月で取得
+
+    // 各収入源について年間の合計を計算
     incomes.forEach((income) => {
       const incomeKey = `income_${income.id}`;
       // その年の各月における有効な収入額を計算
       let yearlyIncomeAmount = 0;
+
+      // 各月の収入を合計
       for (let month = 1; month <= 12; month++) {
-        const monthlyIncome = getActiveIncomeForMonth([income], year, month);
-        yearlyIncomeAmount += monthlyIncome;
+        const monthlyBreakdown = incomeCalculator.getBreakdown(year, month);
+        // income.nameで対応する収入を取得
+        yearlyIncomeAmount += monthlyBreakdown[income.name] || 0;
       }
+
       yearData[incomeKey] = Math.round(yearlyIncomeAmount);
     });
 
-    // 売却益を収入として追加（その年の売却額のみ）
-    investments.forEach((inv) => {
-      if (inv.sellbackOptions.length > 0) {
-        const sellbackIncomeKey = `sellback_income_${inv.id}`;
+    // 投資関連の処理は削除
 
-        // 記録された実際の売却額を使用
-        const sellbacksForThisInv = actualYearlySellbacks.get(inv.id) || [];
-        const thisYearSellback = sellbacksForThisInv[year - 1] || 0;
-
-        if (thisYearSellback > 0) {
-          yearData[sellbackIncomeKey] = Math.round(thisYearSellback);
-        }
-      }
-    });
-
-    yearData.total = Math.round(adjustedDeposits + totalInvestmentValue);
+    yearData.total = Math.round(adjustedDeposits);
     simulationData.push(yearData);
   }
 
@@ -470,7 +238,7 @@ export function calculateFinancialSimulation({
   const finalYearData = simulationData[simulationData.length - 1];
 
   // データが存在するかどうかの判定
-  const hasData = initialTotal > 0 || totalMonthlyInvestments > 0;
+  const hasData = initialTotal > 0 || totalMonthlyIncomes > 0;
 
   return {
     simulationData,
