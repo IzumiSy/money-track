@@ -3,6 +3,7 @@ import {
   CalculatorSource,
   CashFlowChange,
   createTimeRange,
+  shouldOccurInMonth,
 } from "@/domains/shared";
 import { YearMonthDuration } from "@/types/YearMonth";
 
@@ -35,6 +36,20 @@ export function convertIncomeToIncomeSource(income: Income): CalculatorSource {
         if (
           income.endYearMonth &&
           !targetYearMonth.isBeforeOrEqual(income.endYearMonth)
+        ) {
+          return { income: 0, expense: 0 };
+        }
+      }
+
+      // サイクル設定のチェック
+      if (income.cycleSetting?.enabled && income.startYearMonth) {
+        const targetYearMonth = YearMonthDuration.from(year, month);
+        if (
+          !shouldOccurInMonth(
+            income.startYearMonth,
+            targetYearMonth,
+            income.cycleSetting
+          )
         ) {
           return { income: 0, expense: 0 };
         }

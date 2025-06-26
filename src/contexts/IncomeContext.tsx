@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import { YearMonthDuration } from "@/types/YearMonth";
+import { CycleSetting } from "@/types/CycleSetting";
 
 export interface Income {
   id: string;
@@ -10,6 +11,7 @@ export interface Income {
   color: string; // グラフ上での色
   startYearMonth?: YearMonthDuration; // 開始年月
   endYearMonth?: YearMonthDuration; // 終了年月
+  cycleSetting?: CycleSetting; // サイクル設定
 }
 
 interface IncomeContextType {
