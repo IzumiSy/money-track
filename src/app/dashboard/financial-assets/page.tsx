@@ -1,23 +1,12 @@
 "use client";
 
-import FinancialAssetsForm, {
-  FinancialAsset,
-} from "@/components/FinancialAssetsForm";
-import { useFinancialAssets } from "@/contexts/FinancialAssetsContext";
+import FinancialAssetsForm from "@/components/FinancialAssetsForm";
 
 export default function FinancialAssetsPage() {
-  const { financialAssets, setFinancialAssets } = useFinancialAssets();
-
-  const handleFinancialAssetsSubmit = (assets: FinancialAsset) => {
-    setFinancialAssets(assets);
-    // 保存完了のフィードバックを提供（オプション）
+  const handleFinancialAssetsSubmit = () => {
+    // 保存完了のフィードバックを提供
     alert("資産情報が保存されました！シミュレータで確認できます。");
   };
 
-  return (
-    <FinancialAssetsForm
-      onSubmit={handleFinancialAssetsSubmit}
-      initialData={financialAssets}
-    />
-  );
+  return <FinancialAssetsForm onSubmit={handleFinancialAssetsSubmit} />;
 }
