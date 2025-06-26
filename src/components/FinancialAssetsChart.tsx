@@ -11,13 +11,13 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { FinancialAsset } from "./FinancialAssetsForm";
+import { FinancialAssets } from "./FinancialAssetsForm";
 import { Expense } from "@/contexts/ExpensesContext";
 import { Income } from "@/contexts/IncomeContext";
 import { useFinancialSimulation } from "@/hooks/useFinancialSimulation";
 
 interface FinancialAssetsChartProps {
-  assets: FinancialAsset;
+  assets: FinancialAssets;
   expenses?: Expense[];
   incomes?: Income[];
 }
@@ -32,7 +32,6 @@ export default function FinancialAssetsChart({
   expenses = [],
   incomes = [],
 }: FinancialAssetsChartProps) {
-  const { investments } = assets;
   const [simulationYears, setSimulationYears] = useState(30);
 
   // シミュレーション計算ロジックをhookに委譲
@@ -130,15 +129,17 @@ export default function FinancialAssetsChart({
                 fill={COLORS.deposits}
                 name="資産"
               />
-              {investments.map((investment, index) => (
-                <Bar
-                  key={investment.id}
-                  dataKey={`investment_${investment.id}`}
-                  stackId="a"
-                  fill={investment.color}
-                  name={investment.name || `投資 #${index + 1}`}
-                />
-              ))}
+              {assets.assets
+                .filter((asset) => asset.returnRate > 0)
+                .map((asset, index) => (
+                  <Bar
+                    key={asset.id}
+                    dataKey={`investment_${asset.id}`}
+                    stackId="a"
+                    fill={asset.color}
+                    name={asset.name || `資産 #${index + 1}`}
+                  />
+                ))}
               {incomes.map((income) => (
                 <Bar
                   key={income.id}
@@ -148,21 +149,19 @@ export default function FinancialAssetsChart({
                   name={income.name}
                 />
               ))}
-              {investments.map((investment) => {
-                const hasSellbackOptions =
-                  investment.sellbackOptions &&
-                  investment.sellbackOptions.length > 0;
-                if (!hasSellbackOptions) return null;
+              {assets.assets.map((asset) => {
+                const hasWithdrawalOptions =
+                  asset.withdrawalOptions && asset.withdrawalOptions.length > 0;
+                if (!hasWithdrawalOptions) return null;
 
                 return (
                   <Bar
-                    key={`sellback_income_${investment.id}`}
-                    dataKey={`sellback_income_${investment.id}`}
+                    key={`sellback_income_${asset.id}`}
+                    dataKey={`sellback_income_${asset.id}`}
                     stackId="b"
-                    fill={investment.color}
+                    fill={asset.color}
                     name={`${
-                      investment.name ||
-                      `投資 #${investments.indexOf(investment) + 1}`
+                      asset.name || `資産 #${assets.assets.indexOf(asset) + 1}`
                     } 売却益`}
                     opacity={0.8}
                   />
@@ -177,21 +176,20 @@ export default function FinancialAssetsChart({
                   name={expense.name}
                 />
               ))}
-              {investments.map((investment) => {
-                const hasInvestmentOptions =
-                  investment.investmentOptions &&
-                  investment.investmentOptions.length > 0;
-                if (!hasInvestmentOptions) return null;
+              {assets.assets.map((asset) => {
+                const hasContributionOptions =
+                  asset.contributionOptions &&
+                  asset.contributionOptions.length > 0;
+                if (!hasContributionOptions) return null;
 
                 return (
                   <Bar
-                    key={`investment_expense_${investment.id}`}
-                    dataKey={`investment_expense_${investment.id}`}
+                    key={`investment_expense_${asset.id}`}
+                    dataKey={`investment_expense_${asset.id}`}
                     stackId="c"
-                    fill={investment.color}
+                    fill={asset.color}
                     name={`${
-                      investment.name ||
-                      `投資 #${investments.indexOf(investment) + 1}`
+                      asset.name || `資産 #${assets.assets.indexOf(asset) + 1}`
                     } 積立`}
                     opacity={0.7}
                   />

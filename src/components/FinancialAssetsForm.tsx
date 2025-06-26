@@ -3,75 +3,84 @@
 import { useState, useEffect } from "react";
 import { useFinancialAssets } from "@/contexts/FinancialAssetsContext";
 
-export interface InvestmentOption {
+export interface ContributionOption {
   id: string;
-  startYear: number; // 積立開始年
-  startMonth: number; // 積立開始月（1-12）
-  endYear: number; // 積立終了年
-  endMonth: number; // 積立終了月（1-12）
-  monthlyAmount: number; // 月額積立額
+  startYear: number;
+  startMonth: number;
+  endYear: number;
+  endMonth: number;
+  monthlyAmount: number;
 }
 
-export interface SellbackOption {
+export interface WithdrawalOption {
   id: string;
-  startYear: number; // 売却開始年
-  startMonth: number; // 売却開始月（1-12）
-  endYear: number; // 売却終了年
-  endMonth: number; // 売却終了月（1-12）
-  monthlyAmount: number; // 月額売却額
+  startYear: number;
+  startMonth: number;
+  endYear: number;
+  endMonth: number;
+  monthlyAmount: number;
 }
 
-export interface Investment {
+export interface Asset {
   id: string;
   name: string;
-  returnRate: number; // 年間リターン率（例：0.05 = 5%）
-  color: string; // グラフの色
-  baseAmount: number; // ベースとなる評価額（初期投資額）
-  investmentOptions: InvestmentOption[]; // 積立オプション
-  sellbackOptions: SellbackOption[]; // 売却オプション
+  returnRate: number;
+  color: string;
+  baseAmount: number;
+  contributionOptions: ContributionOption[];
+  withdrawalOptions: WithdrawalOption[];
 }
 
-export interface FinancialAsset {
-  deposits: number;
-  investments: Investment[];
+export interface FinancialAssets {
+  assets: Asset[];
 }
 
 interface FinancialAssetsFormProps {
   onSubmit?: () => void;
 }
 
+// デフォルトの現金資産ID
+const CASH_ASSET_ID = "cash-default";
+
 export default function FinancialAssetsForm({
   onSubmit,
 }: FinancialAssetsFormProps) {
   const { financialAssets: contextAssets, setFinancialAssets } =
     useFinancialAssets();
-  const [draftDeposits, setDraftDeposits] = useState(0);
-  const [draftInvestments, setDraftInvestments] = useState<Investment[]>([]);
+  const [draftAssets, setDraftAssets] = useState<Asset[]>([]);
 
   // コンテキストの金融資産データをドラフトステートに同期
   useEffect(() => {
-    if (contextAssets) {
-      setDraftDeposits(contextAssets.deposits);
-      setDraftInvestments(contextAssets.investments);
+    if (contextAssets && contextAssets.assets) {
+      setDraftAssets(contextAssets.assets);
+    } else {
+      // 初期状態では現金資産のみを作成
+      const cashAsset: Asset = {
+        id: CASH_ASSET_ID,
+        name: "現金",
+        returnRate: 0,
+        color: "#10B981",
+        baseAmount: 0,
+        contributionOptions: [],
+        withdrawalOptions: [],
+      };
+      setDraftAssets([cashAsset]);
     }
   }, [contextAssets]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // ドラフトの変更をコンテキストに保存
     setFinancialAssets({
-      deposits: draftDeposits,
-      investments: draftInvestments,
+      assets: draftAssets,
     });
     if (onSubmit) {
       onSubmit();
     }
   };
 
-  // 投資ごとに異なるデフォルト色を設定
+  // 資産ごとに異なるデフォルト色を設定
   const getDefaultColor = (index: number) => {
     const colors = [
-      "#10B981", // Green
       "#F59E0B", // Amber
       "#EF4444", // Red
       "#8B5CF6", // Violet
@@ -83,37 +92,38 @@ export default function FinancialAssetsForm({
     return colors[index % colors.length];
   };
 
-  const addInvestment = () => {
-    const newInvestment: Investment = {
+  const addAsset = () => {
+    const newAsset: Asset = {
       id: Date.now().toString(),
       name: "",
-      returnRate: 0.05, // デフォルト5%
-      color: getDefaultColor(draftInvestments.length),
-      baseAmount: 0, // デフォルト0円（ベース評価額）
-      investmentOptions: [], // 積立オプション
-      sellbackOptions: [], // 売却オプション
+      returnRate: 0.05,
+      color: getDefaultColor(draftAssets.length - 1),
+      baseAmount: 0,
+      contributionOptions: [],
+      withdrawalOptions: [],
     };
-    setDraftInvestments([...draftInvestments, newInvestment]);
+    setDraftAssets([...draftAssets, newAsset]);
   };
 
-  const updateInvestment = (
+  const updateAsset = (
     id: string,
-    field: keyof Investment,
-    value: string | number | boolean | InvestmentOption[] | SellbackOption[]
+    field: keyof Asset,
+    value: string | number | boolean | ContributionOption[] | WithdrawalOption[]
   ) => {
-    setDraftInvestments(
-      draftInvestments.map((inv) =>
-        inv.id === id ? { ...inv, [field]: value } : inv
+    setDraftAssets(
+      draftAssets.map((asset) =>
+        asset.id === id ? { ...asset, [field]: value } : asset
       )
     );
   };
 
-  const removeInvestment = (id: string) => {
-    setDraftInvestments(draftInvestments.filter((inv) => inv.id !== id));
+  const removeAsset = (id: string) => {
+    if (id === CASH_ASSET_ID) return;
+    setDraftAssets(draftAssets.filter((asset) => asset.id !== id));
   };
 
-  const addInvestmentOption = (investmentId: string) => {
-    const newOption: InvestmentOption = {
+  const addContributionOption = (assetId: string) => {
+    const newOption: ContributionOption = {
       id: Date.now().toString(),
       startYear: 0,
       startMonth: 1,
@@ -122,52 +132,55 @@ export default function FinancialAssetsForm({
       monthlyAmount: 0,
     };
 
-    setDraftInvestments(
-      draftInvestments.map((inv) =>
-        inv.id === investmentId
-          ? { ...inv, investmentOptions: [...inv.investmentOptions, newOption] }
-          : inv
+    setDraftAssets(
+      draftAssets.map((asset) =>
+        asset.id === assetId
+          ? {
+              ...asset,
+              contributionOptions: [...asset.contributionOptions, newOption],
+            }
+          : asset
       )
     );
   };
 
-  const updateInvestmentOption = (
-    investmentId: string,
+  const updateContributionOption = (
+    assetId: string,
     optionId: string,
-    field: keyof InvestmentOption,
+    field: keyof ContributionOption,
     value: string | number
   ) => {
-    setDraftInvestments(
-      draftInvestments.map((inv) =>
-        inv.id === investmentId
+    setDraftAssets(
+      draftAssets.map((asset) =>
+        asset.id === assetId
           ? {
-              ...inv,
-              investmentOptions: inv.investmentOptions.map((option) =>
+              ...asset,
+              contributionOptions: asset.contributionOptions.map((option) =>
                 option.id === optionId ? { ...option, [field]: value } : option
               ),
             }
-          : inv
+          : asset
       )
     );
   };
 
-  const removeInvestmentOption = (investmentId: string, optionId: string) => {
-    setDraftInvestments(
-      draftInvestments.map((inv) =>
-        inv.id === investmentId
+  const removeContributionOption = (assetId: string, optionId: string) => {
+    setDraftAssets(
+      draftAssets.map((asset) =>
+        asset.id === assetId
           ? {
-              ...inv,
-              investmentOptions: inv.investmentOptions.filter(
+              ...asset,
+              contributionOptions: asset.contributionOptions.filter(
                 (option) => option.id !== optionId
               ),
             }
-          : inv
+          : asset
       )
     );
   };
 
-  const addSellbackOption = (investmentId: string) => {
-    const newOption: SellbackOption = {
+  const addWithdrawalOption = (assetId: string) => {
+    const newOption: WithdrawalOption = {
       id: Date.now().toString(),
       startYear: 0,
       startMonth: 1,
@@ -176,46 +189,49 @@ export default function FinancialAssetsForm({
       monthlyAmount: 0,
     };
 
-    setDraftInvestments(
-      draftInvestments.map((inv) =>
-        inv.id === investmentId
-          ? { ...inv, sellbackOptions: [...inv.sellbackOptions, newOption] }
-          : inv
+    setDraftAssets(
+      draftAssets.map((asset) =>
+        asset.id === assetId
+          ? {
+              ...asset,
+              withdrawalOptions: [...asset.withdrawalOptions, newOption],
+            }
+          : asset
       )
     );
   };
 
-  const updateSellbackOption = (
-    investmentId: string,
+  const updateWithdrawalOption = (
+    assetId: string,
     optionId: string,
-    field: keyof SellbackOption,
+    field: keyof WithdrawalOption,
     value: string | number
   ) => {
-    setDraftInvestments(
-      draftInvestments.map((inv) =>
-        inv.id === investmentId
+    setDraftAssets(
+      draftAssets.map((asset) =>
+        asset.id === assetId
           ? {
-              ...inv,
-              sellbackOptions: inv.sellbackOptions.map((option) =>
+              ...asset,
+              withdrawalOptions: asset.withdrawalOptions.map((option) =>
                 option.id === optionId ? { ...option, [field]: value } : option
               ),
             }
-          : inv
+          : asset
       )
     );
   };
 
-  const removeSellbackOption = (investmentId: string, optionId: string) => {
-    setDraftInvestments(
-      draftInvestments.map((inv) =>
-        inv.id === investmentId
+  const removeWithdrawalOption = (assetId: string, optionId: string) => {
+    setDraftAssets(
+      draftAssets.map((asset) =>
+        asset.id === assetId
           ? {
-              ...inv,
-              sellbackOptions: inv.sellbackOptions.filter(
+              ...asset,
+              withdrawalOptions: asset.withdrawalOptions.filter(
                 (option) => option.id !== optionId
               ),
             }
-          : inv
+          : asset
       )
     );
   };
@@ -227,106 +243,81 @@ export default function FinancialAssetsForm({
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 預金額 */}
-        <div>
-          <label
-            htmlFor="deposits"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            預金額
-          </label>
-          <div className="relative">
-            <input
-              type="number"
-              id="deposits"
-              value={draftDeposits || ""}
-              onChange={(e) => setDraftDeposits(Number(e.target.value) || 0)}
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              placeholder="0"
-              min="0"
-            />
-            <span className="absolute right-3 top-3 text-gray-500 dark:text-gray-400">
-              円
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            普通預金、定期預金などの合計額
-          </p>
-        </div>
-
-        {/* 積立投資セクション */}
         <div>
           <div className="flex justify-between items-center mb-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              積立投資
+              資産一覧
             </label>
             <button
               type="button"
-              onClick={addInvestment}
+              onClick={addAsset}
               className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md transition-colors duration-200"
             >
-              + 投資を追加
+              + 資産を追加
             </button>
           </div>
 
-          {draftInvestments.length === 0 ? (
+          {draftAssets.length === 0 ? (
             <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
               <p className="text-gray-500 dark:text-gray-400">
-                積立投資を追加してください
+                資産を追加してください
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {draftInvestments.map((investment, index) => (
+              {draftAssets.map((asset, index) => (
                 <div
-                  key={investment.id}
+                  key={asset.id}
                   className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700"
                 >
                   <div className="flex justify-between items-start mb-3">
                     <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      投資 #{index + 1}
+                      {asset.id === CASH_ASSET_ID
+                        ? "現金資産"
+                        : `資産 #${index}`}
                     </h4>
-                    <button
-                      type="button"
-                      onClick={() => removeInvestment(investment.id)}
-                      className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                    >
-                      削除
-                    </button>
+                    {asset.id !== CASH_ASSET_ID && (
+                      <button
+                        type="button"
+                        onClick={() => removeAsset(asset.id)}
+                        className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        削除
+                      </button>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    {/* 投資名 */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                        投資名
+                        資産名
                       </label>
                       <input
                         type="text"
-                        value={investment.name}
+                        value={asset.name}
                         onChange={(e) =>
-                          updateInvestment(
-                            investment.id,
-                            "name",
-                            e.target.value
-                          )
+                          updateAsset(asset.id, "name", e.target.value)
                         }
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                        placeholder="例：S&P500インデックス"
+                        placeholder={
+                          asset.id === CASH_ASSET_ID
+                            ? "現金"
+                            : "例：S&P500インデックス"
+                        }
+                        disabled={asset.id === CASH_ASSET_ID}
                       />
                     </div>
 
-                    {/* ベース評価額 */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                        ベース評価額（円）
+                        現在の評価額（円）
                       </label>
                       <input
                         type="number"
-                        value={investment.baseAmount || ""}
+                        value={asset.baseAmount || ""}
                         onChange={(e) =>
-                          updateInvestment(
-                            investment.id,
+                          updateAsset(
+                            asset.id,
                             "baseAmount",
                             Number(e.target.value) || 0
                           )
@@ -336,21 +327,22 @@ export default function FinancialAssetsForm({
                         min="0"
                       />
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        既存の投資評価額
+                        {asset.id === CASH_ASSET_ID
+                          ? "預金残高"
+                          : "現在の投資評価額"}
                       </p>
                     </div>
 
-                    {/* リターン率 */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                         年間リターン率（%）
                       </label>
                       <input
                         type="number"
-                        value={investment.returnRate * 100 || ""}
+                        value={asset.returnRate * 100 || ""}
                         onChange={(e) =>
-                          updateInvestment(
-                            investment.id,
+                          updateAsset(
+                            asset.id,
                             "returnRate",
                             (Number(e.target.value) || 0) / 100
                           )
@@ -360,10 +352,10 @@ export default function FinancialAssetsForm({
                         min="0"
                         max="100"
                         step="0.1"
+                        disabled={asset.id === CASH_ASSET_ID}
                       />
                     </div>
 
-                    {/* グラフの色 */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                         グラフの色
@@ -371,25 +363,17 @@ export default function FinancialAssetsForm({
                       <div className="flex items-center space-x-2">
                         <input
                           type="color"
-                          value={investment.color}
+                          value={asset.color}
                           onChange={(e) =>
-                            updateInvestment(
-                              investment.id,
-                              "color",
-                              e.target.value
-                            )
+                            updateAsset(asset.id, "color", e.target.value)
                           }
                           className="w-8 h-8 border border-gray-300 dark:border-gray-600 rounded cursor-pointer"
                         />
                         <input
                           type="text"
-                          value={investment.color}
+                          value={asset.color}
                           onChange={(e) =>
-                            updateInvestment(
-                              investment.id,
-                              "color",
-                              e.target.value
-                            )
+                            updateAsset(asset.id, "color", e.target.value)
                           }
                           className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-600 dark:text-white"
                           placeholder="#10B981"
@@ -398,7 +382,6 @@ export default function FinancialAssetsForm({
                     </div>
                   </div>
 
-                  {/* 積立オプション設定 */}
                   <div className="border-t border-gray-200 dark:border-gray-600 pt-3 mt-3">
                     <div className="flex items-center justify-between mb-3">
                       <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -406,14 +389,14 @@ export default function FinancialAssetsForm({
                       </h5>
                       <button
                         type="button"
-                        onClick={() => addInvestmentOption(investment.id)}
+                        onClick={() => addContributionOption(asset.id)}
                         className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-md transition-colors duration-200"
                       >
                         + オプション追加
                       </button>
                     </div>
 
-                    {investment.investmentOptions.length === 0 ? (
+                    {asset.contributionOptions.length === 0 ? (
                       <div className="text-center py-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           積立オプションを追加してください
@@ -421,7 +404,7 @@ export default function FinancialAssetsForm({
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {investment.investmentOptions.map(
+                        {asset.contributionOptions.map(
                           (option, optionIndex) => (
                             <div
                               key={option.id}
@@ -434,8 +417,8 @@ export default function FinancialAssetsForm({
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    removeInvestmentOption(
-                                      investment.id,
+                                    removeContributionOption(
+                                      asset.id,
                                       option.id
                                     )
                                   }
@@ -445,7 +428,6 @@ export default function FinancialAssetsForm({
                                 </button>
                               </div>
                               <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                                {/* 開始年 */}
                                 <div>
                                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                                     開始年
@@ -454,8 +436,8 @@ export default function FinancialAssetsForm({
                                     type="number"
                                     value={option.startYear || ""}
                                     onChange={(e) =>
-                                      updateInvestmentOption(
-                                        investment.id,
+                                      updateContributionOption(
+                                        asset.id,
                                         option.id,
                                         "startYear",
                                         Number(e.target.value) || 0
@@ -466,7 +448,6 @@ export default function FinancialAssetsForm({
                                     min="0"
                                   />
                                 </div>
-                                {/* 開始月 */}
                                 <div>
                                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                                     開始月
@@ -474,8 +455,8 @@ export default function FinancialAssetsForm({
                                   <select
                                     value={option.startMonth}
                                     onChange={(e) =>
-                                      updateInvestmentOption(
-                                        investment.id,
+                                      updateContributionOption(
+                                        asset.id,
                                         option.id,
                                         "startMonth",
                                         Number(e.target.value)
@@ -490,7 +471,6 @@ export default function FinancialAssetsForm({
                                     ))}
                                   </select>
                                 </div>
-                                {/* 終了年 */}
                                 <div>
                                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                                     終了年
@@ -499,8 +479,8 @@ export default function FinancialAssetsForm({
                                     type="number"
                                     value={option.endYear || ""}
                                     onChange={(e) =>
-                                      updateInvestmentOption(
-                                        investment.id,
+                                      updateContributionOption(
+                                        asset.id,
                                         option.id,
                                         "endYear",
                                         Number(e.target.value) || 0
@@ -511,7 +491,6 @@ export default function FinancialAssetsForm({
                                     min="0"
                                   />
                                 </div>
-                                {/* 終了月 */}
                                 <div>
                                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                                     終了月
@@ -519,8 +498,8 @@ export default function FinancialAssetsForm({
                                   <select
                                     value={option.endMonth}
                                     onChange={(e) =>
-                                      updateInvestmentOption(
-                                        investment.id,
+                                      updateContributionOption(
+                                        asset.id,
                                         option.id,
                                         "endMonth",
                                         Number(e.target.value)
@@ -535,17 +514,16 @@ export default function FinancialAssetsForm({
                                     ))}
                                   </select>
                                 </div>
-                                {/* 月額投資額 */}
                                 <div>
                                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                    月額投資額（円）
+                                    月額積立額（円）
                                   </label>
                                   <input
                                     type="number"
                                     value={option.monthlyAmount || ""}
                                     onChange={(e) =>
-                                      updateInvestmentOption(
-                                        investment.id,
+                                      updateContributionOption(
+                                        asset.id,
                                         option.id,
                                         "monthlyAmount",
                                         Number(e.target.value) || 0
@@ -564,168 +542,157 @@ export default function FinancialAssetsForm({
                     )}
                   </div>
 
-                  {/* 売却オプション設定 */}
                   <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
                     <div className="flex items-center justify-between mb-3">
                       <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                        売却オプション
+                        引き出しオプション
                       </h5>
                       <button
                         type="button"
-                        onClick={() => addSellbackOption(investment.id)}
+                        onClick={() => addWithdrawalOption(asset.id)}
                         className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded-md transition-colors duration-200"
                       >
                         + オプション追加
                       </button>
                     </div>
 
-                    {investment.sellbackOptions.length === 0 ? (
+                    {asset.withdrawalOptions.length === 0 ? (
                       <div className="text-center py-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          売却オプションを追加してください
+                          引き出しオプションを追加してください
                         </p>
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {investment.sellbackOptions.map(
-                          (option, optionIndex) => (
-                            <div
-                              key={option.id}
-                              className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-600"
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                  オプション #{optionIndex + 1}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    removeSellbackOption(
-                                      investment.id,
-                                      option.id
+                        {asset.withdrawalOptions.map((option, optionIndex) => (
+                          <div
+                            key={option.id}
+                            className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-600"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                オプション #{optionIndex + 1}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeWithdrawalOption(asset.id, option.id)
+                                }
+                                className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs"
+                              >
+                                削除
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                  開始年
+                                </label>
+                                <input
+                                  type="number"
+                                  value={option.startYear || ""}
+                                  onChange={(e) =>
+                                    updateWithdrawalOption(
+                                      asset.id,
+                                      option.id,
+                                      "startYear",
+                                      Number(e.target.value) || 0
                                     )
                                   }
-                                  className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs"
-                                >
-                                  削除
-                                </button>
+                                  className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                  placeholder="0"
+                                  min="0"
+                                />
                               </div>
-                              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                                {/* 開始年 */}
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                    開始年
-                                  </label>
-                                  <input
-                                    type="number"
-                                    value={option.startYear || ""}
-                                    onChange={(e) =>
-                                      updateSellbackOption(
-                                        investment.id,
-                                        option.id,
-                                        "startYear",
-                                        Number(e.target.value) || 0
-                                      )
-                                    }
-                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
-                                    placeholder="0"
-                                    min="0"
-                                  />
-                                </div>
-                                {/* 開始月 */}
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                    開始月
-                                  </label>
-                                  <select
-                                    value={option.startMonth}
-                                    onChange={(e) =>
-                                      updateSellbackOption(
-                                        investment.id,
-                                        option.id,
-                                        "startMonth",
-                                        Number(e.target.value)
-                                      )
-                                    }
-                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
-                                  >
-                                    {Array.from({ length: 12 }, (_, i) => (
-                                      <option key={i + 1} value={i + 1}>
-                                        {i + 1}月
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                                {/* 終了年 */}
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                    終了年
-                                  </label>
-                                  <input
-                                    type="number"
-                                    value={option.endYear || ""}
-                                    onChange={(e) =>
-                                      updateSellbackOption(
-                                        investment.id,
-                                        option.id,
-                                        "endYear",
-                                        Number(e.target.value) || 0
-                                      )
-                                    }
-                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
-                                    placeholder="10"
-                                    min="0"
-                                  />
-                                </div>
-                                {/* 終了月 */}
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                    終了月
-                                  </label>
-                                  <select
-                                    value={option.endMonth}
-                                    onChange={(e) =>
-                                      updateSellbackOption(
-                                        investment.id,
-                                        option.id,
-                                        "endMonth",
-                                        Number(e.target.value)
-                                      )
-                                    }
-                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
-                                  >
-                                    {Array.from({ length: 12 }, (_, i) => (
-                                      <option key={i + 1} value={i + 1}>
-                                        {i + 1}月
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                                {/* 月額売却額 */}
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                    月額売却額（円）
-                                  </label>
-                                  <input
-                                    type="number"
-                                    value={option.monthlyAmount || ""}
-                                    onChange={(e) =>
-                                      updateSellbackOption(
-                                        investment.id,
-                                        option.id,
-                                        "monthlyAmount",
-                                        Number(e.target.value) || 0
-                                      )
-                                    }
-                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
-                                    placeholder="0"
-                                    min="0"
-                                  />
-                                </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                  開始月
+                                </label>
+                                <select
+                                  value={option.startMonth}
+                                  onChange={(e) =>
+                                    updateWithdrawalOption(
+                                      asset.id,
+                                      option.id,
+                                      "startMonth",
+                                      Number(e.target.value)
+                                    )
+                                  }
+                                  className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                >
+                                  {Array.from({ length: 12 }, (_, i) => (
+                                    <option key={i + 1} value={i + 1}>
+                                      {i + 1}月
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                  終了年
+                                </label>
+                                <input
+                                  type="number"
+                                  value={option.endYear || ""}
+                                  onChange={(e) =>
+                                    updateWithdrawalOption(
+                                      asset.id,
+                                      option.id,
+                                      "endYear",
+                                      Number(e.target.value) || 0
+                                    )
+                                  }
+                                  className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                  placeholder="10"
+                                  min="0"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                  終了月
+                                </label>
+                                <select
+                                  value={option.endMonth}
+                                  onChange={(e) =>
+                                    updateWithdrawalOption(
+                                      asset.id,
+                                      option.id,
+                                      "endMonth",
+                                      Number(e.target.value)
+                                    )
+                                  }
+                                  className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                >
+                                  {Array.from({ length: 12 }, (_, i) => (
+                                    <option key={i + 1} value={i + 1}>
+                                      {i + 1}月
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                  月額引き出し額（円）
+                                </label>
+                                <input
+                                  type="number"
+                                  value={option.monthlyAmount || ""}
+                                  onChange={(e) =>
+                                    updateWithdrawalOption(
+                                      asset.id,
+                                      option.id,
+                                      "monthlyAmount",
+                                      Number(e.target.value) || 0
+                                    )
+                                  }
+                                  className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-700 dark:text-white"
+                                  placeholder="0"
+                                  min="0"
+                                />
                               </div>
                             </div>
-                          )
-                        )}
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -735,7 +702,6 @@ export default function FinancialAssetsForm({
           )}
         </div>
 
-        {/* 送信ボタン */}
         <button
           type="submit"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"

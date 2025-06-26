@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { FinancialAsset } from "@/components/FinancialAssetsForm";
+import { FinancialAssets } from "@/components/FinancialAssetsForm";
 import { Expense } from "@/contexts/ExpensesContext";
 import { Income } from "@/contexts/IncomeContext";
 import { createCalculator } from "@/domains/shared/createCalculator";
@@ -11,7 +11,7 @@ import { convertExpenseToExpenseSource } from "@/domains/expense/source";
 import { convertIncomeToIncomeSource } from "@/domains/income/source";
 
 interface UseFinancialSimulationProps {
-  assets: FinancialAsset;
+  assets: FinancialAssets;
   expenses?: Expense[];
   incomes?: Income[];
   simulationYears: number;
@@ -119,9 +119,15 @@ export function useFinancialSimulation({
       unifiedCalculator.addSource(convertExpenseToExpenseSource(expense));
     });
 
+    // すべての資産の初期額を合計（現金を含む）
+    const totalInitialAmount = assets.assets.reduce(
+      (sum, asset) => sum + asset.baseAmount,
+      0
+    );
+
     // シミュレーターを作成
     const simulator = createSimulator(unifiedCalculator, {
-      initialDeposits: assets.deposits,
+      initialDeposits: totalInitialAmount,
       simulationYears,
     });
 

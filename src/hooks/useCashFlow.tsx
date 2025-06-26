@@ -101,10 +101,12 @@ export function useCashFlow() {
   const getAdjustedDeposits = (months: number = 1) => {
     const netCashFlow = getNetMonthlyCashFlow();
     const totalCashFlowEffect = netCashFlow * months;
-    return (
-      financialAssets.deposits +
-      (totalCashFlowEffect > 0 ? totalCashFlowEffect : 0)
-    );
+    // 現金資産を探す（returnRate が 0 の資産）
+    const cashAsset =
+      financialAssets.assets.find((asset) => asset.id === "cash-default") ||
+      financialAssets.assets.find((asset) => asset.returnRate === 0);
+    const cashAmount = cashAsset?.baseAmount || 0;
+    return cashAmount + (totalCashFlowEffect > 0 ? totalCashFlowEffect : 0);
   };
 
   // キャッシュフローサマリーを取得
@@ -113,13 +115,19 @@ export function useCashFlow() {
     const totalExpenses = getTotalMonthlyExpenses();
     const netCashFlow = totalIncome - totalExpenses;
 
+    // 現金資産を探す
+    const cashAsset =
+      financialAssets.assets.find((asset) => asset.id === "cash-default") ||
+      financialAssets.assets.find((asset) => asset.returnRate === 0);
+    const cashAmount = cashAsset?.baseAmount || 0;
+
     return {
       totalIncome,
       totalExpenses,
       netCashFlow,
       incomes,
       expenses,
-      baseDeposits: financialAssets.deposits,
+      baseDeposits: cashAmount,
       adjustedDeposits: getAdjustedDeposits(),
     };
   };

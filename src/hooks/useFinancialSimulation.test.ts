@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createCalculator, CalculatorSource } from "@/domains/shared";
 import { createSimulator } from "@/domains/simulation";
-import { FinancialAsset } from "@/components/FinancialAssetsForm";
+import { FinancialAssets } from "@/components/FinancialAssetsForm";
 import { Income } from "@/contexts/IncomeContext";
 import { Expense } from "@/contexts/ExpensesContext";
 import { YearMonthDuration } from "@/types/YearMonth";
@@ -10,7 +10,7 @@ import { convertIncomeToIncomeSource } from "@/domains/income/source";
 
 // テスト用のヘルパー関数：calculateFinancialSimulation関数を直接呼び出す
 function runSimulation(
-  assets: FinancialAsset,
+  assets: FinancialAssets,
   incomes: Income[] = [],
   expenses: Expense[] = [],
   simulationYears: number = 3
@@ -28,8 +28,14 @@ function runSimulation(
     unifiedCalculator.addSource(convertExpenseToExpenseSource(expense));
   });
 
+  // すべての資産の初期額を合計
+  const totalInitialAmount = assets.assets.reduce(
+    (sum, asset) => sum + asset.baseAmount,
+    0
+  );
+
   const simulator = createSimulator(unifiedCalculator, {
-    initialDeposits: assets.deposits,
+    initialDeposits: totalInitialAmount,
     simulationYears,
   });
 
@@ -45,8 +51,17 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
   it("期間限定の収入が預金に正しく反映される", () => {
     const result = runSimulation(
       {
-        deposits: 1000000, // 初期預金100万円
-        investments: [],
+        assets: [
+          {
+            id: "cash-default",
+            name: "現金",
+            returnRate: 0,
+            color: "#10B981",
+            baseAmount: 1000000, // 初期預金100万円
+            contributionOptions: [],
+            withdrawalOptions: [],
+          },
+        ],
       },
       [
         {
@@ -72,8 +87,17 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
   it("1年目から開始して同年内で終了する収入", () => {
     const result = runSimulation(
       {
-        deposits: 200000, // 初期預金20万円
-        investments: [],
+        assets: [
+          {
+            id: "cash-default",
+            name: "現金",
+            returnRate: 0,
+            color: "#10B981",
+            baseAmount: 200000, // 初期預金20万円
+            contributionOptions: [],
+            withdrawalOptions: [],
+          },
+        ],
       },
       [
         {
@@ -99,8 +123,17 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
   it("期間設定が全くない場合、常に有効な収入として扱われる", () => {
     const result = runSimulation(
       {
-        deposits: 100000, // 初期預金10万円
-        investments: [],
+        assets: [
+          {
+            id: "cash-default",
+            name: "現金",
+            returnRate: 0,
+            color: "#10B981",
+            baseAmount: 100000, // 初期預金10万円
+            contributionOptions: [],
+            withdrawalOptions: [],
+          },
+        ],
       },
       [
         {
@@ -124,8 +157,17 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
   it("支出がある場合の収入と支出の相殺", () => {
     const result = runSimulation(
       {
-        deposits: 500000, // 初期預金50万円
-        investments: [],
+        assets: [
+          {
+            id: "cash-default",
+            name: "現金",
+            returnRate: 0,
+            color: "#10B981",
+            baseAmount: 500000, // 初期預金50万円
+            contributionOptions: [],
+            withdrawalOptions: [],
+          },
+        ],
       },
       [
         {
@@ -157,8 +199,17 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
   it("期間限定の収入と支出の組み合わせ", () => {
     const result = runSimulation(
       {
-        deposits: 300000, // 初期預金30万円
-        investments: [],
+        assets: [
+          {
+            id: "cash-default",
+            name: "現金",
+            returnRate: 0,
+            color: "#10B981",
+            baseAmount: 300000, // 初期預金30万円
+            contributionOptions: [],
+            withdrawalOptions: [],
+          },
+        ],
       },
       [
         {
