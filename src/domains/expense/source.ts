@@ -9,6 +9,7 @@ import {
 
 /**
  * ExpenseContextのExpense型をExpenseCalculatorのExpenseSource型に変換
+ * 注：year, monthは相対的な値（シミュレーション開始からの年数）として扱う
  */
 export function convertExpenseToExpenseSource(
   expense: Expense
@@ -22,7 +23,7 @@ export function convertExpenseToExpenseSource(
         ? createTimeRange(expense.startYearMonth, expense.endYearMonth)
         : undefined,
     calculate: (year: number, month: number): CashFlowChange => {
-      // 期間チェック
+      // 期間チェック（相対年月で比較）
       if (expense.startYearMonth || expense.endYearMonth) {
         const targetYearMonth = YearMonthDuration.from(year, month);
 

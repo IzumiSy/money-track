@@ -220,27 +220,32 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* 開始年月 */}
+                    {/* 開始時期 */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                        開始年月
+                        開始時期（シミュレーション開始から）
                       </label>
                       <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="number"
-                          value={expense.startYearMonth?.getYear() || ""}
-                          onChange={(e) =>
-                            handleUpdateYear(
-                              expense.id,
-                              "startYearMonth",
-                              Number(e.target.value) || undefined
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                          placeholder="年"
-                          min="0"
-                          max="2100"
-                        />
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={expense.startYearMonth?.getYear() || ""}
+                            onChange={(e) =>
+                              handleUpdateYear(
+                                expense.id,
+                                "startYearMonth",
+                                Number(e.target.value) || undefined
+                              )
+                            }
+                            className="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
+                            placeholder="1"
+                            min="1"
+                            max="100"
+                          />
+                          <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400">
+                            年目
+                          </span>
+                        </div>
                         <select
                           value={expense.startYearMonth?.getMonth() || ""}
                           onChange={(e) =>
@@ -262,27 +267,32 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
                       </div>
                     </div>
 
-                    {/* 終了年月 */}
+                    {/* 終了時期 */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                        終了年月（任意）
+                        終了時期（任意）
                       </label>
                       <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="number"
-                          value={expense.endYearMonth?.getYear() || ""}
-                          onChange={(e) =>
-                            handleUpdateYear(
-                              expense.id,
-                              "endYearMonth",
-                              Number(e.target.value) || undefined
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                          placeholder="年"
-                          min="0"
-                          max="2100"
-                        />
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={expense.endYearMonth?.getYear() || ""}
+                            onChange={(e) =>
+                              handleUpdateYear(
+                                expense.id,
+                                "endYearMonth",
+                                Number(e.target.value) || undefined
+                              )
+                            }
+                            className="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
+                            placeholder="1"
+                            min="1"
+                            max="100"
+                          />
+                          <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400">
+                            年目
+                          </span>
+                        </div>
                         <select
                           value={expense.endYearMonth?.getMonth() || ""}
                           onChange={(e) =>
