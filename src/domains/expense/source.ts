@@ -8,6 +8,11 @@ import { CalculatorSource, createTimeRange, CashFlowChange } from "../shared";
 export function convertExpenseToExpenseSource(
   expense: Expense
 ): CalculatorSource {
+  // 現在の年月を基準とする
+  const now = new Date();
+  const baseYear = now.getFullYear();
+  const baseMonth = now.getMonth() + 1; // JavaScriptの月は0ベースなので+1
+
   return {
     id: expense.id,
     name: expense.name,
@@ -16,10 +21,14 @@ export function convertExpenseToExpenseSource(
       expense.startYearMonth && expense.endYearMonth
         ? createTimeRange(expense.startYearMonth, expense.endYearMonth)
         : undefined,
-    calculate: (year: number, month: number): CashFlowChange => {
+    calculate: (monthsFromStart: number): CashFlowChange => {
       // 期間チェック
       if (expense.startYearMonth || expense.endYearMonth) {
-        const targetYearMonth = YearMonthDuration.from(year, month);
+        // 相対月数から絶対年月を計算
+        const totalMonths = baseYear * 12 + baseMonth - 1 + monthsFromStart;
+        const targetYear = Math.floor(totalMonths / 12);
+        const targetMonth = (totalMonths % 12) + 1;
+        const targetYearMonth = YearMonthDuration.from(targetYear, targetMonth);
 
         // 開始年月のチェック
         if (

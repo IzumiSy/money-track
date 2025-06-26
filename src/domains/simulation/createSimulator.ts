@@ -27,11 +27,8 @@ export function createSimulator(
    * 現在の月次キャッシュフローを計算
    */
   const getCurrentMonthlyCashFlow = () => {
-    const currentDate = new Date();
-    const totalMonthlyCashFlow = calculator.calculateTotal(
-      currentDate.getFullYear(),
-      currentDate.getMonth() + 1
-    );
+    // 現在時点（0ヶ月目）のキャッシュフローを計算
+    const totalMonthlyCashFlow = calculator.calculateTotal(0);
 
     return {
       income: totalMonthlyCashFlow.income,
@@ -59,7 +56,9 @@ export function createSimulator(
       // 1年目からtargetYear年目までの全ての月のキャッシュフローを累積
       for (let year = 1; year <= targetYear; year++) {
         for (let month = 1; month <= 12; month++) {
-          const monthlyCashFlow = calculator.calculateTotal(year, month);
+          // 相対的な月数を計算: (year-1) * 12 + (month-1)
+          const monthsFromStart = (year - 1) * 12 + (month - 1);
+          const monthlyCashFlow = calculator.calculateTotal(monthsFromStart);
           // 投資は無視するため、収入から支出を引くだけ
           totalCashFlow += monthlyCashFlow.income - monthlyCashFlow.expense;
         }
@@ -83,7 +82,9 @@ export function createSimulator(
 
       // 各月のbreakdownを一度だけ取得して、収入・支出を集計
       for (let month = 1; month <= 12; month++) {
-        const monthlyBreakdown = calculator.getBreakdown(year, month);
+        // 相対的な月数を計算
+        const monthsFromStart = (year - 1) * 12 + (month - 1);
+        const monthlyBreakdown = calculator.getBreakdown(monthsFromStart);
         // breakdownから全ての収入・支出を集計（キーはsourceId）
         Object.entries(monthlyBreakdown).forEach(
           ([sourceId, cashFlowChange]) => {
@@ -115,11 +116,7 @@ export function createSimulator(
     }
 
     // データが存在するかどうかの判定
-    const currentDate = new Date();
-    const totalMonthlyCashFlow = calculator.calculateTotal(
-      currentDate.getFullYear(),
-      currentDate.getMonth() + 1
-    );
+    const totalMonthlyCashFlow = calculator.calculateTotal(0);
     const hasData = initialDeposits > 0 || totalMonthlyCashFlow.income > 0;
 
     return {

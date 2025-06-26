@@ -10,6 +10,11 @@ import { YearMonthDuration } from "@/types/YearMonth";
  * IncomeContextのIncome型をIncomeCalculatorのIncomeSource型に変換
  */
 export function convertIncomeToIncomeSource(income: Income): CalculatorSource {
+  // 現在の年月を基準とする
+  const now = new Date();
+  const baseYear = now.getFullYear();
+  const baseMonth = now.getMonth() + 1; // JavaScriptの月は0ベースなので+1
+
   return {
     id: income.id,
     name: income.name,
@@ -18,10 +23,14 @@ export function convertIncomeToIncomeSource(income: Income): CalculatorSource {
       income.startYearMonth && income.endYearMonth
         ? createTimeRange(income.startYearMonth, income.endYearMonth)
         : undefined,
-    calculate: (year: number, month: number): CashFlowChange => {
+    calculate: (monthsFromStart: number): CashFlowChange => {
       // 期間チェック
       if (income.startYearMonth || income.endYearMonth) {
-        const targetYearMonth = YearMonthDuration.from(year, month);
+        // 相対月数から絶対年月を計算
+        const totalMonths = baseYear * 12 + baseMonth - 1 + monthsFromStart;
+        const targetYear = Math.floor(totalMonths / 12);
+        const targetMonth = (totalMonths % 12) + 1;
+        const targetYearMonth = YearMonthDuration.from(targetYear, targetMonth);
 
         // 開始年月のチェック
         if (

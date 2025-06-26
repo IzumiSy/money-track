@@ -10,7 +10,7 @@ export interface CalculatorSource {
   name: string;
   type: string;
   timeRange?: TimeRange;
-  calculate: (year: number, month: number) => CashFlowChange;
+  calculate: (monthsFromStart: number) => CashFlowChange;
   getMetadata?: () => Record<string, unknown>;
 }
 
@@ -30,6 +30,5 @@ export interface CalculationResult {
   totalExpense: number;
   netCashFlow: number; // totalIncome - totalExpense
   breakdown: CalculatorBreakdown;
-  year: number;
-  month: number;
+  monthsFromStart: number;
 }
