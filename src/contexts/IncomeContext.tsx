@@ -1,15 +1,18 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { YearMonthDuration } from "@/types/YearMonth";
+import { TimeRange } from "@/domains/shared/TimeRange";
 
 export interface Income {
   id: string;
   name: string;
   monthlyAmount: number; // 月間収入額
   color: string; // グラフ上での色
-  startYearMonth?: YearMonthDuration; // 開始年月
-  endYearMonth?: YearMonthDuration; // 終了年月
+  startYear?: number; // 開始年（UI用）
+  startMonth?: number; // 開始月（UI用）
+  endYear?: number; // 終了年（UI用）
+  endMonth?: number; // 終了月（UI用）
+  timeRange?: TimeRange; // 実際の計算で使用
 }
 
 interface IncomeContextType {

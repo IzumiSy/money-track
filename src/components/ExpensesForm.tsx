@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useExpenses, Expense } from "@/contexts/ExpensesContext";
-import { YearMonthDuration } from "@/types/YearMonth";
+import { convertYearMonthToIndex } from "@/domains/shared/TimeRange";
 
 interface ExpensesFormProps {
   onSubmit?: () => void;
@@ -45,7 +45,7 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
   const handleUpdateExpense = (
     id: string,
     field: keyof Expense,
-    value: string | number | YearMonthDuration | undefined
+    value: string | number | undefined
   ) => {
     setDraftExpenses(
       draftExpenses.map((expense) =>
@@ -54,40 +54,39 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
     );
   };
 
-  const handleUpdateYear = (
-    id: string,
-    field: "startYearMonth" | "endYearMonth",
-    year: number | undefined
-  ) => {
-    const expense = draftExpenses.find((e) => e.id === id);
-    if (!expense) return;
-
-    const currentYearMonth = expense[field] || YearMonthDuration.from();
-    const updatedYearMonth = currentYearMonth.withYear(year);
-    handleUpdateExpense(id, field, updatedYearMonth);
-  };
-
-  const handleUpdateMonth = (
-    id: string,
-    field: "startYearMonth" | "endYearMonth",
-    month: number | undefined
-  ) => {
-    const expense = draftExpenses.find((e) => e.id === id);
-    if (!expense) return;
-
-    const currentYearMonth = expense[field] || YearMonthDuration.from();
-    const updatedYearMonth = currentYearMonth.withMonth(month);
-    handleUpdateExpense(id, field, updatedYearMonth);
-  };
-
   const handleRemoveExpense = (id: string) => {
     setDraftExpenses(draftExpenses.filter((expense) => expense.id !== id));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // ドラフトの変更をコンテキストに保存
-    setExpenses(draftExpenses);
+
+    // ドラフトの変更をコンテキストに保存（年月をTimeRangeに変換）
+    const processedExpenses = draftExpenses.map((expense) => {
+      const timeRange: { startMonthIndex?: number; endMonthIndex?: number } =
+        {};
+
+      if (expense.startYear && expense.startMonth) {
+        timeRange.startMonthIndex = convertYearMonthToIndex(
+          expense.startYear,
+          expense.startMonth
+        );
+      }
+
+      if (expense.endYear && expense.endMonth) {
+        timeRange.endMonthIndex = convertYearMonthToIndex(
+          expense.endYear,
+          expense.endMonth
+        );
+      }
+
+      return {
+        ...expense,
+        timeRange: Object.keys(timeRange).length > 0 ? timeRange : undefined,
+      };
+    });
+
+    setExpenses(processedExpenses);
     if (onSubmit) {
       onSubmit();
     }
@@ -226,25 +225,25 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="number"
-                          value={expense.startYearMonth?.getYear() || ""}
+                          value={expense.startYear || ""}
                           onChange={(e) =>
-                            handleUpdateYear(
+                            handleUpdateExpense(
                               expense.id,
-                              "startYearMonth",
+                              "startYear",
                               Number(e.target.value) || undefined
                             )
                           }
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
                           placeholder="年"
-                          min="0"
-                          max="2100"
+                          min="1"
+                          max="100"
                         />
                         <select
-                          value={expense.startYearMonth?.getMonth() || ""}
+                          value={expense.startMonth || ""}
                           onChange={(e) =>
-                            handleUpdateMonth(
+                            handleUpdateExpense(
                               expense.id,
-                              "startYearMonth",
+                              "startMonth",
                               Number(e.target.value) || undefined
                             )
                           }
@@ -268,25 +267,25 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="number"
-                          value={expense.endYearMonth?.getYear() || ""}
+                          value={expense.endYear || ""}
                           onChange={(e) =>
-                            handleUpdateYear(
+                            handleUpdateExpense(
                               expense.id,
-                              "endYearMonth",
+                              "endYear",
                               Number(e.target.value) || undefined
                             )
                           }
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
                           placeholder="年"
-                          min="0"
-                          max="2100"
+                          min="1"
+                          max="100"
                         />
                         <select
-                          value={expense.endYearMonth?.getMonth() || ""}
+                          value={expense.endMonth || ""}
                           onChange={(e) =>
-                            handleUpdateMonth(
+                            handleUpdateExpense(
                               expense.id,
-                              "endYearMonth",
+                              "endMonth",
                               Number(e.target.value) || undefined
                             )
                           }
