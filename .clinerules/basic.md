@@ -7,6 +7,10 @@
 
 ## Process
 
-* Always run `pnpm type-check`, `pnpm lint` and `pnpm test` after a set of modification, and fix all things reported
+* Always check code quality (run `pnpm type-check`, `pnpm lint` and `pnpm test`) after a set of modification, and fix all things reported
+* before working on you task, if you are working on main branch, checkout a new branch to apply your changes.
+  * Use any name you want
 * You don't have to run `pnpm dev` to check if the application runs properly unless you are commanded to do so
   * Application behaviour should be assured through unit tests as much as possible.
+* Once you finished a set of changes you want and checked if the code quality check passes, commit you changes with "git commit -m"
+  * Always add short but intuitive commit message
