@@ -50,17 +50,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const handleNewSimulation = () => {
     // 全てのデータをクリア
     setFinancialAssets({
-      assets: [
-        {
-          id: "cash-default",
-          name: "現金",
-          returnRate: 0,
-          color: "#10B981",
-          baseAmount: 0,
-          contributionOptions: [],
-          withdrawalOptions: [],
-        },
-      ],
+      assets: [],
     });
     setExpenses([]);
     setIncomes([]);

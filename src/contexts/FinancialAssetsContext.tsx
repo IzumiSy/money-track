@@ -14,7 +14,7 @@ const FinancialAssetsContext = createContext<
 
 // デフォルト色の配列
 const DEFAULT_COLORS = [
-  "#10B981", // Green (現金用)
+  "#10B981", // Green
   "#F59E0B", // Amber
   "#EF4444", // Red
   "#8B5CF6", // Violet
@@ -24,42 +24,13 @@ const DEFAULT_COLORS = [
   "#84CC16", // Lime
 ];
 
-// デフォルトの現金資産ID
-const CASH_ASSET_ID = "cash-default";
-
 export function FinancialAssetsProvider({ children }: { children: ReactNode }) {
   const [financialAssets, setFinancialAssets] = useState<FinancialAssets>({
-    assets: [
-      {
-        id: CASH_ASSET_ID,
-        name: "現金",
-        returnRate: 0,
-        color: DEFAULT_COLORS[0],
-        baseAmount: 0,
-        contributionOptions: [],
-        withdrawalOptions: [],
-      },
-    ],
+    assets: [],
   });
 
   // 資産データにデフォルト値を設定する関数
   const setFinancialAssetsWithDefaults = (assets: FinancialAssets) => {
-    // 現金資産が存在しない場合は追加
-    const hasCashAsset = assets.assets.some(
-      (asset) => asset.id === CASH_ASSET_ID
-    );
-    if (!hasCashAsset) {
-      assets.assets.unshift({
-        id: CASH_ASSET_ID,
-        name: "現金",
-        returnRate: 0,
-        color: DEFAULT_COLORS[0],
-        baseAmount: 0,
-        contributionOptions: [],
-        withdrawalOptions: [],
-      });
-    }
-
     const assetsWithDefaults = assets.assets.map((asset, index) => {
       return {
         ...asset,

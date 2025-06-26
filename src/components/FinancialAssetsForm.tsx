@@ -39,9 +39,6 @@ interface FinancialAssetsFormProps {
   onSubmit?: () => void;
 }
 
-// デフォルトの現金資産ID
-const CASH_ASSET_ID = "cash-default";
-
 export default function FinancialAssetsForm({
   onSubmit,
 }: FinancialAssetsFormProps) {
@@ -54,17 +51,8 @@ export default function FinancialAssetsForm({
     if (contextAssets && contextAssets.assets) {
       setDraftAssets(contextAssets.assets);
     } else {
-      // 初期状態では現金資産のみを作成
-      const cashAsset: Asset = {
-        id: CASH_ASSET_ID,
-        name: "現金",
-        returnRate: 0,
-        color: "#10B981",
-        baseAmount: 0,
-        contributionOptions: [],
-        withdrawalOptions: [],
-      };
-      setDraftAssets([cashAsset]);
+      // 初期状態は空の配列
+      setDraftAssets([]);
     }
   }, [contextAssets]);
 
@@ -118,7 +106,6 @@ export default function FinancialAssetsForm({
   };
 
   const removeAsset = (id: string) => {
-    if (id === CASH_ASSET_ID) return;
     setDraftAssets(draftAssets.filter((asset) => asset.id !== id));
   };
 
@@ -272,19 +259,15 @@ export default function FinancialAssetsForm({
                 >
                   <div className="flex justify-between items-start mb-3">
                     <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {asset.id === CASH_ASSET_ID
-                        ? "現金資産"
-                        : `資産 #${index}`}
+                      資産 #{index + 1}
                     </h4>
-                    {asset.id !== CASH_ASSET_ID && (
-                      <button
-                        type="button"
-                        onClick={() => removeAsset(asset.id)}
-                        className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                      >
-                        削除
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeAsset(asset.id)}
+                      className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                    >
+                      削除
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
@@ -299,12 +282,7 @@ export default function FinancialAssetsForm({
                           updateAsset(asset.id, "name", e.target.value)
                         }
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                        placeholder={
-                          asset.id === CASH_ASSET_ID
-                            ? "現金"
-                            : "例：S&P500インデックス"
-                        }
-                        disabled={asset.id === CASH_ASSET_ID}
+                        placeholder="例：S&P500インデックス"
                       />
                     </div>
 
@@ -327,9 +305,7 @@ export default function FinancialAssetsForm({
                         min="0"
                       />
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        {asset.id === CASH_ASSET_ID
-                          ? "預金残高"
-                          : "現在の投資評価額"}
+                        現在の評価額
                       </p>
                     </div>
 
@@ -352,7 +328,6 @@ export default function FinancialAssetsForm({
                         min="0"
                         max="100"
                         step="0.1"
-                        disabled={asset.id === CASH_ASSET_ID}
                       />
                     </div>
 
