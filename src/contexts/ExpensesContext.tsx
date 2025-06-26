@@ -1,15 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { YearMonthDuration } from "@/types/YearMonth";
 
 export interface Expense {
   id: string;
   name: string;
   monthlyAmount: number; // 月間支出額
   color: string; // グラフ上での色
-  startYearMonth?: YearMonthDuration; // 開始年月
-  endYearMonth?: YearMonthDuration; // 終了年月
+  startMonthsFromNow?: number; // 今から何ヶ月後に開始
+  endMonthsFromNow?: number; // 今から何ヶ月後に終了
 }
 
 interface ExpensesContextType {

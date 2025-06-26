@@ -1,49 +1,32 @@
 import { Income } from "@/contexts/IncomeContext";
-import {
-  CalculatorSource,
-  CashFlowChange,
-  createTimeRange,
-} from "@/domains/shared";
-import { YearMonthDuration } from "@/types/YearMonth";
+import { CalculatorSource, CashFlowChange } from "@/domains/shared";
 
 /**
  * IncomeContextのIncome型をIncomeCalculatorのIncomeSource型に変換
  */
 export function convertIncomeToIncomeSource(income: Income): CalculatorSource {
-  // 現在の年月を基準とする
-  const now = new Date();
-  const baseYear = now.getFullYear();
-  const baseMonth = now.getMonth() + 1; // JavaScriptの月は0ベースなので+1
-
   return {
     id: income.id,
     name: income.name,
     type: "income",
-    timeRange:
-      income.startYearMonth && income.endYearMonth
-        ? createTimeRange(income.startYearMonth, income.endYearMonth)
-        : undefined,
     calculate: (monthsFromStart: number): CashFlowChange => {
       // 期間チェック
-      if (income.startYearMonth || income.endYearMonth) {
-        // 相対月数から絶対年月を計算
-        const totalMonths = baseYear * 12 + baseMonth - 1 + monthsFromStart;
-        const targetYear = Math.floor(totalMonths / 12);
-        const targetMonth = (totalMonths % 12) + 1;
-        const targetYearMonth = YearMonthDuration.from(targetYear, targetMonth);
-
-        // 開始年月のチェック
+      if (
+        income.startMonthsFromNow !== undefined ||
+        income.endMonthsFromNow !== undefined
+      ) {
+        // 開始時期のチェック
         if (
-          income.startYearMonth &&
-          !targetYearMonth.isAfterOrEqual(income.startYearMonth)
+          income.startMonthsFromNow !== undefined &&
+          monthsFromStart < income.startMonthsFromNow
         ) {
           return { income: 0, expense: 0 };
         }
 
-        // 終了年月のチェック
+        // 終了時期のチェック
         if (
-          income.endYearMonth &&
-          !targetYearMonth.isBeforeOrEqual(income.endYearMonth)
+          income.endMonthsFromNow !== undefined &&
+          monthsFromStart > income.endMonthsFromNow
         ) {
           return { income: 0, expense: 0 };
         }

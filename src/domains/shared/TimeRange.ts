@@ -1,30 +1,31 @@
-import { YearMonthDuration } from "@/types/YearMonth";
+// TimeRange is no longer used since we switched to relative months
+// This file is kept for backward compatibility but should be removed in future refactoring
 
 export interface TimeRange {
-  startDate?: YearMonthDuration;
-  endDate?: YearMonthDuration;
+  startMonths?: number;
+  endMonths?: number;
 }
 
 export const createTimeRange = (
-  startDate?: YearMonthDuration,
-  endDate?: YearMonthDuration
+  startMonths?: number,
+  endMonths?: number
 ): TimeRange => ({
-  startDate,
-  endDate,
+  startMonths,
+  endMonths,
 });
 
+// This function is no longer used
 export const isWithinTimeRange = (
   timeRange: TimeRange | undefined,
-  year: number,
-  month: number
+  monthsFromStart: number
 ): boolean => {
   if (!timeRange) return true;
 
-  const targetDate = YearMonthDuration.from(year, month);
   const afterStart =
-    !timeRange.startDate || targetDate.isAfterOrEqual(timeRange.startDate);
+    timeRange.startMonths === undefined ||
+    monthsFromStart >= timeRange.startMonths;
   const beforeEnd =
-    !timeRange.endDate || targetDate.isBeforeOrEqual(timeRange.endDate);
+    timeRange.endMonths === undefined || monthsFromStart <= timeRange.endMonths;
 
   return afterStart && beforeEnd;
 };

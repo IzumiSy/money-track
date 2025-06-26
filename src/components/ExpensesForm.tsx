@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useExpenses, Expense } from "@/contexts/ExpensesContext";
-import { YearMonthDuration } from "@/types/YearMonth";
 
 interface ExpensesFormProps {
   onSubmit?: () => void;
@@ -45,7 +44,7 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
   const handleUpdateExpense = (
     id: string,
     field: keyof Expense,
-    value: string | number | YearMonthDuration | undefined
+    value: string | number | undefined
   ) => {
     setDraftExpenses(
       draftExpenses.map((expense) =>
@@ -54,30 +53,24 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
     );
   };
 
-  const handleUpdateYear = (
+  const handleUpdatePeriod = (
     id: string,
-    field: "startYearMonth" | "endYearMonth",
-    year: number | undefined
+    field: "startMonthsFromNow" | "endMonthsFromNow",
+    years: number,
+    months: number
   ) => {
-    const expense = draftExpenses.find((e) => e.id === id);
-    if (!expense) return;
-
-    const currentYearMonth = expense[field] || YearMonthDuration.from();
-    const updatedYearMonth = currentYearMonth.withYear(year);
-    handleUpdateExpense(id, field, updatedYearMonth);
+    const totalMonths = years * 12 + months;
+    handleUpdateExpense(id, field, totalMonths > 0 ? totalMonths : undefined);
   };
 
-  const handleUpdateMonth = (
-    id: string,
-    field: "startYearMonth" | "endYearMonth",
-    month: number | undefined
-  ) => {
-    const expense = draftExpenses.find((e) => e.id === id);
-    if (!expense) return;
-
-    const currentYearMonth = expense[field] || YearMonthDuration.from();
-    const updatedYearMonth = currentYearMonth.withMonth(month);
-    handleUpdateExpense(id, field, updatedYearMonth);
+  const getYearsAndMonths = (totalMonths: number | undefined) => {
+    if (totalMonths === undefined) {
+      return { years: 0, months: 0 };
+    }
+    return {
+      years: Math.floor(totalMonths / 12),
+      months: totalMonths % 12,
+    };
   };
 
   const handleRemoveExpense = (id: string) => {
@@ -218,87 +211,107 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* 開始年月 */}
+                    {/* 開始時期 */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                        開始年月
+                        開始時期（今から）
                       </label>
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="number"
-                          value={expense.startYearMonth?.getYear() || ""}
-                          onChange={(e) =>
-                            handleUpdateYear(
-                              expense.id,
-                              "startYearMonth",
-                              Number(e.target.value) || undefined
-                            )
+                          value={
+                            getYearsAndMonths(expense.startMonthsFromNow).years
                           }
+                          onChange={(e) => {
+                            const years = Number(e.target.value) || 0;
+                            const months = getYearsAndMonths(
+                              expense.startMonthsFromNow
+                            ).months;
+                            handleUpdatePeriod(
+                              expense.id,
+                              "startMonthsFromNow",
+                              years,
+                              months
+                            );
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
                           placeholder="年"
                           min="0"
-                          max="2100"
                         />
-                        <select
-                          value={expense.startYearMonth?.getMonth() || ""}
-                          onChange={(e) =>
-                            handleUpdateMonth(
-                              expense.id,
-                              "startYearMonth",
-                              Number(e.target.value) || undefined
-                            )
+                        <input
+                          type="number"
+                          value={
+                            getYearsAndMonths(expense.startMonthsFromNow).months
                           }
+                          onChange={(e) => {
+                            const years = getYearsAndMonths(
+                              expense.startMonthsFromNow
+                            ).years;
+                            const months = Number(e.target.value) || 0;
+                            handleUpdatePeriod(
+                              expense.id,
+                              "startMonthsFromNow",
+                              years,
+                              months
+                            );
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                        >
-                          <option value="">月</option>
-                          {Array.from({ length: 12 }, (_, i) => (
-                            <option key={i + 1} value={i + 1}>
-                              {i + 1}月
-                            </option>
-                          ))}
-                        </select>
+                          placeholder="月"
+                          min="0"
+                          max="11"
+                        />
                       </div>
                     </div>
 
-                    {/* 終了年月 */}
+                    {/* 終了時期 */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                        終了年月（任意）
+                        終了時期（今から・任意）
                       </label>
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="number"
-                          value={expense.endYearMonth?.getYear() || ""}
-                          onChange={(e) =>
-                            handleUpdateYear(
-                              expense.id,
-                              "endYearMonth",
-                              Number(e.target.value) || undefined
-                            )
+                          value={
+                            getYearsAndMonths(expense.endMonthsFromNow).years
                           }
+                          onChange={(e) => {
+                            const years = Number(e.target.value) || 0;
+                            const months = getYearsAndMonths(
+                              expense.endMonthsFromNow
+                            ).months;
+                            handleUpdatePeriod(
+                              expense.id,
+                              "endMonthsFromNow",
+                              years,
+                              months
+                            );
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
                           placeholder="年"
                           min="0"
-                          max="2100"
                         />
-                        <select
-                          value={expense.endYearMonth?.getMonth() || ""}
-                          onChange={(e) =>
-                            handleUpdateMonth(
-                              expense.id,
-                              "endYearMonth",
-                              Number(e.target.value) || undefined
-                            )
+                        <input
+                          type="number"
+                          value={
+                            getYearsAndMonths(expense.endMonthsFromNow).months
                           }
+                          onChange={(e) => {
+                            const years = getYearsAndMonths(
+                              expense.endMonthsFromNow
+                            ).years;
+                            const months = Number(e.target.value) || 0;
+                            handleUpdatePeriod(
+                              expense.id,
+                              "endMonthsFromNow",
+                              years,
+                              months
+                            );
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                        >
-                          <option value="">月</option>
-                          {Array.from({ length: 12 }, (_, i) => (
-                            <option key={i + 1} value={i + 1}>
-                              {i + 1}月
-                            </option>
-                          ))}
-                        </select>
+                          placeholder="月"
+                          min="0"
+                          max="11"
+                        />
                       </div>
                     </div>
                   </div>

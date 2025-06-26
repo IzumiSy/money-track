@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useIncome, Income } from "@/contexts/IncomeContext";
-import { YearMonthDuration } from "@/types/YearMonth";
 
 interface IncomeFormProps {
   onSubmit?: () => void;
@@ -45,7 +44,7 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
   const handleUpdateIncome = (
     id: string,
     field: keyof Income,
-    value: string | number | YearMonthDuration | undefined
+    value: string | number | undefined
   ) => {
     setDraftIncomes(
       draftIncomes.map((income) =>
@@ -54,30 +53,24 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
     );
   };
 
-  const handleUpdateYear = (
+  const handleUpdatePeriod = (
     id: string,
-    field: "startYearMonth" | "endYearMonth",
-    year: number | undefined
+    field: "startMonthsFromNow" | "endMonthsFromNow",
+    years: number,
+    months: number
   ) => {
-    const income = draftIncomes.find((i) => i.id === id);
-    if (!income) return;
-
-    const currentYearMonth = income[field] || YearMonthDuration.from();
-    const updatedYearMonth = currentYearMonth.withYear(year);
-    handleUpdateIncome(id, field, updatedYearMonth);
+    const totalMonths = years * 12 + months;
+    handleUpdateIncome(id, field, totalMonths > 0 ? totalMonths : undefined);
   };
 
-  const handleUpdateMonth = (
-    id: string,
-    field: "startYearMonth" | "endYearMonth",
-    month: number | undefined
-  ) => {
-    const income = draftIncomes.find((i) => i.id === id);
-    if (!income) return;
-
-    const currentYearMonth = income[field] || YearMonthDuration.from();
-    const updatedYearMonth = currentYearMonth.withMonth(month);
-    handleUpdateIncome(id, field, updatedYearMonth);
+  const getYearsAndMonths = (totalMonths: number | undefined) => {
+    if (totalMonths === undefined) {
+      return { years: 0, months: 0 };
+    }
+    return {
+      years: Math.floor(totalMonths / 12),
+      months: totalMonths % 12,
+    };
   };
 
   const handleRemoveIncome = (id: string) => {
@@ -214,87 +207,107 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* 開始年月 */}
+                    {/* 開始時期 */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                        開始年月
+                        開始時期（今から）
                       </label>
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="number"
-                          value={income.startYearMonth?.getYear() || ""}
-                          onChange={(e) =>
-                            handleUpdateYear(
-                              income.id,
-                              "startYearMonth",
-                              Number(e.target.value) || undefined
-                            )
+                          value={
+                            getYearsAndMonths(income.startMonthsFromNow).years
                           }
+                          onChange={(e) => {
+                            const years = Number(e.target.value) || 0;
+                            const months = getYearsAndMonths(
+                              income.startMonthsFromNow
+                            ).months;
+                            handleUpdatePeriod(
+                              income.id,
+                              "startMonthsFromNow",
+                              years,
+                              months
+                            );
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
                           placeholder="年"
                           min="0"
-                          max="2100"
                         />
-                        <select
-                          value={income.startYearMonth?.getMonth() || ""}
-                          onChange={(e) =>
-                            handleUpdateMonth(
-                              income.id,
-                              "startYearMonth",
-                              Number(e.target.value) || undefined
-                            )
+                        <input
+                          type="number"
+                          value={
+                            getYearsAndMonths(income.startMonthsFromNow).months
                           }
+                          onChange={(e) => {
+                            const years = getYearsAndMonths(
+                              income.startMonthsFromNow
+                            ).years;
+                            const months = Number(e.target.value) || 0;
+                            handleUpdatePeriod(
+                              income.id,
+                              "startMonthsFromNow",
+                              years,
+                              months
+                            );
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                        >
-                          <option value="">月</option>
-                          {Array.from({ length: 12 }, (_, i) => (
-                            <option key={i + 1} value={i + 1}>
-                              {i + 1}月
-                            </option>
-                          ))}
-                        </select>
+                          placeholder="月"
+                          min="0"
+                          max="11"
+                        />
                       </div>
                     </div>
 
-                    {/* 終了年月 */}
+                    {/* 終了時期 */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                        終了年月（任意）
+                        終了時期（今から・任意）
                       </label>
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="number"
-                          value={income.endYearMonth?.getYear() || ""}
-                          onChange={(e) =>
-                            handleUpdateYear(
-                              income.id,
-                              "endYearMonth",
-                              Number(e.target.value) || undefined
-                            )
+                          value={
+                            getYearsAndMonths(income.endMonthsFromNow).years
                           }
+                          onChange={(e) => {
+                            const years = Number(e.target.value) || 0;
+                            const months = getYearsAndMonths(
+                              income.endMonthsFromNow
+                            ).months;
+                            handleUpdatePeriod(
+                              income.id,
+                              "endMonthsFromNow",
+                              years,
+                              months
+                            );
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
                           placeholder="年"
                           min="0"
-                          max="2100"
                         />
-                        <select
-                          value={income.endYearMonth?.getMonth() || ""}
-                          onChange={(e) =>
-                            handleUpdateMonth(
-                              income.id,
-                              "endYearMonth",
-                              Number(e.target.value) || undefined
-                            )
+                        <input
+                          type="number"
+                          value={
+                            getYearsAndMonths(income.endMonthsFromNow).months
                           }
+                          onChange={(e) => {
+                            const years = getYearsAndMonths(
+                              income.endMonthsFromNow
+                            ).years;
+                            const months = Number(e.target.value) || 0;
+                            handleUpdatePeriod(
+                              income.id,
+                              "endMonthsFromNow",
+                              years,
+                              months
+                            );
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                        >
-                          <option value="">月</option>
-                          {Array.from({ length: 12 }, (_, i) => (
-                            <option key={i + 1} value={i + 1}>
-                              {i + 1}月
-                            </option>
-                          ))}
-                        </select>
+                          placeholder="月"
+                          min="0"
+                          max="11"
+                        />
                       </div>
                     </div>
                   </div>

@@ -1,6 +1,5 @@
 import { Expense } from "@/contexts/ExpensesContext";
-import { YearMonthDuration } from "@/types/YearMonth";
-import { CalculatorSource, createTimeRange, CashFlowChange } from "../shared";
+import { CalculatorSource, CashFlowChange } from "../shared";
 
 /**
  * ExpenseContextのExpense型をExpenseCalculatorのExpenseSource型に変換
@@ -8,40 +7,28 @@ import { CalculatorSource, createTimeRange, CashFlowChange } from "../shared";
 export function convertExpenseToExpenseSource(
   expense: Expense
 ): CalculatorSource {
-  // 現在の年月を基準とする
-  const now = new Date();
-  const baseYear = now.getFullYear();
-  const baseMonth = now.getMonth() + 1; // JavaScriptの月は0ベースなので+1
-
   return {
     id: expense.id,
     name: expense.name,
     type: "expense",
-    timeRange:
-      expense.startYearMonth && expense.endYearMonth
-        ? createTimeRange(expense.startYearMonth, expense.endYearMonth)
-        : undefined,
     calculate: (monthsFromStart: number): CashFlowChange => {
       // 期間チェック
-      if (expense.startYearMonth || expense.endYearMonth) {
-        // 相対月数から絶対年月を計算
-        const totalMonths = baseYear * 12 + baseMonth - 1 + monthsFromStart;
-        const targetYear = Math.floor(totalMonths / 12);
-        const targetMonth = (totalMonths % 12) + 1;
-        const targetYearMonth = YearMonthDuration.from(targetYear, targetMonth);
-
-        // 開始年月のチェック
+      if (
+        expense.startMonthsFromNow !== undefined ||
+        expense.endMonthsFromNow !== undefined
+      ) {
+        // 開始時期のチェック
         if (
-          expense.startYearMonth &&
-          !targetYearMonth.isAfterOrEqual(expense.startYearMonth)
+          expense.startMonthsFromNow !== undefined &&
+          monthsFromStart < expense.startMonthsFromNow
         ) {
           return { income: 0, expense: 0 };
         }
 
-        // 終了年月のチェック
+        // 終了時期のチェック
         if (
-          expense.endYearMonth &&
-          !targetYearMonth.isBeforeOrEqual(expense.endYearMonth)
+          expense.endMonthsFromNow !== undefined &&
+          monthsFromStart > expense.endMonthsFromNow
         ) {
           return { income: 0, expense: 0 };
         }
