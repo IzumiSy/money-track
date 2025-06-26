@@ -18,6 +18,11 @@ export function createSimulator(
 ): Simulator {
   const { initialDeposits, simulationYears } = params;
 
+  // シミュレーション期間の検証（1年から100年まで）
+  if (simulationYears < 1 || simulationYears > 100) {
+    throw new Error("シミュレーション期間は1年から100年の間で指定してください");
+  }
+
   /**
    * 現在の月次キャッシュフローを計算
    */

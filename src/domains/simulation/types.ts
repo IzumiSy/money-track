@@ -15,6 +15,12 @@ export interface YearlySimulationData {
  */
 export interface SimulationParams {
   initialDeposits: number;
+  /**
+   * シミュレーション期間（年数）
+   * 現在時点からの相対的な年数を指定します
+   * 例: 10 = 現在から10年後まで、30 = 現在から30年後まで
+   * 最小値: 1年、最大値: 100年
+   */
   simulationYears: number;
 }
 
