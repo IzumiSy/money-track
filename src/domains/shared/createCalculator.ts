@@ -3,11 +3,7 @@ import {
   CalculatorBreakdown,
   CalculationResult,
 } from "./CalculatorSource";
-import {
-  CashFlowChange,
-  createEmptyCashFlowChange,
-  sumCashFlowChanges,
-} from "./CashFlowChange";
+import { CashFlowChange, sumCashFlowChanges } from "./CashFlowChange";
 
 /**
  * 汎用Calculatorインターフェース

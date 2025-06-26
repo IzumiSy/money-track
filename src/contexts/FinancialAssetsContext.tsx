@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { FinancialAssets, Asset } from "@/components/FinancialAssetsForm";
+import { FinancialAssets } from "@/components/FinancialAssetsForm";
 
 interface FinancialAssetsContextType {
   financialAssets: FinancialAssets;
