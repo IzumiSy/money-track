@@ -1,10 +1,11 @@
 "use client";
 
 import ExpensesForm from "@/components/ExpensesForm";
+import { toast } from "sonner";
 
 export default function ExpensesPage() {
   const handleExpensesSubmit = () => {
-    // 保存完了のフィードバックを提供
+    toast.success("支出が保存されました");
   };
 
   return (

@@ -1,10 +1,11 @@
 "use client";
 
 import IncomeForm from "@/components/IncomeForm";
+import { toast } from "sonner";
 
 export default function IncomePage() {
   const handleIncomeSubmit = () => {
-    // 保存完了のフィードバックを提供
+    toast.success("収入情報を保存しました");
   };
 
   return (
