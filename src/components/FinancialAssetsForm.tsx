@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useFinancialAssets } from "@/contexts/FinancialAssetsContext";
 
 export interface InvestmentOption {
   id: string;
@@ -36,30 +37,35 @@ export interface FinancialAsset {
 }
 
 interface FinancialAssetsFormProps {
-  onSubmit: (assets: FinancialAsset) => void;
-  initialData?: FinancialAsset;
+  onSubmit?: () => void;
 }
 
 export default function FinancialAssetsForm({
   onSubmit,
-  initialData,
 }: FinancialAssetsFormProps) {
-  const [deposits, setDeposits] = useState(initialData?.deposits || 0);
-  const [investments, setInvestments] = useState<Investment[]>(
-    initialData?.investments || []
-  );
+  const { financialAssets: contextAssets, setFinancialAssets } =
+    useFinancialAssets();
+  const [draftDeposits, setDraftDeposits] = useState(0);
+  const [draftInvestments, setDraftInvestments] = useState<Investment[]>([]);
 
-  // initialDataが変更されたときにフォームの状態を更新
+  // コンテキストの金融資産データをドラフトステートに同期
   useEffect(() => {
-    if (initialData) {
-      setDeposits(initialData.deposits);
-      setInvestments(initialData.investments);
+    if (contextAssets) {
+      setDraftDeposits(contextAssets.deposits);
+      setDraftInvestments(contextAssets.investments);
     }
-  }, [initialData]);
+  }, [contextAssets]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ deposits, investments });
+    // ドラフトの変更をコンテキストに保存
+    setFinancialAssets({
+      deposits: draftDeposits,
+      investments: draftInvestments,
+    });
+    if (onSubmit) {
+      onSubmit();
+    }
   };
 
   // 投資ごとに異なるデフォルト色を設定
@@ -82,12 +88,12 @@ export default function FinancialAssetsForm({
       id: Date.now().toString(),
       name: "",
       returnRate: 0.05, // デフォルト5%
-      color: getDefaultColor(investments.length),
+      color: getDefaultColor(draftInvestments.length),
       baseAmount: 0, // デフォルト0円（ベース評価額）
       investmentOptions: [], // 積立オプション
       sellbackOptions: [], // 売却オプション
     };
-    setInvestments([...investments, newInvestment]);
+    setDraftInvestments([...draftInvestments, newInvestment]);
   };
 
   const updateInvestment = (
@@ -95,15 +101,15 @@ export default function FinancialAssetsForm({
     field: keyof Investment,
     value: string | number | boolean | InvestmentOption[] | SellbackOption[]
   ) => {
-    setInvestments(
-      investments.map((inv) =>
+    setDraftInvestments(
+      draftInvestments.map((inv) =>
         inv.id === id ? { ...inv, [field]: value } : inv
       )
     );
   };
 
   const removeInvestment = (id: string) => {
-    setInvestments(investments.filter((inv) => inv.id !== id));
+    setDraftInvestments(draftInvestments.filter((inv) => inv.id !== id));
   };
 
   const addInvestmentOption = (investmentId: string) => {
@@ -116,8 +122,8 @@ export default function FinancialAssetsForm({
       monthlyAmount: 0,
     };
 
-    setInvestments(
-      investments.map((inv) =>
+    setDraftInvestments(
+      draftInvestments.map((inv) =>
         inv.id === investmentId
           ? { ...inv, investmentOptions: [...inv.investmentOptions, newOption] }
           : inv
@@ -131,8 +137,8 @@ export default function FinancialAssetsForm({
     field: keyof InvestmentOption,
     value: string | number
   ) => {
-    setInvestments(
-      investments.map((inv) =>
+    setDraftInvestments(
+      draftInvestments.map((inv) =>
         inv.id === investmentId
           ? {
               ...inv,
@@ -146,8 +152,8 @@ export default function FinancialAssetsForm({
   };
 
   const removeInvestmentOption = (investmentId: string, optionId: string) => {
-    setInvestments(
-      investments.map((inv) =>
+    setDraftInvestments(
+      draftInvestments.map((inv) =>
         inv.id === investmentId
           ? {
               ...inv,
@@ -170,8 +176,8 @@ export default function FinancialAssetsForm({
       monthlyAmount: 0,
     };
 
-    setInvestments(
-      investments.map((inv) =>
+    setDraftInvestments(
+      draftInvestments.map((inv) =>
         inv.id === investmentId
           ? { ...inv, sellbackOptions: [...inv.sellbackOptions, newOption] }
           : inv
@@ -185,8 +191,8 @@ export default function FinancialAssetsForm({
     field: keyof SellbackOption,
     value: string | number
   ) => {
-    setInvestments(
-      investments.map((inv) =>
+    setDraftInvestments(
+      draftInvestments.map((inv) =>
         inv.id === investmentId
           ? {
               ...inv,
@@ -200,8 +206,8 @@ export default function FinancialAssetsForm({
   };
 
   const removeSellbackOption = (investmentId: string, optionId: string) => {
-    setInvestments(
-      investments.map((inv) =>
+    setDraftInvestments(
+      draftInvestments.map((inv) =>
         inv.id === investmentId
           ? {
               ...inv,
@@ -233,8 +239,8 @@ export default function FinancialAssetsForm({
             <input
               type="number"
               id="deposits"
-              value={deposits || ""}
-              onChange={(e) => setDeposits(Number(e.target.value) || 0)}
+              value={draftDeposits || ""}
+              onChange={(e) => setDraftDeposits(Number(e.target.value) || 0)}
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               placeholder="0"
               min="0"
@@ -263,7 +269,7 @@ export default function FinancialAssetsForm({
             </button>
           </div>
 
-          {investments.length === 0 ? (
+          {draftInvestments.length === 0 ? (
             <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
               <p className="text-gray-500 dark:text-gray-400">
                 積立投資を追加してください
@@ -271,7 +277,7 @@ export default function FinancialAssetsForm({
             </div>
           ) : (
             <div className="space-y-4">
-              {investments.map((investment, index) => (
+              {draftInvestments.map((investment, index) => (
                 <div
                   key={investment.id}
                   className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700"
