@@ -20,7 +20,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "income-1",
         name: "給与収入",
         type: "income",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 300000,
           expense: 0,
         }),
@@ -31,7 +31,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "expense-1",
         name: "家賃",
         type: "expense",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 0,
           expense: 100000,
         }),
@@ -54,7 +54,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "income-1",
         name: "給与収入",
         type: "income",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 300000,
           expense: 0,
         }),
@@ -64,7 +64,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "income-2",
         name: "ボーナス",
         type: "income",
-        calculate: (year: number, month: number) => {
+        calculate: (_year: number, month: number) => {
           // 6月と12月のみボーナス
           if (month === 6 || month === 12) {
             return { income: 500000, expense: 0 };
@@ -77,7 +77,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "income-3",
         name: "副業収入",
         type: "income",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 50000,
           expense: 0,
         }),
@@ -88,7 +88,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "expense-1",
         name: "家賃",
         type: "expense",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 0,
           expense: 100000,
         }),
@@ -98,7 +98,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "expense-2",
         name: "食費",
         type: "expense",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 0,
           expense: 50000,
         }),
@@ -108,7 +108,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "expense-3",
         name: "光熱費",
         type: "expense",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 0,
           expense: 20000,
         }),
@@ -163,7 +163,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "income-2",
         name: "基本給",
         type: "income",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 250000,
           expense: 0,
         }),
@@ -174,7 +174,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "expense-1",
         name: "ローン返済",
         type: "expense",
-        calculate: (year: number, month: number) => {
+        calculate: (year: number) => {
           // 2025年1月から12月まで
           if (year === 2025) {
             return { income: 0, expense: 30000 };
@@ -188,7 +188,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "expense-2",
         name: "生活費",
         type: "expense",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 0,
           expense: 150000,
         }),
@@ -230,7 +230,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "income-1",
         name: "アクティブ収入",
         type: "income",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 100000,
           expense: 0,
         }),
@@ -241,7 +241,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "income-2",
         name: "非アクティブ収入",
         type: "income",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 0,
           expense: 0,
         }),
@@ -252,7 +252,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "expense-1",
         name: "アクティブ支出",
         type: "expense",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 0,
           expense: 50000,
         }),
@@ -263,7 +263,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "expense-2",
         name: "非アクティブ支出",
         type: "expense",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 0,
           expense: 0,
         }),
@@ -291,7 +291,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "income-1",
         name: "フリーランス",
         type: "income",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 200000,
           expense: 0,
         }),
@@ -302,7 +302,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "expense-1",
         name: "フリーランス",
         type: "expense",
-        calculate: (year: number, month: number) => ({
+        calculate: () => ({
           income: 0,
           expense: 50000,
         }),
@@ -326,7 +326,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "income-1",
         name: "給与（昇給あり）",
         type: "income",
-        calculate: (year: number, month: number) => {
+        calculate: (year: number) => {
           const baseAmount = 300000;
           const raisePerYear = 10000;
           const yearsFromStart = year - 2025;
@@ -342,7 +342,7 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "expense-1",
         name: "生活費（インフレ）",
         type: "expense",
-        calculate: (year: number, month: number) => {
+        calculate: (year: number) => {
           const baseAmount = 100000;
           const inflationRate = 0.02; // 年2%
           const yearsFromStart = year - 2025;

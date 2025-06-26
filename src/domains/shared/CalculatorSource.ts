@@ -11,7 +11,7 @@ export interface CalculatorSource {
   type: string;
   timeRange?: TimeRange;
   calculate: (year: number, month: number) => CashFlowChange;
-  getMetadata?: () => Record<string, any>;
+  getMetadata?: () => Record<string, unknown>;
 }
 
 /**

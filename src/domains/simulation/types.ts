@@ -1,5 +1,3 @@
-import { Calculator, CalculatorSource } from "@/domains/shared";
-
 /**
  * 年次シミュレーションデータ
  * 特定の年における財務状態を表す
