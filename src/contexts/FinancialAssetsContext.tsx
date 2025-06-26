@@ -1,11 +1,11 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { FinancialAsset, Investment } from "@/components/FinancialAssetsForm";
+import { FinancialAssets, Asset } from "@/components/FinancialAssetsForm";
 
 interface FinancialAssetsContextType {
-  financialAssets: FinancialAsset;
-  setFinancialAssets: (assets: FinancialAsset) => void;
+  financialAssets: FinancialAssets;
+  setFinancialAssets: (assets: FinancialAssets) => void;
 }
 
 const FinancialAssetsContext = createContext<
@@ -25,33 +25,28 @@ const DEFAULT_COLORS = [
 ];
 
 export function FinancialAssetsProvider({ children }: { children: ReactNode }) {
-  const [financialAssets, setFinancialAssets] = useState<FinancialAsset>({
-    deposits: 0,
-    investments: [],
+  const [financialAssets, setFinancialAssets] = useState<FinancialAssets>({
+    assets: [],
   });
 
-  // 投資データに色や売却設定が設定されていない場合にデフォルト値を設定する関数
-  const setFinancialAssetsWithDefaults = (assets: FinancialAsset) => {
-    const investmentsWithDefaults = assets.investments.map(
-      (investment, index) => {
-        return {
-          ...investment,
-          // 色が設定されていない場合はデフォルト色を設定
-          color:
-            investment.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length],
-          // ベース評価額が未定義の場合はデフォルト値を設定
-          baseAmount: investment.baseAmount ?? 0,
-          // 積立オプションが未定義の場合はデフォルト値を設定
-          investmentOptions: investment.investmentOptions ?? [],
-          // 売却オプションが未定義の場合はデフォルト値を設定
-          sellbackOptions: investment.sellbackOptions ?? [],
-        };
-      }
-    );
+  // 資産データにデフォルト値を設定する関数
+  const setFinancialAssetsWithDefaults = (assets: FinancialAssets) => {
+    const assetsWithDefaults = assets.assets.map((asset, index) => {
+      return {
+        ...asset,
+        // 色が設定されていない場合はデフォルト色を設定
+        color: asset.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length],
+        // ベース評価額が未定義の場合はデフォルト値を設定
+        baseAmount: asset.baseAmount ?? 0,
+        // 積立オプションが未定義の場合はデフォルト値を設定
+        contributionOptions: asset.contributionOptions ?? [],
+        // 引き出しオプションが未定義の場合はデフォルト値を設定
+        withdrawalOptions: asset.withdrawalOptions ?? [],
+      };
+    });
 
     setFinancialAssets({
-      ...assets,
-      investments: investmentsWithDefaults,
+      assets: assetsWithDefaults,
     });
   };
 

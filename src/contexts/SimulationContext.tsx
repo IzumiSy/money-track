@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { FinancialAsset } from "@/components/FinancialAssetsForm";
+import { FinancialAssets } from "@/components/FinancialAssetsForm";
 import { Expense } from "@/contexts/ExpensesContext";
 import { Income } from "@/contexts/IncomeContext";
 
@@ -9,7 +9,7 @@ export interface SimulationData {
   id: string;
   name: string;
   createdAt: Date;
-  financialAssets: FinancialAsset;
+  financialAssets: FinancialAssets;
   expenses: Expense[];
   incomes: Income[];
 }
@@ -19,7 +19,7 @@ interface SimulationContextType {
   currentSimulation: SimulationData | null;
   saveSimulation: (
     name: string,
-    financialAssets: FinancialAsset,
+    financialAssets: FinancialAssets,
     expenses: Expense[],
     incomes: Income[]
   ) => void;
@@ -39,7 +39,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
 
   const saveSimulation = (
     name: string,
-    financialAssets: FinancialAsset,
+    financialAssets: FinancialAssets,
     expenses: Expense[],
     incomes: Income[]
   ) => {

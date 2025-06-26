@@ -49,7 +49,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   const handleNewSimulation = () => {
     // 全てのデータをクリア
-    setFinancialAssets({ deposits: 0, investments: [] });
+    setFinancialAssets({
+      assets: [],
+    });
     setExpenses([]);
     setIncomes([]);
     // 現在のシミュレーションをクリア
