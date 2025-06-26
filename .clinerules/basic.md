@@ -13,5 +13,4 @@
   * If you are already a branch that is not `main`, you don't have to checkout a new branch. Proceed your tasks on the current one.
 * You don't have to run `pnpm dev` to check if the application runs properly unless you are commanded to do so
   * Application behaviour should be assured through unit tests as much as possible.
-* Once you finished a set of changes you want and checked if the code quality check passes, commit you changes with "git commit -m"
-  * Always add short but intuitive commit message
+* Once you finished a set of changes you want and checked if the code quality check passes, commit you changes by git with short but intuitive commit message
