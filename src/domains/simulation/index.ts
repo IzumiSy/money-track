@@ -3,5 +3,5 @@ export type {
   Simulator,
   SimulationParams,
   SimulationResult,
-  YearlySimulationData,
+  MonthlySimulationData,
 } from "./types";

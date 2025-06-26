@@ -14,38 +14,42 @@ describe("unifiedCalculator.getBreakdown", () => {
   });
 
   describe("シミュレーション期間の検証", () => {
-    it("シミュレーション期間が0年の場合はエラーになる", () => {
+    it("シミュレーション期間が0ヶ月の場合はエラーになる", () => {
       expect(() =>
         createSimulator(calculator, {
           initialDeposits: 1000000,
-          simulationYears: 0,
+          simulationMonths: 0,
         })
-      ).toThrow("シミュレーション期間は1年から100年の間で指定してください");
+      ).toThrow(
+        "シミュレーション期間は1ヶ月から1200ヶ月の間で指定してください"
+      );
     });
 
-    it("シミュレーション期間が101年の場合はエラーになる", () => {
+    it("シミュレーション期間が1201ヶ月の場合はエラーになる", () => {
       expect(() =>
         createSimulator(calculator, {
           initialDeposits: 1000000,
-          simulationYears: 101,
+          simulationMonths: 1201,
         })
-      ).toThrow("シミュレーション期間は1年から100年の間で指定してください");
+      ).toThrow(
+        "シミュレーション期間は1ヶ月から1200ヶ月の間で指定してください"
+      );
     });
 
-    it("シミュレーション期間が1年の場合は正常に動作する", () => {
+    it("シミュレーション期間が1ヶ月の場合は正常に動作する", () => {
       expect(() =>
         createSimulator(calculator, {
           initialDeposits: 1000000,
-          simulationYears: 1,
+          simulationMonths: 1,
         })
       ).not.toThrow();
     });
 
-    it("シミュレーション期間が100年の場合は正常に動作する", () => {
+    it("シミュレーション期間が1200ヶ月の場合は正常に動作する", () => {
       expect(() =>
         createSimulator(calculator, {
           initialDeposits: 1000000,
-          simulationYears: 100,
+          simulationMonths: 1200,
         })
       ).not.toThrow();
     });
@@ -54,9 +58,11 @@ describe("unifiedCalculator.getBreakdown", () => {
       expect(() =>
         createSimulator(calculator, {
           initialDeposits: 1000000,
-          simulationYears: -5,
+          simulationMonths: -5,
         })
-      ).toThrow("シミュレーション期間は1年から100年の間で指定してください");
+      ).toThrow(
+        "シミュレーション期間は1ヶ月から1200ヶ月の間で指定してください"
+      );
     });
   });
 
@@ -87,7 +93,7 @@ describe("unifiedCalculator.getBreakdown", () => {
       calculator.addSource(incomeSource);
       calculator.addSource(expenseSource);
 
-      const breakdown = calculator.getBreakdown(2025, 1);
+      const breakdown = calculator.getBreakdown(0); // 最初の月
 
       expect(breakdown).toEqual({
         "income-1": { income: 300000, expense: 0 },
@@ -111,9 +117,9 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "income-2",
         name: "ボーナス",
         type: "income",
-        calculate: (_year: number, month: number) => {
-          // 6月と12月のみボーナス
-          if (month === 6 || month === 12) {
+        calculate: (monthIndex: number) => {
+          // 6月と12月のみボーナス（月インデックス5と11）
+          if (monthIndex % 12 === 5 || monthIndex % 12 === 11) {
             return { income: 500000, expense: 0 };
           }
           return { income: 0, expense: 0 };
@@ -168,8 +174,8 @@ describe("unifiedCalculator.getBreakdown", () => {
       calculator.addSource(foodExpense);
       calculator.addSource(utilityExpense);
 
-      // 通常月（ボーナスなし）
-      const breakdownJanuary = calculator.getBreakdown(2025, 1);
+      // 通常月（ボーナスなし）- 1月（インデックス0）
+      const breakdownJanuary = calculator.getBreakdown(0);
       expect(breakdownJanuary).toEqual({
         "income-1": { income: 300000, expense: 0 },
         "income-3": { income: 50000, expense: 0 },
@@ -178,8 +184,8 @@ describe("unifiedCalculator.getBreakdown", () => {
         "expense-3": { income: 0, expense: 20000 },
       });
 
-      // ボーナス月
-      const breakdownJune = calculator.getBreakdown(2025, 6);
+      // ボーナス月 - 6月（インデックス5）
+      const breakdownJune = calculator.getBreakdown(5);
       expect(breakdownJune).toEqual({
         "income-1": { income: 300000, expense: 0 },
         "income-2": { income: 500000, expense: 0 },
@@ -196,9 +202,9 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "income-1",
         name: "期間限定プロジェクト",
         type: "income",
-        calculate: (year: number, month: number) => {
-          // 2025年1月から6月まで
-          if (year === 2025 && month >= 1 && month <= 6) {
+        calculate: (monthIndex: number) => {
+          // 最初の6ヶ月のみ（インデックス0-5）
+          if (monthIndex >= 0 && monthIndex <= 5) {
             return { income: 200000, expense: 0 };
           }
           return { income: 0, expense: 0 };
@@ -221,9 +227,9 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "expense-1",
         name: "ローン返済",
         type: "expense",
-        calculate: (year: number) => {
-          // 2025年1月から12月まで
-          if (year === 2025) {
+        calculate: (monthIndex: number) => {
+          // 最初の12ヶ月のみ（インデックス0-11）
+          if (monthIndex >= 0 && monthIndex <= 11) {
             return { income: 0, expense: 30000 };
           }
           return { income: 0, expense: 0 };
@@ -246,26 +252,26 @@ describe("unifiedCalculator.getBreakdown", () => {
       calculator.addSource(limitedExpense);
       calculator.addSource(regularExpense);
 
-      // 2025年3月（期間限定の収入・支出あり）
-      const breakdown2025March = calculator.getBreakdown(2025, 3);
-      expect(breakdown2025March).toEqual({
+      // 3ヶ月目（期間限定の収入・支出あり）
+      const breakdown3rdMonth = calculator.getBreakdown(2);
+      expect(breakdown3rdMonth).toEqual({
         "income-1": { income: 200000, expense: 0 },
         "income-2": { income: 250000, expense: 0 },
         "expense-1": { income: 0, expense: 30000 },
         "expense-2": { income: 0, expense: 150000 },
       });
 
-      // 2025年7月（期間限定の収入なし、支出あり）
-      const breakdown2025July = calculator.getBreakdown(2025, 7);
-      expect(breakdown2025July).toEqual({
+      // 7ヶ月目（期間限定の収入なし、支出あり）
+      const breakdown7thMonth = calculator.getBreakdown(6);
+      expect(breakdown7thMonth).toEqual({
         "income-2": { income: 250000, expense: 0 },
         "expense-1": { income: 0, expense: 30000 },
         "expense-2": { income: 0, expense: 150000 },
       });
 
-      // 2026年1月（期間限定の収入・支出なし）
-      const breakdown2026January = calculator.getBreakdown(2026, 1);
-      expect(breakdown2026January).toEqual({
+      // 13ヶ月目（期間限定の収入・支出なし）
+      const breakdown13thMonth = calculator.getBreakdown(12);
+      expect(breakdown13thMonth).toEqual({
         "income-2": { income: 250000, expense: 0 },
         "expense-2": { income: 0, expense: 150000 },
       });
@@ -321,7 +327,7 @@ describe("unifiedCalculator.getBreakdown", () => {
       calculator.addSource(activeExpense);
       calculator.addSource(inactiveExpense);
 
-      const breakdown = calculator.getBreakdown(2025, 1);
+      const breakdown = calculator.getBreakdown(0);
 
       // 0円のソースは含まれない
       expect(breakdown).toEqual({
@@ -358,7 +364,7 @@ describe("unifiedCalculator.getBreakdown", () => {
       calculator.addSource(incomeSource);
       calculator.addSource(expenseSource);
 
-      const breakdown = calculator.getBreakdown(2025, 1);
+      const breakdown = calculator.getBreakdown(0);
 
       // IDが異なるため、両方のソースが含まれる
       expect(breakdown).toEqual({
@@ -367,18 +373,17 @@ describe("unifiedCalculator.getBreakdown", () => {
       });
     });
 
-    it("年によって変動する収入と支出がある場合", () => {
-      // 年次昇給がある収入
+    it("月によって変動する収入と支出がある場合", () => {
+      // 月次昇給がある収入
       const salaryWithRaise: CalculatorSource = {
         id: "income-1",
         name: "給与（昇給あり）",
         type: "income",
-        calculate: (year: number) => {
+        calculate: (monthIndex: number) => {
           const baseAmount = 300000;
-          const raisePerYear = 10000;
-          const yearsFromStart = year - 2025;
+          const raisePerMonth = 1000;
           return {
-            income: baseAmount + raisePerYear * yearsFromStart,
+            income: baseAmount + raisePerMonth * monthIndex,
             expense: 0,
           };
         },
@@ -389,14 +394,13 @@ describe("unifiedCalculator.getBreakdown", () => {
         id: "expense-1",
         name: "生活費（インフレ）",
         type: "expense",
-        calculate: (year: number) => {
+        calculate: (monthIndex: number) => {
           const baseAmount = 100000;
-          const inflationRate = 0.02; // 年2%
-          const yearsFromStart = year - 2025;
+          const monthlyInflationRate = 0.002; // 月0.2%
           return {
             income: 0,
             expense: Math.round(
-              baseAmount * Math.pow(1 + inflationRate, yearsFromStart)
+              baseAmount * Math.pow(1 + monthlyInflationRate, monthIndex)
             ),
           };
         },
@@ -405,25 +409,25 @@ describe("unifiedCalculator.getBreakdown", () => {
       calculator.addSource(salaryWithRaise);
       calculator.addSource(inflationExpense);
 
-      // 2025年
-      const breakdown2025 = calculator.getBreakdown(2025, 1);
-      expect(breakdown2025).toEqual({
+      // 1ヶ月目（インデックス0）
+      const breakdown1stMonth = calculator.getBreakdown(0);
+      expect(breakdown1stMonth).toEqual({
         "income-1": { income: 300000, expense: 0 },
         "expense-1": { income: 0, expense: 100000 },
       });
 
-      // 2026年
-      const breakdown2026 = calculator.getBreakdown(2026, 1);
-      expect(breakdown2026).toEqual({
-        "income-1": { income: 310000, expense: 0 },
-        "expense-1": { income: 0, expense: 102000 },
+      // 13ヶ月目（インデックス12）
+      const breakdown13thMonth = calculator.getBreakdown(12);
+      expect(breakdown13thMonth).toEqual({
+        "income-1": { income: 312000, expense: 0 },
+        "expense-1": { income: 0, expense: 102427 },
       });
 
-      // 2027年
-      const breakdown2027 = calculator.getBreakdown(2027, 1);
-      expect(breakdown2027).toEqual({
-        "income-1": { income: 320000, expense: 0 },
-        "expense-1": { income: 0, expense: 104040 },
+      // 25ヶ月目（インデックス24）
+      const breakdown25thMonth = calculator.getBreakdown(24);
+      expect(breakdown25thMonth).toEqual({
+        "income-1": { income: 324000, expense: 0 },
+        "expense-1": { income: 0, expense: 104912 },
       });
     });
   });
@@ -451,7 +455,7 @@ describe("unifiedCalculator.getBreakdown", () => {
 
       const simulator = createSimulator(calculator, {
         initialDeposits: 1000000,
-        simulationYears: 3,
+        simulationMonths: 36, // 3年間
       });
 
       const result = simulator.simulate();
@@ -461,26 +465,30 @@ describe("unifiedCalculator.getBreakdown", () => {
       expect(result.currentMonthlyCashFlow.income).toBe(300000);
       expect(result.currentMonthlyCashFlow.expense).toBe(200000);
 
-      // 年間純キャッシュフロー = 100000 * 12 = 1200000
-      // 1年目: 1000000 + 1200000 = 2200000
-      expect(result.yearlyData[0].deposits).toBe(2200000);
-      expect(result.yearlyData[0].year).toBe(1);
+      // 月次データの確認
+      // 1ヶ月目: 1000000 + 100000 = 1100000
+      expect(result.monthlyData[0].deposits).toBe(1100000);
+      expect(result.monthlyData[0].monthIndex).toBe(0);
 
-      // 収入・支出のブレークダウンを確認
-      expect(result.yearlyData[0].incomeBreakdown.get("income-1")).toBe(
-        3600000
-      ); // 300000 * 12
-      expect(result.yearlyData[0].expenseBreakdown.get("expense-1")).toBe(
-        2400000
-      ); // 200000 * 12
+      // 12ヶ月目: 1000000 + 100000 * 12 = 2200000
+      expect(result.monthlyData[11].deposits).toBe(2200000);
+      expect(result.monthlyData[11].monthIndex).toBe(11);
 
-      // 2年目: 1000000 + 2400000 = 3400000
-      expect(result.yearlyData[1].deposits).toBe(3400000);
-      expect(result.yearlyData[1].year).toBe(2);
+      // 収入・支出のブレークダウンを確認（月次）
+      expect(result.monthlyData[0].incomeBreakdown.get("income-1")).toBe(
+        300000
+      );
+      expect(result.monthlyData[0].expenseBreakdown.get("expense-1")).toBe(
+        200000
+      );
 
-      // 3年目: 1000000 + 3600000 = 4600000
-      expect(result.yearlyData[2].deposits).toBe(4600000);
-      expect(result.yearlyData[2].year).toBe(3);
+      // 24ヶ月目: 1000000 + 100000 * 24 = 3400000
+      expect(result.monthlyData[23].deposits).toBe(3400000);
+      expect(result.monthlyData[23].monthIndex).toBe(23);
+
+      // 36ヶ月目: 1000000 + 100000 * 36 = 4600000
+      expect(result.monthlyData[35].deposits).toBe(4600000);
+      expect(result.monthlyData[35].monthIndex).toBe(35);
 
       // hasDataフラグの確認
       expect(result.hasData).toBe(true);

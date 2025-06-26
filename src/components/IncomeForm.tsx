@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useIncome, Income } from "@/contexts/IncomeContext";
-import { YearMonthDuration } from "@/types/YearMonth";
+import { convertYearMonthToIndex } from "@/domains/shared/TimeRange";
 
 interface IncomeFormProps {
   onSubmit?: () => void;
@@ -45,7 +45,7 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
   const handleUpdateIncome = (
     id: string,
     field: keyof Income,
-    value: string | number | YearMonthDuration | undefined
+    value: string | number | undefined
   ) => {
     setDraftIncomes(
       draftIncomes.map((income) =>
@@ -54,40 +54,39 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
     );
   };
 
-  const handleUpdateYear = (
-    id: string,
-    field: "startYearMonth" | "endYearMonth",
-    year: number | undefined
-  ) => {
-    const income = draftIncomes.find((i) => i.id === id);
-    if (!income) return;
-
-    const currentYearMonth = income[field] || YearMonthDuration.from();
-    const updatedYearMonth = currentYearMonth.withYear(year);
-    handleUpdateIncome(id, field, updatedYearMonth);
-  };
-
-  const handleUpdateMonth = (
-    id: string,
-    field: "startYearMonth" | "endYearMonth",
-    month: number | undefined
-  ) => {
-    const income = draftIncomes.find((i) => i.id === id);
-    if (!income) return;
-
-    const currentYearMonth = income[field] || YearMonthDuration.from();
-    const updatedYearMonth = currentYearMonth.withMonth(month);
-    handleUpdateIncome(id, field, updatedYearMonth);
-  };
-
   const handleRemoveIncome = (id: string) => {
     setDraftIncomes(draftIncomes.filter((income) => income.id !== id));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // ドラフトの変更をコンテキストに保存
-    setIncomes(draftIncomes);
+
+    // ドラフトの変更をコンテキストに保存（年月をTimeRangeに変換）
+    const processedIncomes = draftIncomes.map((income) => {
+      const timeRange: { startMonthIndex?: number; endMonthIndex?: number } =
+        {};
+
+      if (income.startYear && income.startMonth) {
+        timeRange.startMonthIndex = convertYearMonthToIndex(
+          income.startYear,
+          income.startMonth
+        );
+      }
+
+      if (income.endYear && income.endMonth) {
+        timeRange.endMonthIndex = convertYearMonthToIndex(
+          income.endYear,
+          income.endMonth
+        );
+      }
+
+      return {
+        ...income,
+        timeRange: Object.keys(timeRange).length > 0 ? timeRange : undefined,
+      };
+    });
+
+    setIncomes(processedIncomes);
     if (onSubmit) {
       onSubmit();
     }
@@ -222,25 +221,25 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="number"
-                          value={income.startYearMonth?.getYear() || ""}
+                          value={income.startYear || ""}
                           onChange={(e) =>
-                            handleUpdateYear(
+                            handleUpdateIncome(
                               income.id,
-                              "startYearMonth",
+                              "startYear",
                               Number(e.target.value) || undefined
                             )
                           }
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
                           placeholder="年"
-                          min="0"
-                          max="2100"
+                          min="1"
+                          max="100"
                         />
                         <select
-                          value={income.startYearMonth?.getMonth() || ""}
+                          value={income.startMonth || ""}
                           onChange={(e) =>
-                            handleUpdateMonth(
+                            handleUpdateIncome(
                               income.id,
-                              "startYearMonth",
+                              "startMonth",
                               Number(e.target.value) || undefined
                             )
                           }
@@ -264,25 +263,25 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="number"
-                          value={income.endYearMonth?.getYear() || ""}
+                          value={income.endYear || ""}
                           onChange={(e) =>
-                            handleUpdateYear(
+                            handleUpdateIncome(
                               income.id,
-                              "endYearMonth",
+                              "endYear",
                               Number(e.target.value) || undefined
                             )
                           }
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
                           placeholder="年"
-                          min="0"
-                          max="2100"
+                          min="1"
+                          max="100"
                         />
                         <select
-                          value={income.endYearMonth?.getMonth() || ""}
+                          value={income.endMonth || ""}
                           onChange={(e) =>
-                            handleUpdateMonth(
+                            handleUpdateIncome(
                               income.id,
-                              "endYearMonth",
+                              "endMonth",
                               Number(e.target.value) || undefined
                             )
                           }

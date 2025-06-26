@@ -11,9 +11,9 @@ import { CashFlowChange, sumCashFlowChanges } from "./CashFlowChange";
 export interface Calculator<T extends CalculatorSource> {
   addSource: (source: T) => void;
   removeSource: (id: string) => void;
-  calculateTotal: (year: number, month: number) => CashFlowChange;
-  getBreakdown: (year: number, month: number) => CalculatorBreakdown;
-  calculateForPeriod: (year: number, month: number) => CalculationResult;
+  calculateTotal: (monthIndex: number) => CashFlowChange;
+  getBreakdown: (monthIndex: number) => CalculatorBreakdown;
+  calculateForPeriod: (monthIndex: number) => CalculationResult;
   getSources: () => readonly T[];
   getSourceById: (id: string) => T | undefined;
 }
@@ -57,32 +57,30 @@ export function createCalculator<T extends CalculatorSource>(): Calculator<T> {
   };
 
   /**
-   * 指定された年月の総計を計算する
-   * @param year - 計算対象の年
-   * @param month - 計算対象の月（1-12）
+   * 指定された月インデックスの総計を計算する
+   * @param monthIndex - 計算対象の月インデックス（0ベース）
    * @returns 全てのアクティブなソースの合計キャッシュフロー
    * @description
    * - 各ソースのcalculateメソッドを呼び出して合計
    * - income/expenseそれぞれを集計
    */
-  const calculateTotal = (year: number, month: number): CashFlowChange => {
-    const changes = sources.map((source) => source.calculate(year, month));
+  const calculateTotal = (monthIndex: number): CashFlowChange => {
+    const changes = sources.map((source) => source.calculate(monthIndex));
     return sumCashFlowChanges(changes);
   };
 
   /**
-   * 指定された年月の内訳を取得する
-   * @param year - 計算対象の年
-   * @param month - 計算対象の月（1-12）
+   * 指定された月インデックスの内訳を取得する
+   * @param monthIndex - 計算対象の月インデックス（0ベース）
    * @returns ソースIDをキー、CashFlowChangeを値とするオブジェクト
    * @description
    * - 各ソースのIDと計算されたキャッシュフロー変化のマッピングを返す
    * - income/expenseが両方0のソースは内訳に含まれない
    */
-  const getBreakdown = (year: number, month: number): CalculatorBreakdown => {
+  const getBreakdown = (monthIndex: number): CalculatorBreakdown => {
     const breakdown: CalculatorBreakdown = {};
     sources.forEach((source) => {
-      const change = source.calculate(year, month);
+      const change = source.calculate(monthIndex);
       if (change.income > 0 || change.expense > 0) {
         breakdown[source.id] = change;
       }
@@ -91,20 +89,16 @@ export function createCalculator<T extends CalculatorSource>(): Calculator<T> {
   };
 
   /**
-   * 指定された年月の計算結果を取得する
-   * @param year - 計算対象の年
-   * @param month - 計算対象の月（1-12）
-   * @returns 総計、内訳、年月を含む計算結果オブジェクト
+   * 指定された月インデックスの計算結果を取得する
+   * @param monthIndex - 計算対象の月インデックス（0ベース）
+   * @returns 総計、内訳、月インデックスを含む計算結果オブジェクト
    * @description
    * - 内訳と総計を一度に取得できる便利メソッド
    * - 内訳から総計を再計算して整合性を保証
-   * - 年月情報も含めて返すことで、結果の追跡が容易
+   * - 月インデックス情報も含めて返すことで、結果の追跡が容易
    */
-  const calculateForPeriod = (
-    year: number,
-    month: number
-  ): CalculationResult => {
-    const breakdown = getBreakdown(year, month);
+  const calculateForPeriod = (monthIndex: number): CalculationResult => {
+    const breakdown = getBreakdown(monthIndex);
     const totals = sumCashFlowChanges(Object.values(breakdown));
 
     return {
@@ -112,8 +106,7 @@ export function createCalculator<T extends CalculatorSource>(): Calculator<T> {
       totalExpense: totals.expense,
       netCashFlow: totals.income - totals.expense,
       breakdown,
-      year,
-      month,
+      monthIndex,
     };
   };
 

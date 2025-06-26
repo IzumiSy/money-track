@@ -1,9 +1,9 @@
 /**
- * 年次シミュレーションデータ
- * 特定の年における財務状態を表す
+ * 月次シミュレーションデータ
+ * 特定の月における財務状態を表す
  */
-export interface YearlySimulationData {
-  year: number;
+export interface MonthlySimulationData {
+  monthIndex: number;
   deposits: number;
   incomeBreakdown: Map<string, number>;
   expenseBreakdown: Map<string, number>;
@@ -16,12 +16,12 @@ export interface YearlySimulationData {
 export interface SimulationParams {
   initialDeposits: number;
   /**
-   * シミュレーション期間（年数）
-   * 現在時点からの相対的な年数を指定します
-   * 例: 10 = 現在から10年後まで、30 = 現在から30年後まで
-   * 最小値: 1年、最大値: 100年
+   * シミュレーション期間（月数）
+   * 現在時点からの相対的な月数を指定します
+   * 例: 12 = 現在から12ヶ月後まで、360 = 現在から30年後まで
+   * 最小値: 1ヶ月、最大値: 1200ヶ月（100年）
    */
-  simulationYears: number;
+  simulationMonths: number;
 }
 
 /**
@@ -29,7 +29,7 @@ export interface SimulationParams {
  * 完全なシミュレーション実行の出力
  */
 export interface SimulationResult {
-  yearlyData: YearlySimulationData[];
+  monthlyData: MonthlySimulationData[];
   currentMonthlyCashFlow: {
     income: number;
     expense: number;
@@ -49,10 +49,10 @@ export interface Simulator {
   simulate(): SimulationResult;
 
   /**
-   * 特定の年の予測データを取得
-   * @param year - 取得したい年（1から始まる）
+   * 特定の月の予測データを取得
+   * @param monthIndex - 取得したい月のインデックス（0から始まる）
    */
-  getYearlyProjection(year: number): YearlySimulationData | undefined;
+  getMonthlyProjection(monthIndex: number): MonthlySimulationData | undefined;
 
   /**
    * 現在の月次キャッシュフローを取得

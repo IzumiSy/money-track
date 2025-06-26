@@ -42,26 +42,51 @@ function convertToChartData(
   simulationResult: ReturnType<ReturnType<typeof createSimulator>["simulate"]>,
   unifiedCalculator: ReturnType<typeof createCalculator<CalculatorSource>>
 ): ChartSimulationResult {
-  const { yearlyData, currentMonthlyCashFlow, hasData } = simulationResult;
+  const { monthlyData, currentMonthlyCashFlow, hasData } = simulationResult;
 
-  // チャート用のデータ形式に変換
-  const simulationData: SimulationDataPoint[] = yearlyData.map((yearData) => {
+  // 月次データを年次データに集約してチャート用のデータ形式に変換
+  const yearlyAggregatedData: SimulationDataPoint[] = [];
+
+  // 12ヶ月ごとに集約
+  for (let year = 0; year < Math.ceil(monthlyData.length / 12); year++) {
+    const yearMonths = monthlyData.slice(year * 12, (year + 1) * 12);
+    const lastMonth = yearMonths[yearMonths.length - 1];
+
+    if (!lastMonth) continue;
+
     const chartData: SimulationDataPoint = {
-      year: `${yearData.year}年目`,
-      deposits: yearData.deposits,
-      total: yearData.deposits,
+      year: `${year + 1}年目`,
+      deposits: lastMonth.deposits,
+      total: lastMonth.deposits,
     };
 
     // unifiedCalculatorから全てのソースを取得
     const sources = unifiedCalculator.getSources();
+
+    // 年間の収入・支出を集計
+    const yearlyIncomeMap = new Map<string, number>();
+    const yearlyExpenseMap = new Map<string, number>();
+
+    yearMonths.forEach((monthData) => {
+      // 収入の集計
+      monthData.incomeBreakdown.forEach((amount, sourceId) => {
+        const current = yearlyIncomeMap.get(sourceId) || 0;
+        yearlyIncomeMap.set(sourceId, current + amount);
+      });
+
+      // 支出の集計
+      monthData.expenseBreakdown.forEach((amount, sourceId) => {
+        const current = yearlyExpenseMap.get(sourceId) || 0;
+        yearlyExpenseMap.set(sourceId, current + amount);
+      });
+    });
 
     // 各支出項目を個別にマイナスのバーとして追加
     sources
       .filter((source) => source.type === "expense")
       .forEach((expenseSource) => {
         const expenseKey = `expense_${expenseSource.id}`;
-        const yearlyExpenseAmount =
-          yearData.expenseBreakdown.get(expenseSource.id) || 0;
+        const yearlyExpenseAmount = yearlyExpenseMap.get(expenseSource.id) || 0;
         chartData[expenseKey] = -Math.round(yearlyExpenseAmount);
       });
 
@@ -70,28 +95,29 @@ function convertToChartData(
       .filter((source) => source.type === "income")
       .forEach((incomeSource) => {
         const incomeKey = `income_${incomeSource.id}`;
-        const yearlyIncomeAmount =
-          yearData.incomeBreakdown.get(incomeSource.id) || 0;
+        const yearlyIncomeAmount = yearlyIncomeMap.get(incomeSource.id) || 0;
         chartData[incomeKey] = Math.round(yearlyIncomeAmount);
       });
 
-    return chartData;
-  });
+    yearlyAggregatedData.push(chartData);
+  }
 
   // 最終年のデータ
-  const finalYearData = simulationData[simulationData.length - 1] || {
+  const finalYearData = yearlyAggregatedData[
+    yearlyAggregatedData.length - 1
+  ] || {
     year: "0年目",
     deposits: 0,
     total: 0,
   };
 
   return {
-    simulationData,
+    simulationData: yearlyAggregatedData,
     finalYearData,
     hasData,
     netMonthlyCashFlow: currentMonthlyCashFlow.net,
     totalBaseAmount: 0, // 投資は無視するため0
-    initialTotal: yearlyData[0]?.deposits || 0,
+    initialTotal: monthlyData[0]?.deposits || 0,
   };
 }
 
@@ -125,10 +151,10 @@ export function useFinancialSimulation({
       0
     );
 
-    // シミュレーターを作成
+    // シミュレーターを作成（年数を月数に変換）
     const simulator = createSimulator(unifiedCalculator, {
       initialDeposits: totalInitialAmount,
-      simulationYears,
+      simulationMonths: simulationYears * 12,
     });
 
     // シミュレーションを実行
