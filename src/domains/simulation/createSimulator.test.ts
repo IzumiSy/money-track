@@ -13,6 +13,53 @@ describe("unifiedCalculator.getBreakdown", () => {
     calculator = createCalculator<CalculatorSource>();
   });
 
+  describe("シミュレーション期間の検証", () => {
+    it("シミュレーション期間が0年の場合はエラーになる", () => {
+      expect(() =>
+        createSimulator(calculator, {
+          initialDeposits: 1000000,
+          simulationYears: 0,
+        })
+      ).toThrow("シミュレーション期間は1年から100年の間で指定してください");
+    });
+
+    it("シミュレーション期間が101年の場合はエラーになる", () => {
+      expect(() =>
+        createSimulator(calculator, {
+          initialDeposits: 1000000,
+          simulationYears: 101,
+        })
+      ).toThrow("シミュレーション期間は1年から100年の間で指定してください");
+    });
+
+    it("シミュレーション期間が1年の場合は正常に動作する", () => {
+      expect(() =>
+        createSimulator(calculator, {
+          initialDeposits: 1000000,
+          simulationYears: 1,
+        })
+      ).not.toThrow();
+    });
+
+    it("シミュレーション期間が100年の場合は正常に動作する", () => {
+      expect(() =>
+        createSimulator(calculator, {
+          initialDeposits: 1000000,
+          simulationYears: 100,
+        })
+      ).not.toThrow();
+    });
+
+    it("シミュレーション期間が負の値の場合はエラーになる", () => {
+      expect(() =>
+        createSimulator(calculator, {
+          initialDeposits: 1000000,
+          simulationYears: -5,
+        })
+      ).toThrow("シミュレーション期間は1年から100年の間で指定してください");
+    });
+  });
+
   describe("収入と支出が両方あるケース", () => {
     it("単一の収入と単一の支出がある場合", () => {
       // 収入ソースを追加
