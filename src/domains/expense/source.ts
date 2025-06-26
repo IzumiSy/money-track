@@ -1,6 +1,11 @@
 import { Expense } from "@/contexts/ExpensesContext";
 import { YearMonthDuration } from "@/types/YearMonth";
-import { CalculatorSource, createTimeRange, CashFlowChange } from "../shared";
+import {
+  CalculatorSource,
+  createTimeRange,
+  CashFlowChange,
+  shouldOccurInMonth,
+} from "../shared";
 
 /**
  * ExpenseContextのExpense型をExpenseCalculatorのExpenseSource型に変換
@@ -33,6 +38,20 @@ export function convertExpenseToExpenseSource(
         if (
           expense.endYearMonth &&
           !targetYearMonth.isBeforeOrEqual(expense.endYearMonth)
+        ) {
+          return { income: 0, expense: 0 };
+        }
+      }
+
+      // サイクル設定のチェック
+      if (expense.cycleSetting?.enabled && expense.startYearMonth) {
+        const targetYearMonth = YearMonthDuration.from(year, month);
+        if (
+          !shouldOccurInMonth(
+            expense.startYearMonth,
+            targetYearMonth,
+            expense.cycleSetting
+          )
         ) {
           return { income: 0, expense: 0 };
         }
