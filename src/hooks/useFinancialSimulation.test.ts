@@ -49,6 +49,7 @@ function runSimulation(
 
 describe("useFinancialSimulation - 収入の期間設定テスト", () => {
   it("期間限定の収入が預金に正しく反映される", () => {
+    const currentYear = new Date().getFullYear();
     const result = runSimulation(
       {
         assets: [
@@ -69,8 +70,8 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
           name: "期間限定収入",
           monthlyAmount: 100000, // 月10万円
           color: "#10B981",
-          startYearMonth: YearMonthDuration.from(1, 1), // 1年目1月から開始
-          endYearMonth: YearMonthDuration.from(2, 6), // 2年目6月で終了
+          startYearMonth: YearMonthDuration.from(currentYear, 1), // 現在年の1月から開始
+          endYearMonth: YearMonthDuration.from(currentYear + 1, 6), // 翌年の6月で終了
         },
       ],
       [],
@@ -85,6 +86,7 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
   });
 
   it("1年目から開始して同年内で終了する収入", () => {
+    const currentYear = new Date().getFullYear();
     const result = runSimulation(
       {
         assets: [
@@ -105,8 +107,8 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
           name: "1年目限定収入",
           monthlyAmount: 20000, // 月2万円
           color: "#10B981",
-          startYearMonth: YearMonthDuration.from(1, 1), // 1年目1月から開始
-          endYearMonth: YearMonthDuration.from(1, 6), // 1年目6月で終了
+          startYearMonth: YearMonthDuration.from(currentYear, 1), // 現在年の1月から開始
+          endYearMonth: YearMonthDuration.from(currentYear, 6), // 現在年の6月で終了
         },
       ],
       [],
@@ -197,6 +199,7 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
   });
 
   it("期間限定の収入と支出の組み合わせ", () => {
+    const currentYear = new Date().getFullYear();
     const result = runSimulation(
       {
         assets: [
@@ -217,8 +220,8 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
           name: "期間限定収入",
           monthlyAmount: 80000, // 月8万円
           color: "#10B981",
-          startYearMonth: YearMonthDuration.from(1, 1),
-          endYearMonth: YearMonthDuration.from(2, 12), // 2年目末まで
+          startYearMonth: YearMonthDuration.from(currentYear, 1),
+          endYearMonth: YearMonthDuration.from(currentYear + 1, 12), // 翌年末まで
         },
       ],
       [
@@ -227,8 +230,8 @@ describe("useFinancialSimulation - 収入の期間設定テスト", () => {
           name: "期間限定支出",
           monthlyAmount: 20000, // 月2万円
           color: "#EF4444",
-          startYearMonth: YearMonthDuration.from(1, 7), // 1年目7月から
-          endYearMonth: YearMonthDuration.from(3, 6), // 3年目6月まで
+          startYearMonth: YearMonthDuration.from(currentYear, 7), // 現在年の7月から
+          endYearMonth: YearMonthDuration.from(currentYear + 2, 6), // 翌々年の6月まで
         },
       ],
       3

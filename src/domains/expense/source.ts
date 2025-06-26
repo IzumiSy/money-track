@@ -9,7 +9,9 @@ import {
 
 /**
  * ExpenseContextのExpense型をExpenseCalculatorのExpenseSource型に変換
- * 注：year, monthは相対的な値（シミュレーション開始からの年数）として扱う
+ * 注：year, monthは以下のいずれかの値として扱う：
+ * - 相対的な値（1, 2, 3...）：シミュレーション開始からの年数
+ * - 絶対的な値（2025, 2026...）：実際の年
  */
 export function convertExpenseToExpenseSource(
   expense: Expense

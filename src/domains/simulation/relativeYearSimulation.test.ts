@@ -10,15 +10,16 @@ import { YearMonthDuration } from "@/types/YearMonth";
 describe("相対年数でのシミュレーション", () => {
   it("収入の期間設定が正しく反映される", () => {
     const calculator = createCalculator();
+    const currentYear = new Date().getFullYear();
 
-    // 1年目から2年目まで（相対年数）の収入
+    // 1年目から2年目まで（絶対年数に変換）の収入
     const income: Income = {
       id: "1",
       name: "期間限定収入",
       monthlyAmount: 100000,
       color: "#10B981",
-      startYearMonth: YearMonthDuration.from(1, 1), // 1年目1月から
-      endYearMonth: YearMonthDuration.from(2, 12), // 2年目12月まで
+      startYearMonth: YearMonthDuration.from(currentYear, 1), // 現在年の1月から
+      endYearMonth: YearMonthDuration.from(currentYear + 1, 12), // 翌年の12月まで
     };
 
     calculator.addSource(convertIncomeToIncomeSource(income));
@@ -52,15 +53,16 @@ describe("相対年数でのシミュレーション", () => {
 
   it("支出の期間設定が正しく反映される", () => {
     const calculator = createCalculator();
+    const currentYear = new Date().getFullYear();
 
-    // 2年目から3年目まで（相対年数）の支出
+    // 2年目から3年目まで（絶対年数に変換）の支出
     const expense: Expense = {
       id: "1",
       name: "期間限定支出",
       monthlyAmount: 50000,
       color: "#EF4444",
-      startYearMonth: YearMonthDuration.from(2, 1), // 2年目1月から
-      endYearMonth: YearMonthDuration.from(3, 12), // 3年目12月まで
+      startYearMonth: YearMonthDuration.from(currentYear + 1, 1), // 翌年の1月から
+      endYearMonth: YearMonthDuration.from(currentYear + 2, 12), // 翌々年の12月まで
     };
 
     calculator.addSource(convertExpenseToExpenseSource(expense));
@@ -95,6 +97,7 @@ describe("相対年数でのシミュレーション", () => {
 
   it("収入と支出の期間設定が組み合わさって正しく動作する", () => {
     const calculator = createCalculator();
+    const currentYear = new Date().getFullYear();
 
     // 1年目から3年目までの収入
     const income: Income = {
@@ -102,8 +105,8 @@ describe("相対年数でのシミュレーション", () => {
       name: "給与",
       monthlyAmount: 200000,
       color: "#10B981",
-      startYearMonth: YearMonthDuration.from(1, 1),
-      endYearMonth: YearMonthDuration.from(3, 12),
+      startYearMonth: YearMonthDuration.from(currentYear, 1),
+      endYearMonth: YearMonthDuration.from(currentYear + 2, 12),
     };
 
     // 2年目から4年目までの支出
@@ -112,8 +115,8 @@ describe("相対年数でのシミュレーション", () => {
       name: "家賃",
       monthlyAmount: 100000,
       color: "#EF4444",
-      startYearMonth: YearMonthDuration.from(2, 1),
-      endYearMonth: YearMonthDuration.from(4, 12),
+      startYearMonth: YearMonthDuration.from(currentYear + 1, 1),
+      endYearMonth: YearMonthDuration.from(currentYear + 3, 12),
     };
 
     calculator.addSource(convertIncomeToIncomeSource(income));
@@ -147,6 +150,7 @@ describe("相対年数でのシミュレーション", () => {
 
   it("サイクル設定と期間設定が組み合わさって正しく動作する", () => {
     const calculator = createCalculator();
+    const currentYear = new Date().getFullYear();
 
     // 1年目から3年目まで、3ヶ月ごとの収入
     const income: Income = {
@@ -154,8 +158,8 @@ describe("相対年数でのシミュレーション", () => {
       name: "ボーナス",
       monthlyAmount: 300000,
       color: "#10B981",
-      startYearMonth: YearMonthDuration.from(1, 1),
-      endYearMonth: YearMonthDuration.from(3, 12),
+      startYearMonth: YearMonthDuration.from(currentYear, 1),
+      endYearMonth: YearMonthDuration.from(currentYear + 2, 12),
       cycleSetting: {
         enabled: true,
         interval: 3,
