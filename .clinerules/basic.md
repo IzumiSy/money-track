@@ -24,7 +24,7 @@ Precise rules that you always have to keep in mind in making changes on codebase
 ## Documentation
 
 * Update `README.md` if you make changes related to application feature, Remember that `README.md` is not a technical document. 
-* Update `ARCHITECTURE.md` if you changes that affect technical detail such as architecture, data flow, and code-level stuff. 
+* Update `ARCHITECTURE.md` if you make changes that affect technical detail such as architecture, data flow, and code-level stuff. 
 
 ## Other
 
