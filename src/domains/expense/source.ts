@@ -1,5 +1,9 @@
 import { Expense } from "@/contexts/ExpensesContext";
-import { CalculatorSource, CashFlowChange, isWithinTimeRange } from "../shared";
+import {
+  CalculatorSource,
+  CashFlowChange,
+  calculateCyclesForMonth,
+} from "../shared";
 
 /**
  * ExpenseContextのExpense型をExpenseCalculatorのExpenseSource型に変換
@@ -11,14 +15,9 @@ export function convertExpenseToExpenseSource(
     id: expense.id,
     name: expense.name,
     type: "expense",
-    timeRange: expense.timeRange,
     calculate: (monthIndex: number): CashFlowChange => {
-      // 期間チェック
-      if (!isWithinTimeRange(expense.timeRange, monthIndex)) {
-        return { income: 0, expense: 0 };
-      }
-
-      return { income: 0, expense: expense.monthlyAmount };
+      const amount = calculateCyclesForMonth(expense.cycles, monthIndex);
+      return { income: 0, expense: amount };
     },
     getMetadata: () => ({
       color: expense.color,

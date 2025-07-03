@@ -2,7 +2,7 @@ import { Income } from "@/contexts/IncomeContext";
 import {
   CalculatorSource,
   CashFlowChange,
-  isWithinTimeRange,
+  calculateCyclesForMonth,
 } from "@/domains/shared";
 
 /**
@@ -13,14 +13,9 @@ export function convertIncomeToIncomeSource(income: Income): CalculatorSource {
     id: income.id,
     name: income.name,
     type: "income",
-    timeRange: income.timeRange,
     calculate: (monthIndex: number): CashFlowChange => {
-      // 期間チェック
-      if (!isWithinTimeRange(income.timeRange, monthIndex)) {
-        return { income: 0, expense: 0 };
-      }
-
-      return { income: income.monthlyAmount, expense: 0 };
+      const amount = calculateCyclesForMonth(income.cycles, monthIndex);
+      return { income: amount, expense: 0 };
     },
     getMetadata: () => ({
       color: income.color,

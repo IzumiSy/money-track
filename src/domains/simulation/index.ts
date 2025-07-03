@@ -5,3 +5,4 @@ export type {
   SimulationResult,
   MonthlySimulationData,
 } from "./types";
+export { runFinancialSimulation } from "./financialSimulation";

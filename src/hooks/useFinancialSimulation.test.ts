@@ -1,262 +1,210 @@
 import { describe, it, expect } from "vitest";
-import { createCalculator, CalculatorSource } from "@/domains/shared";
-import { createSimulator } from "@/domains/simulation";
+import { runFinancialSimulation } from "@/domains/simulation/financialSimulation";
 import { FinancialAssets } from "@/components/FinancialAssetsForm";
 import { Income } from "@/contexts/IncomeContext";
 import { Expense } from "@/contexts/ExpensesContext";
-import { convertExpenseToExpenseSource } from "@/domains/expense/source";
-import { convertIncomeToIncomeSource } from "@/domains/income/source";
+import { Cycle } from "@/domains/shared/Cycle";
 
-// テスト用のヘルパー関数：calculateFinancialSimulation関数を直接呼び出す
-function runSimulation(
-  assets: FinancialAssets,
-  incomes: Income[] = [],
-  expenses: Expense[] = [],
-  simulationYears: number = 3
-) {
-  // 統合されたCalculatorインスタンスを作成
-  const unifiedCalculator = createCalculator<CalculatorSource>();
-
-  // Income[]をIncomeSourceに変換してCalculatorに追加
-  incomes.forEach((income) => {
-    unifiedCalculator.addSource(convertIncomeToIncomeSource(income));
-  });
-
-  // Expense[]をExpenseSourceに変換してCalculatorに追加
-  expenses.forEach((expense) => {
-    unifiedCalculator.addSource(convertExpenseToExpenseSource(expense));
-  });
-
-  // すべての資産の初期額を合計
-  const totalInitialAmount = assets.assets.reduce(
-    (sum, asset) => sum + asset.baseAmount,
-    0
-  );
-
-  const simulator = createSimulator(unifiedCalculator, {
-    initialDeposits: totalInitialAmount,
-    simulationMonths: simulationYears * 12,
-  });
-
-  const result = simulator.simulate();
-
-  // 月次データを年次に集約
-  const yearlyDeposits: number[] = [];
-  for (let year = 0; year < simulationYears; year++) {
-    const lastMonthOfYear = (year + 1) * 12 - 1;
-    if (result.monthlyData[lastMonthOfYear]) {
-      yearlyDeposits.push(result.monthlyData[lastMonthOfYear].deposits);
-    }
-  }
-
+// Helper function to create a monthly cycle
+function createMonthlyCycle(amount: number, startMonthIndex: number): Cycle {
   return {
-    deposits: yearlyDeposits,
+    id: Date.now().toString() + Math.random(),
+    type: "monthly",
+    amount,
+    startMonthIndex,
   };
 }
 
-describe("useFinancialSimulation - 収入の期間設定テスト", () => {
-  it("期間限定の収入が預金に正しく反映される", () => {
-    const result = runSimulation(
+describe("runFinancialSimulation", () => {
+  const defaultAssets: FinancialAssets = {
+    assets: [
       {
-        assets: [
-          {
-            id: "cash-default",
-            name: "現金",
-            returnRate: 0,
-            color: "#10B981",
-            baseAmount: 1000000, // 初期預金100万円
-            contributionOptions: [],
-            withdrawalOptions: [],
-          },
-        ],
+        id: "1",
+        name: "現金",
+        baseAmount: 1000000,
+        returnRate: 0,
+        color: "#3B82F6",
+        contributionOptions: [],
+        withdrawalOptions: [],
       },
-      [
-        {
-          id: "income1",
-          name: "期間限定収入",
-          monthlyAmount: 100000, // 月10万円
-          color: "#10B981",
-          timeRange: {
-            startMonthIndex: 0, // 1年目1月から開始（インデックス0）
-            endMonthIndex: 17, // 2年目6月で終了（インデックス17）
-          },
-        },
-      ],
-      [],
-      3
-    );
+    ],
+  };
 
-    expect(result.deposits).toEqual([
-      1000000 + 100000 * 12, // 1年目: 初期預金 + 1年目の12ヶ月分の収入
-      1000000 + 100000 * 18, // 2年目: 初期預金 + 1年目12ヶ月 + 2年目6ヶ月の収入
-      1000000 + 100000 * 18, // 3年目: 収入終了後なので2年目と同じ
-    ]);
+  it("初期資産のみの場合、資産額が変わらないこと", () => {
+    const result = runFinancialSimulation(defaultAssets, [], [], 5);
+
+    expect(result.hasData).toBe(true);
+    expect(result.simulationData).toHaveLength(5);
+
+    // 各年の資産額が初期値と同じであること
+    result.simulationData.forEach((data) => {
+      expect(data.deposits).toBe(1000000);
+      expect(data.total).toBe(1000000);
+    });
   });
 
-  it("1年目から開始して同年内で終了する収入", () => {
-    const result = runSimulation(
+  it("収入がある場合、資産が増加すること", () => {
+    const incomes: Income[] = [
       {
-        assets: [
-          {
-            id: "cash-default",
-            name: "現金",
-            returnRate: 0,
-            color: "#10B981",
-            baseAmount: 200000, // 初期預金20万円
-            contributionOptions: [],
-            withdrawalOptions: [],
-          },
-        ],
+        id: "income1",
+        name: "給与",
+        cycles: [createMonthlyCycle(100000, 0)], // 月10万円、1年1ヶ月目から
+        color: "#10B981",
       },
-      [
-        {
-          id: "income1",
-          name: "1年目限定収入",
-          monthlyAmount: 20000, // 月2万円
-          color: "#10B981",
-          timeRange: {
-            startMonthIndex: 0, // 1年目1月から開始（インデックス0）
-            endMonthIndex: 5, // 1年目6月で終了（インデックス5）
-          },
-        },
-      ],
-      [],
-      3
-    );
+    ];
 
-    expect(result.deposits).toEqual([
-      200000 + 20000 * 6, // 1年目: 初期預金 + 1年目の1月〜6月（6ヶ月分）の収入
-      200000 + 20000 * 6, // 2年目: 収入終了後なので1年目と同じ
-      200000 + 20000 * 6, // 3年目: 収入終了後なので2年目と同じ
-    ]);
+    const result = runFinancialSimulation(defaultAssets, [], incomes, 2);
+
+    expect(result.hasData).toBe(true);
+    expect(result.simulationData).toHaveLength(2);
+
+    // 1年目: 初期資産 + 12ヶ月分の収入
+    expect(result.simulationData[0].deposits).toBe(1000000 + 100000 * 12);
+    // 2年目: 1年目の資産 + 12ヶ月分の収入
+    expect(result.simulationData[1].deposits).toBe(1000000 + 100000 * 24);
   });
 
-  it("期間設定が全くない場合、常に有効な収入として扱われる", () => {
-    const result = runSimulation(
+  it("支出がある場合、資産が減少すること", () => {
+    const expenses: Expense[] = [
       {
-        assets: [
-          {
-            id: "cash-default",
-            name: "現金",
-            returnRate: 0,
-            color: "#10B981",
-            baseAmount: 100000, // 初期預金10万円
-            contributionOptions: [],
-            withdrawalOptions: [],
-          },
-        ],
+        id: "expense1",
+        name: "家賃",
+        cycles: [createMonthlyCycle(20000, 0)], // 月2万円、1年1ヶ月目から
+        color: "#EF4444",
       },
-      [
-        {
-          id: "income1",
-          name: "期間設定なし収入",
-          monthlyAmount: 40000, // 月4万円
-          color: "#10B981",
-        },
-      ],
-      [],
-      3
-    );
+    ];
 
-    expect(result.deposits).toEqual([
-      100000 + 40000 * 12, // 1年目: 初期預金 + 1年目の12ヶ月分の収入
-      100000 + 40000 * 24, // 2年目: 初期預金 + 1年目12ヶ月 + 2年目12ヶ月の収入
-      100000 + 40000 * 36, // 3年目: 初期預金 + 1年目12ヶ月 + 2年目12ヶ月 + 3年目12ヶ月の収入
-    ]);
+    const result = runFinancialSimulation(defaultAssets, expenses, [], 2);
+
+    expect(result.hasData).toBe(true);
+
+    // 1年目: 初期資産 - 12ヶ月分の支出
+    expect(result.simulationData[0].deposits).toBe(1000000 - 20000 * 12);
+    // 2年目: 1年目の資産 - 12ヶ月分の支出
+    expect(result.simulationData[1].deposits).toBe(1000000 - 20000 * 24);
   });
 
-  it("支出がある場合の収入と支出の相殺", () => {
-    const result = runSimulation(
+  it("収入と支出の両方がある場合、正しく計算されること", () => {
+    const incomes: Income[] = [
       {
-        assets: [
-          {
-            id: "cash-default",
-            name: "現金",
-            returnRate: 0,
-            color: "#10B981",
-            baseAmount: 500000, // 初期預金50万円
-            contributionOptions: [],
-            withdrawalOptions: [],
-          },
-        ],
+        id: "income1",
+        name: "給与",
+        cycles: [createMonthlyCycle(40000, 0)], // 月4万円、1年1ヶ月目から
+        color: "#10B981",
       },
-      [
-        {
-          id: "income1",
-          name: "給与収入",
-          monthlyAmount: 50000, // 月5万円
-          color: "#10B981",
-        },
-      ],
-      [
-        {
-          id: "expense1",
-          name: "生活費",
-          monthlyAmount: 30000, // 月3万円
-          color: "#EF4444",
-        },
-      ],
-      3
-    );
+    ];
 
-    const netMonthly = 50000 - 30000; // 月2万円の純収入
-    expect(result.deposits).toEqual([
-      500000 + netMonthly * 12, // 1年目: 初期預金 + 1年目の純収入
-      500000 + netMonthly * 24, // 2年目: 初期預金 + 1年目と2年目の純収入
-      500000 + netMonthly * 36, // 3年目: 初期預金 + 1年目〜3年目の純収入
-    ]);
+    const expenses: Expense[] = [
+      {
+        id: "expense1",
+        name: "生活費",
+        cycles: [createMonthlyCycle(30000, 0)], // 月3万円、1年1ヶ月目から
+        color: "#EF4444",
+      },
+    ];
+
+    const result = runFinancialSimulation(defaultAssets, expenses, incomes, 2);
+
+    expect(result.hasData).toBe(true);
+
+    // 月間の純キャッシュフロー: 4万円 - 3万円 = 1万円
+    const monthlyNetCashFlow = 10000;
+
+    // 1年目: 初期資産 + 12ヶ月分の純キャッシュフロー
+    expect(result.simulationData[0].deposits).toBe(
+      1000000 + monthlyNetCashFlow * 12
+    );
+    // 2年目
+    expect(result.simulationData[1].deposits).toBe(
+      1000000 + monthlyNetCashFlow * 24
+    );
   });
 
-  it("期間限定の収入と支出の組み合わせ", () => {
-    const result = runSimulation(
+  it("年次サイクルの収入が正しく計算されること", () => {
+    const incomes: Income[] = [
       {
-        assets: [
+        id: "income1",
+        name: "ボーナス",
+        cycles: [
           {
-            id: "cash-default",
-            name: "現金",
-            returnRate: 0,
-            color: "#10B981",
-            baseAmount: 300000, // 初期預金30万円
-            contributionOptions: [],
-            withdrawalOptions: [],
+            id: "cycle1",
+            type: "yearly",
+            amount: 600000, // 年60万円
+            startMonthIndex: 5, // 1年6ヶ月目（6月）
           },
         ],
+        color: "#10B981",
       },
-      [
-        {
-          id: "income1",
-          name: "期間限定収入",
-          monthlyAmount: 80000, // 月8万円
-          color: "#10B981",
-          timeRange: {
-            startMonthIndex: 0, // 1年目1月から
-            endMonthIndex: 23, // 2年目末まで（インデックス23）
-          },
-        },
-      ],
-      [
-        {
-          id: "expense1",
-          name: "期間限定支出",
-          monthlyAmount: 20000, // 月2万円
-          color: "#EF4444",
-          timeRange: {
-            startMonthIndex: 6, // 1年目7月から（インデックス6）
-            endMonthIndex: 29, // 3年目6月まで（インデックス29）
-          },
-        },
-      ],
-      3
-    );
+    ];
 
-    expect(result.deposits).toEqual([
-      300000 + 80000 * 6 + (80000 - 20000) * 6, // 1年目: 初期預金 + 1-6月収入のみ + 7-12月収入-支出
-      300000 + 80000 * 6 + (80000 - 20000) * 6 + (80000 - 20000) * 12, // 2年目: 1年目まで + 2年目の収入-支出
-      300000 +
-        80000 * 6 +
-        (80000 - 20000) * 6 +
-        (80000 - 20000) * 12 +
-        -20000 * 6, // 3年目: 2年目まで + 3年目1-6月の支出のみ
-    ]);
+    const result = runFinancialSimulation(defaultAssets, [], incomes, 2);
+
+    expect(result.hasData).toBe(true);
+
+    // 1年目: 初期資産 + 年1回のボーナス
+    expect(result.simulationData[0].deposits).toBe(1000000 + 600000);
+    // 2年目: 1年目の資産 + 年1回のボーナス
+    expect(result.simulationData[1].deposits).toBe(1000000 + 600000 * 2);
+  });
+
+  it("複数のサイクルを持つ収入が正しく計算されること", () => {
+    const incomes: Income[] = [
+      {
+        id: "income1",
+        name: "総収入",
+        cycles: [
+          createMonthlyCycle(50000, 0), // 月5万円の基本給、1年1ヶ月目から
+          {
+            id: "cycle2",
+            type: "yearly",
+            amount: 300000, // 年30万円のボーナス（6月）
+            startMonthIndex: 5, // 1年6ヶ月目
+          },
+          {
+            id: "cycle3",
+            type: "yearly",
+            amount: 300000, // 年30万円のボーナス（12月）
+            startMonthIndex: 11, // 1年12ヶ月目
+          },
+        ],
+        color: "#10B981",
+      },
+    ];
+
+    const result = runFinancialSimulation(defaultAssets, [], incomes, 1);
+
+    expect(result.hasData).toBe(true);
+
+    // 1年目: 初期資産 + 月給12ヶ月分 + ボーナス2回
+    expect(result.simulationData[0].deposits).toBe(
+      1000000 + 50000 * 12 + 300000 * 2
+    );
+  });
+
+  it("カスタムサイクル（3ヶ月ごと）が正しく計算されること", () => {
+    const expenses: Expense[] = [
+      {
+        id: "expense1",
+        name: "四半期支払い",
+        cycles: [
+          {
+            id: "cycle1",
+            type: "custom",
+            interval: 3,
+            intervalUnit: "month",
+            amount: 80000, // 3ヶ月ごとに8万円
+            startMonthIndex: 0, // 1年1ヶ月目から
+          },
+        ],
+        color: "#EF4444",
+      },
+    ];
+
+    const result = runFinancialSimulation(defaultAssets, expenses, [], 1);
+
+    expect(result.hasData).toBe(true);
+
+    // 1年目: 初期資産 - 四半期ごとの支払い4回
+    expect(result.simulationData[0].deposits).toBe(1000000 - 80000 * 4);
   });
 });
