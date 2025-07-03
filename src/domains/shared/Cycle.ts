@@ -8,14 +8,7 @@ export interface Cycle {
   type: CycleType;
   interval?: number; // customの場合の間隔（必須）
   intervalUnit?: "month" | "year"; // customの場合の単位（必須）
-  startDate: {
-    year: number;
-    month: number; // 1-12
-  };
-  endDate?: {
-    // 終了日（オプション）
-    year: number;
-    month: number;
-  };
+  startMonthIndex: number; // 0ベースの月インデックス（例：0 = 1年1ヶ月目）
+  endMonthIndex?: number; // 0ベースの月インデックス（オプション）
   amount: number; // このサイクルでの金額
 }

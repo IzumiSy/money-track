@@ -3,6 +3,10 @@
 import { useState, useEffect } from "react";
 import { useIncome, Income } from "@/contexts/IncomeContext";
 import { Cycle, CycleType } from "@/domains/shared/Cycle";
+import {
+  convertIndexToYearMonth,
+  convertYearMonthToIndex,
+} from "@/domains/shared/TimeRange";
 
 interface IncomeFormProps {
   onSubmit?: () => void;
@@ -65,10 +69,7 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
     const newCycle: Cycle = {
       id: Date.now().toString(),
       type: "monthly",
-      startDate: {
-        year: new Date().getFullYear(),
-        month: new Date().getMonth() + 1,
-      },
+      startMonthIndex: 0, // 1年1ヶ月目
       amount: 0,
     };
 
@@ -328,44 +329,55 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
                               </div>
                             </div>
 
-                            {/* 開始・終了日 */}
+                            {/* 開始・終了時期 */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                               <div>
                                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                  開始年月
+                                  開始時期
                                 </label>
                                 <div className="grid grid-cols-2 gap-1">
                                   <input
                                     type="number"
-                                    value={cycle.startDate.year}
-                                    onChange={(e) =>
-                                      handleUpdateCycle(income.id, cycle.id, {
-                                        startDate: {
-                                          ...cycle.startDate,
-                                          year: Number(e.target.value),
-                                        },
-                                      })
+                                    value={
+                                      convertIndexToYearMonth(
+                                        cycle.startMonthIndex
+                                      ).year
                                     }
+                                    onChange={(e) => {
+                                      const year = Number(e.target.value);
+                                      const month = convertIndexToYearMonth(
+                                        cycle.startMonthIndex
+                                      ).month;
+                                      handleUpdateCycle(income.id, cycle.id, {
+                                        startMonthIndex:
+                                          convertYearMonthToIndex(year, month),
+                                      });
+                                    }}
                                     className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
                                     placeholder="年"
-                                    min="2000"
-                                    max="2100"
+                                    min="1"
                                   />
                                   <select
-                                    value={cycle.startDate.month}
-                                    onChange={(e) =>
-                                      handleUpdateCycle(income.id, cycle.id, {
-                                        startDate: {
-                                          ...cycle.startDate,
-                                          month: Number(e.target.value),
-                                        },
-                                      })
+                                    value={
+                                      convertIndexToYearMonth(
+                                        cycle.startMonthIndex
+                                      ).month
                                     }
+                                    onChange={(e) => {
+                                      const year = convertIndexToYearMonth(
+                                        cycle.startMonthIndex
+                                      ).year;
+                                      const month = Number(e.target.value);
+                                      handleUpdateCycle(income.id, cycle.id, {
+                                        startMonthIndex:
+                                          convertYearMonthToIndex(year, month),
+                                      });
+                                    }}
                                     className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
                                   >
                                     {Array.from({ length: 12 }, (_, i) => (
                                       <option key={i + 1} value={i + 1}>
-                                        {i + 1}月
+                                        {i + 1}ヶ月目
                                       </option>
                                     ))}
                                   </select>
@@ -374,52 +386,81 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
 
                               <div>
                                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                  終了年月（任意）
+                                  終了時期（任意）
                                 </label>
                                 <div className="grid grid-cols-2 gap-1">
                                   <input
                                     type="number"
-                                    value={cycle.endDate?.year || ""}
+                                    value={
+                                      cycle.endMonthIndex !== undefined
+                                        ? convertIndexToYearMonth(
+                                            cycle.endMonthIndex
+                                          ).year
+                                        : ""
+                                    }
                                     onChange={(e) => {
                                       const year = e.target.value
                                         ? Number(e.target.value)
                                         : undefined;
-                                      handleUpdateCycle(income.id, cycle.id, {
-                                        endDate: year
-                                          ? {
+                                      if (year !== undefined) {
+                                        const month =
+                                          cycle.endMonthIndex !== undefined
+                                            ? convertIndexToYearMonth(
+                                                cycle.endMonthIndex
+                                              ).month
+                                            : 1;
+                                        handleUpdateCycle(income.id, cycle.id, {
+                                          endMonthIndex:
+                                            convertYearMonthToIndex(
                                               year,
-                                              month: cycle.endDate?.month || 1,
-                                            }
-                                          : undefined,
-                                      });
+                                              month
+                                            ),
+                                        });
+                                      } else {
+                                        handleUpdateCycle(income.id, cycle.id, {
+                                          endMonthIndex: undefined,
+                                        });
+                                      }
                                     }}
                                     className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
                                     placeholder="年"
-                                    min="2000"
-                                    max="2100"
+                                    min="1"
                                   />
                                   <select
-                                    value={cycle.endDate?.month || ""}
+                                    value={
+                                      cycle.endMonthIndex !== undefined
+                                        ? convertIndexToYearMonth(
+                                            cycle.endMonthIndex
+                                          ).month
+                                        : ""
+                                    }
                                     onChange={(e) => {
                                       const month = e.target.value
                                         ? Number(e.target.value)
                                         : undefined;
-                                      handleUpdateCycle(income.id, cycle.id, {
-                                        endDate:
-                                          month && cycle.endDate?.year
-                                            ? {
-                                                year: cycle.endDate.year,
-                                                month,
-                                              }
-                                            : undefined,
-                                      });
+                                      if (
+                                        month !== undefined &&
+                                        cycle.endMonthIndex !== undefined
+                                      ) {
+                                        const year = convertIndexToYearMonth(
+                                          cycle.endMonthIndex
+                                        ).year;
+                                        handleUpdateCycle(income.id, cycle.id, {
+                                          endMonthIndex:
+                                            convertYearMonthToIndex(
+                                              year,
+                                              month
+                                            ),
+                                        });
+                                      }
                                     }}
                                     className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
+                                    disabled={cycle.endMonthIndex === undefined}
                                   >
-                                    <option value="">月</option>
+                                    <option value="">-</option>
                                     {Array.from({ length: 12 }, (_, i) => (
                                       <option key={i + 1} value={i + 1}>
-                                        {i + 1}月
+                                        {i + 1}ヶ月目
                                       </option>
                                     ))}
                                   </select>

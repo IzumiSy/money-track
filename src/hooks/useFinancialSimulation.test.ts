@@ -6,16 +6,12 @@ import { Expense } from "@/contexts/ExpensesContext";
 import { Cycle } from "@/domains/shared/Cycle";
 
 // Helper function to create a monthly cycle
-function createMonthlyCycle(
-  amount: number,
-  startYear: number,
-  startMonth: number
-): Cycle {
+function createMonthlyCycle(amount: number, startMonthIndex: number): Cycle {
   return {
     id: Date.now().toString() + Math.random(),
     type: "monthly",
     amount,
-    startDate: { year: startYear, month: startMonth },
+    startMonthIndex,
   };
 }
 
@@ -52,7 +48,7 @@ describe("runFinancialSimulation", () => {
       {
         id: "income1",
         name: "給与",
-        cycles: [createMonthlyCycle(100000, 1, 1)], // 月10万円
+        cycles: [createMonthlyCycle(100000, 0)], // 月10万円、1年1ヶ月目から
         color: "#10B981",
       },
     ];
@@ -73,7 +69,7 @@ describe("runFinancialSimulation", () => {
       {
         id: "expense1",
         name: "家賃",
-        cycles: [createMonthlyCycle(20000, 1, 1)], // 月2万円
+        cycles: [createMonthlyCycle(20000, 0)], // 月2万円、1年1ヶ月目から
         color: "#EF4444",
       },
     ];
@@ -93,7 +89,7 @@ describe("runFinancialSimulation", () => {
       {
         id: "income1",
         name: "給与",
-        cycles: [createMonthlyCycle(40000, 1, 1)], // 月4万円
+        cycles: [createMonthlyCycle(40000, 0)], // 月4万円、1年1ヶ月目から
         color: "#10B981",
       },
     ];
@@ -102,7 +98,7 @@ describe("runFinancialSimulation", () => {
       {
         id: "expense1",
         name: "生活費",
-        cycles: [createMonthlyCycle(30000, 1, 1)], // 月3万円
+        cycles: [createMonthlyCycle(30000, 0)], // 月3万円、1年1ヶ月目から
         color: "#EF4444",
       },
     ];
@@ -134,7 +130,7 @@ describe("runFinancialSimulation", () => {
             id: "cycle1",
             type: "yearly",
             amount: 600000, // 年60万円
-            startDate: { year: 1, month: 6 }, // 6月
+            startMonthIndex: 5, // 1年6ヶ月目（6月）
           },
         ],
         color: "#10B981",
@@ -157,18 +153,18 @@ describe("runFinancialSimulation", () => {
         id: "income1",
         name: "総収入",
         cycles: [
-          createMonthlyCycle(50000, 1, 1), // 月5万円の基本給
+          createMonthlyCycle(50000, 0), // 月5万円の基本給、1年1ヶ月目から
           {
             id: "cycle2",
             type: "yearly",
             amount: 300000, // 年30万円のボーナス（6月）
-            startDate: { year: 1, month: 6 },
+            startMonthIndex: 5, // 1年6ヶ月目
           },
           {
             id: "cycle3",
             type: "yearly",
             amount: 300000, // 年30万円のボーナス（12月）
-            startDate: { year: 1, month: 12 },
+            startMonthIndex: 11, // 1年12ヶ月目
           },
         ],
         color: "#10B981",
@@ -197,7 +193,7 @@ describe("runFinancialSimulation", () => {
             interval: 3,
             intervalUnit: "month",
             amount: 80000, // 3ヶ月ごとに8万円
-            startDate: { year: 1, month: 1 },
+            startMonthIndex: 0, // 1年1ヶ月目から
           },
         ],
         color: "#EF4444",
