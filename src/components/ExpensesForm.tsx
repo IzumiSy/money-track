@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useExpenses, Expense } from "@/contexts/ExpensesContext";
-import { convertYearMonthToIndex } from "@/domains/shared/TimeRange";
+import { Cycle, CycleType } from "@/domains/shared/Cycle";
 
 interface ExpensesFormProps {
   onSubmit?: () => void;
@@ -36,7 +36,7 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
     const newExpense: Expense = {
       id: Date.now().toString(),
       name: "",
-      monthlyAmount: 0,
+      cycles: [],
       color: getDefaultColor(draftExpenses.length),
     };
     setDraftExpenses([...draftExpenses, newExpense]);
@@ -45,7 +45,7 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
   const handleUpdateExpense = (
     id: string,
     field: keyof Expense,
-    value: string | number | undefined
+    value: string | Cycle[]
   ) => {
     setDraftExpenses(
       draftExpenses.map((expense) =>
@@ -58,35 +58,51 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
     setDraftExpenses(draftExpenses.filter((expense) => expense.id !== id));
   };
 
+  const handleAddCycle = (expenseId: string) => {
+    const expense = draftExpenses.find((e) => e.id === expenseId);
+    if (!expense) return;
+
+    const newCycle: Cycle = {
+      id: Date.now().toString(),
+      type: "monthly",
+      startDate: {
+        year: new Date().getFullYear(),
+        month: new Date().getMonth() + 1,
+      },
+      amount: 0,
+    };
+
+    handleUpdateExpense(expenseId, "cycles", [...expense.cycles, newCycle]);
+  };
+
+  const handleUpdateCycle = (
+    expenseId: string,
+    cycleId: string,
+    updates: Partial<Cycle>
+  ) => {
+    const expense = draftExpenses.find((e) => e.id === expenseId);
+    if (!expense) return;
+
+    const updatedCycles = expense.cycles.map((cycle) =>
+      cycle.id === cycleId ? { ...cycle, ...updates } : cycle
+    );
+
+    handleUpdateExpense(expenseId, "cycles", updatedCycles);
+  };
+
+  const handleRemoveCycle = (expenseId: string, cycleId: string) => {
+    const expense = draftExpenses.find((e) => e.id === expenseId);
+    if (!expense) return;
+
+    const updatedCycles = expense.cycles.filter(
+      (cycle) => cycle.id !== cycleId
+    );
+    handleUpdateExpense(expenseId, "cycles", updatedCycles);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // ドラフトの変更をコンテキストに保存（年月をTimeRangeに変換）
-    const processedExpenses = draftExpenses.map((expense) => {
-      const timeRange: { startMonthIndex?: number; endMonthIndex?: number } =
-        {};
-
-      if (expense.startYear && expense.startMonth) {
-        timeRange.startMonthIndex = convertYearMonthToIndex(
-          expense.startYear,
-          expense.startMonth
-        );
-      }
-
-      if (expense.endYear && expense.endMonth) {
-        timeRange.endMonthIndex = convertYearMonthToIndex(
-          expense.endYear,
-          expense.endMonth
-        );
-      }
-
-      return {
-        ...expense,
-        timeRange: Object.keys(timeRange).length > 0 ? timeRange : undefined,
-      };
-    });
-
-    setExpenses(processedExpenses);
+    setExpenses(draftExpenses);
     if (onSubmit) {
       onSubmit();
     }
@@ -102,7 +118,7 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
         <div>
           <div className="flex justify-between items-center mb-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              月間支出
+              支出項目
             </label>
             <button
               type="button"
@@ -139,7 +155,7 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     {/* 支出名 */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -157,27 +173,6 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
                         }
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
                         placeholder="例：家賃、食費、光熱費"
-                      />
-                    </div>
-
-                    {/* 月間支出額 */}
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                        月間支出額（円）
-                      </label>
-                      <input
-                        type="number"
-                        value={expense.monthlyAmount || ""}
-                        onChange={(e) =>
-                          handleUpdateExpense(
-                            expense.id,
-                            "monthlyAmount",
-                            Number(e.target.value) || 0
-                          )
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                        placeholder="0"
-                        min="0"
                       />
                     </div>
 
@@ -216,90 +211,239 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* 開始年月 */}
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                        開始年月
+                  {/* サイクル設定 */}
+                  <div className="mt-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
+                        サイクル設定
                       </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="number"
-                          value={expense.startYear || ""}
-                          onChange={(e) =>
-                            handleUpdateExpense(
-                              expense.id,
-                              "startYear",
-                              Number(e.target.value) || undefined
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                          placeholder="年"
-                          min="1"
-                          max="100"
-                        />
-                        <select
-                          value={expense.startMonth || ""}
-                          onChange={(e) =>
-                            handleUpdateExpense(
-                              expense.id,
-                              "startMonth",
-                              Number(e.target.value) || undefined
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                        >
-                          <option value="">月</option>
-                          {Array.from({ length: 12 }, (_, i) => (
-                            <option key={i + 1} value={i + 1}>
-                              {i + 1}月
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAddCycle(expense.id)}
+                        className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors duration-200"
+                      >
+                        + サイクルを追加
+                      </button>
                     </div>
 
-                    {/* 終了年月 */}
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                        終了年月（任意）
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="number"
-                          value={expense.endYear || ""}
-                          onChange={(e) =>
-                            handleUpdateExpense(
-                              expense.id,
-                              "endYear",
-                              Number(e.target.value) || undefined
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                          placeholder="年"
-                          min="1"
-                          max="100"
-                        />
-                        <select
-                          value={expense.endMonth || ""}
-                          onChange={(e) =>
-                            handleUpdateExpense(
-                              expense.id,
-                              "endMonth",
-                              Number(e.target.value) || undefined
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
-                        >
-                          <option value="">月</option>
-                          {Array.from({ length: 12 }, (_, i) => (
-                            <option key={i + 1} value={i + 1}>
-                              {i + 1}月
-                            </option>
-                          ))}
-                        </select>
+                    {expense.cycles.length === 0 ? (
+                      <div className="text-center py-4 border border-dashed border-gray-300 dark:border-gray-600 rounded">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          サイクルを追加してください
+                        </p>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {expense.cycles.map((cycle) => (
+                          <div
+                            key={cycle.id}
+                            className="border border-gray-200 dark:border-gray-600 rounded p-3 bg-white dark:bg-gray-800"
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                              {/* サイクルタイプ */}
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                  タイプ
+                                </label>
+                                <select
+                                  value={cycle.type}
+                                  onChange={(e) =>
+                                    handleUpdateCycle(expense.id, cycle.id, {
+                                      type: e.target.value as CycleType,
+                                    })
+                                  }
+                                  className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
+                                >
+                                  <option value="monthly">毎月</option>
+                                  <option value="yearly">毎年</option>
+                                  <option value="custom">カスタム</option>
+                                </select>
+                              </div>
+
+                              {/* カスタム設定 */}
+                              {cycle.type === "custom" && (
+                                <>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                      間隔
+                                    </label>
+                                    <input
+                                      type="number"
+                                      value={cycle.interval || 1}
+                                      onChange={(e) =>
+                                        handleUpdateCycle(
+                                          expense.id,
+                                          cycle.id,
+                                          {
+                                            interval: Number(e.target.value),
+                                          }
+                                        )
+                                      }
+                                      className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
+                                      min="1"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                      単位
+                                    </label>
+                                    <select
+                                      value={cycle.intervalUnit || "month"}
+                                      onChange={(e) =>
+                                        handleUpdateCycle(
+                                          expense.id,
+                                          cycle.id,
+                                          {
+                                            intervalUnit: e.target.value as
+                                              | "month"
+                                              | "year",
+                                          }
+                                        )
+                                      }
+                                      className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
+                                    >
+                                      <option value="month">ヶ月</option>
+                                      <option value="year">年</option>
+                                    </select>
+                                  </div>
+                                </>
+                              )}
+
+                              {/* 金額 */}
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                  金額（円）
+                                </label>
+                                <input
+                                  type="number"
+                                  value={cycle.amount || ""}
+                                  onChange={(e) =>
+                                    handleUpdateCycle(expense.id, cycle.id, {
+                                      amount: Number(e.target.value) || 0,
+                                    })
+                                  }
+                                  className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
+                                  placeholder="0"
+                                  min="0"
+                                />
+                              </div>
+
+                              {/* 削除ボタン */}
+                              <div className="flex items-end">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleRemoveCycle(expense.id, cycle.id)
+                                  }
+                                  className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors duration-200"
+                                >
+                                  削除
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* 開始・終了日 */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                  開始年月
+                                </label>
+                                <div className="grid grid-cols-2 gap-1">
+                                  <input
+                                    type="number"
+                                    value={cycle.startDate.year}
+                                    onChange={(e) =>
+                                      handleUpdateCycle(expense.id, cycle.id, {
+                                        startDate: {
+                                          ...cycle.startDate,
+                                          year: Number(e.target.value),
+                                        },
+                                      })
+                                    }
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
+                                    placeholder="年"
+                                    min="2000"
+                                    max="2100"
+                                  />
+                                  <select
+                                    value={cycle.startDate.month}
+                                    onChange={(e) =>
+                                      handleUpdateCycle(expense.id, cycle.id, {
+                                        startDate: {
+                                          ...cycle.startDate,
+                                          month: Number(e.target.value),
+                                        },
+                                      })
+                                    }
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
+                                  >
+                                    {Array.from({ length: 12 }, (_, i) => (
+                                      <option key={i + 1} value={i + 1}>
+                                        {i + 1}月
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                  終了年月（任意）
+                                </label>
+                                <div className="grid grid-cols-2 gap-1">
+                                  <input
+                                    type="number"
+                                    value={cycle.endDate?.year || ""}
+                                    onChange={(e) => {
+                                      const year = e.target.value
+                                        ? Number(e.target.value)
+                                        : undefined;
+                                      handleUpdateCycle(expense.id, cycle.id, {
+                                        endDate: year
+                                          ? {
+                                              year,
+                                              month: cycle.endDate?.month || 1,
+                                            }
+                                          : undefined,
+                                      });
+                                    }}
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
+                                    placeholder="年"
+                                    min="2000"
+                                    max="2100"
+                                  />
+                                  <select
+                                    value={cycle.endDate?.month || ""}
+                                    onChange={(e) => {
+                                      const month = e.target.value
+                                        ? Number(e.target.value)
+                                        : undefined;
+                                      handleUpdateCycle(expense.id, cycle.id, {
+                                        endDate:
+                                          month && cycle.endDate?.year
+                                            ? {
+                                                year: cycle.endDate.year,
+                                                month,
+                                              }
+                                            : undefined,
+                                      });
+                                    }}
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
+                                  >
+                                    <option value="">月</option>
+                                    {Array.from({ length: 12 }, (_, i) => (
+                                      <option key={i + 1} value={i + 1}>
+                                        {i + 1}月
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

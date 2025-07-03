@@ -1,18 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { TimeRange } from "@/domains/shared/TimeRange";
+import { Cycle } from "@/domains/shared/Cycle";
 
 export interface Income {
   id: string;
   name: string;
-  monthlyAmount: number; // 月間収入額
+  cycles: Cycle[]; // 複数のサイクルを持てる
   color: string; // グラフ上での色
-  startYear?: number; // 開始年（UI用）
-  startMonth?: number; // 開始月（UI用）
-  endYear?: number; // 終了年（UI用）
-  endMonth?: number; // 終了月（UI用）
-  timeRange?: TimeRange; // 実際の計算で使用
 }
 
 interface IncomeContextType {
@@ -21,7 +16,6 @@ interface IncomeContextType {
   addIncome: (income: Omit<Income, "id">) => void;
   updateIncome: (id: string, income: Partial<Income>) => void;
   removeIncome: (id: string) => void;
-  getTotalMonthlyIncome: () => number;
 }
 
 const IncomeContext = createContext<IncomeContextType | undefined>(undefined);
@@ -79,10 +73,6 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     setIncomes((prev) => prev.filter((income) => income.id !== id));
   };
 
-  const getTotalMonthlyIncome = () => {
-    return incomes.reduce((total, income) => total + income.monthlyAmount, 0);
-  };
-
   return (
     <IncomeContext.Provider
       value={{
@@ -91,7 +81,6 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         addIncome,
         updateIncome,
         removeIncome,
-        getTotalMonthlyIncome,
       }}
     >
       {children}

@@ -1,4 +1,3 @@
-import { TimeRange } from "./TimeRange";
 import { CashFlowChange } from "./CashFlowChange";
 
 /**
@@ -9,7 +8,6 @@ export interface CalculatorSource {
   id: string;
   name: string;
   type: string;
-  timeRange?: TimeRange;
   calculate: (monthIndex: number) => CashFlowChange;
   getMetadata?: () => Record<string, unknown>;
 }
