@@ -21,6 +21,11 @@ Precise rules that you always have to keep in mind in making changes on codebase
   * Application behaviour should be assured through unit tests as much as possible.
 * Once you finished a set of changes you want and checked if the code quality check passes, commit you changes by git with short but intuitive commit message.
 
+## Documentation
+
+* Update `README.md` if you make changes related to application feature, Remember that `README.md` is not a technical document. 
+* Update `ARCHITECTURE.md` if you changes that affect technical detail such as architecture, data flow, and code-level stuff. 
+
 ## Other
 
 Others
