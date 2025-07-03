@@ -2,11 +2,16 @@
 
 ## Design
 
+High-level rules for everything about designing the whole application structure
+
 * Always try to have consistency among features that already exist if you make changes in codebase.
 * Follow the patterns behind Object Oriented Programming to make things clean.
+* Always think about decoupling states (and logic that manages them) from presentation layer (UI).
 * Don't have to consider backward compatibility if you are told to do so.
 
 ## Process
+
+Precise rules that you always have to keep in mind in making changes on codebase
 
 * Always check code quality (run `pnpm type-check`, `pnpm lint` and `pnpm test`) after a set of modification, and fix all things reported.
 * before working on you task, if you are working on `main` branch, checkout a new branch to apply your changes.
@@ -15,3 +20,9 @@
 * You don't have to run `pnpm dev` to check if the application runs properly unless you are commanded to do so
   * Application behaviour should be assured through unit tests as much as possible.
 * Once you finished a set of changes you want and checked if the code quality check passes, commit you changes by git with short but intuitive commit message.
+
+## Other
+
+Others
+
+* Anytime you use the terminal, make sure to append an `&& sleep 1`, otherwise you won't be able to view the result
