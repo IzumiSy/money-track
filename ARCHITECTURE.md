@@ -62,11 +62,15 @@ src/
 ### React Context
 - **FinancialAssetsContext**: 金融資産データの管理
 - **FinancialDataContext**: グループ、収入、支出データの統合管理
+  - `upsertIncomes`: 収入データの効率的な一括更新（追加・更新・削除を一度に処理）
+  - `upsertExpenses`: 支出データの効率的な一括更新（追加・更新・削除を一度に処理）
 - **SimulationContext**: シミュレーション設定の管理
 
 ### データフロー
 1. ユーザーがフォームに入力
 2. Context経由でデータを更新
+   - フォーム送信時は`upsert`操作で効率的に更新
+   - 既存データのIDは保持され、一貫性を維持
 3. カスタムフック（useFinancialSimulation）でシミュレーション実行
 4. 結果をチャートコンポーネントに表示
 
