@@ -10,19 +10,27 @@ interface UseFinancialSimulationProps {
   expenses?: GroupedExpense[];
   incomes?: GroupedIncome[];
   simulationYears: number;
+  activeGroupIds?: string[];
 }
 
 /**
- * 新しいIncomeCalculatorを使用したファイナンシャルシミュレーションフック
- * 既存のuseFinancialSimulationと同じインターフェースを維持
+ * ファイナンシャルシミュレーションフック
+ * グループフィルタリング機能をサポート
  */
 export function useFinancialSimulation({
   assets,
   expenses = [],
   incomes = [],
   simulationYears,
+  activeGroupIds,
 }: UseFinancialSimulationProps) {
   return useMemo(() => {
-    return runFinancialSimulation(assets, expenses, incomes, simulationYears);
-  }, [assets, expenses, incomes, simulationYears]);
+    return runFinancialSimulation(
+      assets,
+      expenses,
+      incomes,
+      simulationYears,
+      activeGroupIds
+    );
+  }, [assets, expenses, incomes, simulationYears, activeGroupIds]);
 }
