@@ -59,19 +59,41 @@ src/
 
 ## 状態管理
 
-### React Context
-- **FinancialAssetsContext**: 金融資産データの管理
-- **FinancialDataContext**: グループ、収入、支出データの統合管理
-  - `upsertIncomes`: 収入データの効率的な一括更新（追加・更新・削除を一度に処理）
-  - `upsertExpenses`: 支出データの効率的な一括更新（追加・更新・削除を一度に処理）
-- **SimulationContext**: シミュレーション設定の管理
+### Single Source of Truth (SSOT) アーキテクチャ
+- **SimulationContext**: すべてのデータを一元管理する統一Context
+  - グループ、収入、支出、金融資産データを統合管理
+  - シミュレーションの保存・読み込み機能
+  - Reducerパターンによる予測可能な状態更新
+
+### ドメイン別カスタムフック
+責務の分離と使いやすさを両立するため、ドメイン別のカスタムフックを提供：
+
+- **useGroupManagement**: グループ管理
+  - `addGroup`: グループ追加
+  - `updateGroup`: グループ更新
+  - `deleteGroup`: グループ削除（関連する収入・支出も削除）
+  - `toggleGroupActive`: グループの表示/非表示切り替え
+
+- **useIncomeManagement**: 収入管理
+  - `upsertIncomes`: 収入データの効率的な一括更新
+  - `getIncomesByGroupId`: グループ別収入取得
+
+- **useExpenseManagement**: 支出管理
+  - `upsertExpenses`: 支出データの効率的な一括更新
+  - `getExpensesByGroupId`: グループ別支出取得
+
+- **useAssetManagement**: 金融資産管理
+  - `setFinancialAssets`: 金融資産データの更新
+
+- **useSimulationManagement**: シミュレーション管理
+  - `saveSimulation`: 現在のデータをシミュレーションとして保存
+  - `loadSimulation`: 保存済みシミュレーションの読み込み
+  - `deleteSimulation`: シミュレーションの削除
 
 ### データフロー
 1. ユーザーがフォームに入力
-2. Context経由でデータを更新
-   - フォーム送信時は`upsert`操作で効率的に更新
-   - 既存データのIDは保持され、一貫性を維持
-3. カスタムフック（useFinancialSimulation）でシミュレーション実行
+2. ドメイン別フック経由でSimulationContextを更新
+3. useFinancialSimulationフックでシミュレーション実行
 4. 結果をチャートコンポーネントに表示
 
 ## 主要コンポーネント

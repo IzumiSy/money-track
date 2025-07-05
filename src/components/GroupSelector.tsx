@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useFinancialData } from "@/contexts/FinancialDataContext";
+import { useGroupManagement } from "@/hooks/useGroupManagement";
 
 export default function GroupSelector() {
   const { groups, addGroup, updateGroup, deleteGroup, toggleGroupActive } =
-    useFinancialData();
+    useGroupManagement();
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");

@@ -1,10 +1,10 @@
 "use client";
 
 import FinancialAssetsChart from "@/components/FinancialAssetsChart";
-import { useFinancialAssets } from "@/contexts/FinancialAssetsContext";
+import { useAssetManagement } from "@/hooks/useAssetManagement";
 
 export default function SimulatorPage() {
-  const { financialAssets } = useFinancialAssets();
+  const { financialAssets } = useAssetManagement();
 
   return (
     <div className="space-y-8">

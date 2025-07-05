@@ -13,7 +13,9 @@ import {
 } from "recharts";
 import { FinancialAssets } from "./FinancialAssetsForm";
 import { useFinancialSimulation } from "@/hooks/useFinancialSimulation";
-import { useFinancialData } from "@/contexts/FinancialDataContext";
+import { useGroupManagement } from "@/hooks/useGroupManagement";
+import { useIncomeManagement } from "@/hooks/useIncomeManagement";
+import { useExpenseManagement } from "@/hooks/useExpenseManagement";
 
 interface FinancialAssetsChartProps {
   assets: FinancialAssets;
@@ -28,14 +30,13 @@ export default function FinancialAssetsChart({
   assets,
 }: FinancialAssetsChartProps) {
   const [simulationYears, setSimulationYears] = useState(30);
-  const financialDataContext = useFinancialData();
+  const { getActiveGroups } = useGroupManagement();
+  const { incomes } = useIncomeManagement();
+  const { expenses } = useExpenseManagement();
 
-  // コンテキストからデータを取得
-  const expenses = financialDataContext?.expenses || [];
-  const incomes = financialDataContext?.incomes || [];
-  const activeGroupIds = financialDataContext
-    ? financialDataContext.getActiveGroups().map((g) => g.id)
-    : [];
+  // アクティブなグループのIDを取得
+  const activeGroups = getActiveGroups();
+  const activeGroupIds = activeGroups.map((g) => g.id);
 
   // シミュレーション計算ロジックをhookに委譲
   const { simulationData, hasData } = useFinancialSimulation({
@@ -94,13 +95,9 @@ export default function FinancialAssetsChart({
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               資産推移シミュレーション
             </h3>
-            {financialDataContext && (
+            {activeGroups.length > 0 && (
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                表示グループ:{" "}
-                {financialDataContext
-                  .getActiveGroups()
-                  .map((g) => g.name)
-                  .join(", ")}
+                表示グループ: {activeGroups.map((g) => g.name).join(", ")}
               </p>
             )}
           </div>

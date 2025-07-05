@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useFinancialData } from "@/contexts/FinancialDataContext";
+import { useGroupManagement } from "@/hooks/useGroupManagement";
+import { useExpenseManagement } from "@/hooks/useExpenseManagement";
 import { GroupedExpense } from "@/domains/group/types";
 import { Cycle, CycleType } from "@/domains/shared/Cycle";
 import {
@@ -14,7 +15,8 @@ interface ExpensesFormProps {
 }
 
 export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
-  const { groups, upsertExpenses, getExpensesByGroupId } = useFinancialData();
+  const { groups } = useGroupManagement();
+  const { upsertExpenses, getExpensesByGroupId } = useExpenseManagement();
   const [selectedGroupId, setSelectedGroupId] = useState<string>(
     groups.length > 0 ? groups[0].id : ""
   );
