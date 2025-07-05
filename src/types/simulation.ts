@@ -6,17 +6,14 @@ import { FinancialAssets } from "@/components/FinancialAssetsForm";
  */
 export const SIMULATION_ACTION_TYPES = {
   // グループ関連
-  SET_GROUPS: "SET_GROUPS",
   ADD_GROUP: "ADD_GROUP",
   UPDATE_GROUP: "UPDATE_GROUP",
   DELETE_GROUP: "DELETE_GROUP",
 
   // 収入関連
-  SET_INCOMES: "SET_INCOMES",
   UPSERT_INCOMES: "UPSERT_INCOMES",
 
   // 支出関連
-  SET_EXPENSES: "SET_EXPENSES",
   UPSERT_EXPENSES: "UPSERT_EXPENSES",
 
   // 資産関連
@@ -66,7 +63,6 @@ export interface SimulationState {
  */
 export type SimulationAction =
   // グループ関連
-  | { type: typeof SIMULATION_ACTION_TYPES.SET_GROUPS; payload: Group[] }
   | { type: typeof SIMULATION_ACTION_TYPES.ADD_GROUP; payload: Group }
   | {
       type: typeof SIMULATION_ACTION_TYPES.UPDATE_GROUP;
@@ -76,19 +72,11 @@ export type SimulationAction =
 
   // 収入関連
   | {
-      type: typeof SIMULATION_ACTION_TYPES.SET_INCOMES;
-      payload: GroupedIncome[];
-    }
-  | {
       type: typeof SIMULATION_ACTION_TYPES.UPSERT_INCOMES;
       payload: { groupId: string; incomes: GroupedIncome[] };
     }
 
   // 支出関連
-  | {
-      type: typeof SIMULATION_ACTION_TYPES.SET_EXPENSES;
-      payload: GroupedExpense[];
-    }
   | {
       type: typeof SIMULATION_ACTION_TYPES.UPSERT_EXPENSES;
       payload: { groupId: string; expenses: GroupedExpense[] };

@@ -45,15 +45,6 @@ function simulationReducer(
 ): SimulationState {
   switch (action.type) {
     // グループ関連
-    case SIMULATION_ACTION_TYPES.SET_GROUPS:
-      return {
-        ...state,
-        currentData: {
-          ...state.currentData,
-          groups: action.payload,
-        },
-      };
-
     case SIMULATION_ACTION_TYPES.ADD_GROUP:
       return {
         ...state,
@@ -96,15 +87,6 @@ function simulationReducer(
     }
 
     // 収入関連
-    case SIMULATION_ACTION_TYPES.SET_INCOMES:
-      return {
-        ...state,
-        currentData: {
-          ...state.currentData,
-          incomes: action.payload,
-        },
-      };
-
     case SIMULATION_ACTION_TYPES.UPSERT_INCOMES: {
       const { groupId, incomes } = action.payload;
       const otherGroupIncomes = state.currentData.incomes.filter(
@@ -138,15 +120,6 @@ function simulationReducer(
     }
 
     // 支出関連
-    case SIMULATION_ACTION_TYPES.SET_EXPENSES:
-      return {
-        ...state,
-        currentData: {
-          ...state.currentData,
-          expenses: action.payload,
-        },
-      };
-
     case SIMULATION_ACTION_TYPES.UPSERT_EXPENSES: {
       const { groupId, expenses } = action.payload;
       const otherGroupExpenses = state.currentData.expenses.filter(
