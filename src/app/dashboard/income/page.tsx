@@ -1,6 +1,6 @@
 "use client";
 
-import GroupedIncomeForm from "@/components/GroupedIncomeForm";
+import IncomeForm from "@/components/IncomeForm";
 import { toast } from "sonner";
 
 export default function IncomePage() {
@@ -10,7 +10,7 @@ export default function IncomePage() {
 
   return (
     <div className="space-y-6">
-      <GroupedIncomeForm onSubmit={handleIncomeSubmit} />
+      <IncomeForm onSubmit={handleIncomeSubmit} />
     </div>
   );
 }
