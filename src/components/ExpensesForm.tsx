@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useExpenses, Expense } from "@/contexts/ExpensesContext";
+import { useFinancialData } from "@/contexts/FinancialDataContext";
+import { GroupedExpense } from "@/domains/group/types";
 import { Cycle, CycleType } from "@/domains/shared/Cycle";
 import {
   convertIndexToYearMonth,
@@ -10,16 +11,24 @@ import {
 
 interface ExpensesFormProps {
   onSubmit?: () => void;
+  groupId: string;
 }
 
-export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
-  const { expenses: contextExpenses, setExpenses } = useExpenses();
-  const [draftExpenses, setDraftExpenses] = useState<Expense[]>([]);
+export default function ExpensesForm({ onSubmit, groupId }: ExpensesFormProps) {
+  const {
+    expenses: contextExpenses,
+    addExpense,
+    deleteExpense,
+  } = useFinancialData();
+  const [draftExpenses, setDraftExpenses] = useState<GroupedExpense[]>([]);
 
-  // コンテキストの支出データをドラフトステートに同期
+  // コンテキストの支出データをドラフトステートに同期（グループIDでフィルタ）
   useEffect(() => {
-    setDraftExpenses(contextExpenses);
-  }, [contextExpenses]);
+    const groupExpenses = contextExpenses.filter(
+      (expense) => expense.groupId === groupId
+    );
+    setDraftExpenses(groupExpenses);
+  }, [contextExpenses, groupId]);
 
   // 支出ごとに異なるデフォルト色を設定
   const getDefaultColor = (index: number) => {
@@ -37,8 +46,9 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
   };
 
   const handleAddExpense = () => {
-    const newExpense: Expense = {
+    const newExpense: GroupedExpense = {
       id: Date.now().toString(),
+      groupId: groupId,
       name: "",
       cycles: [],
       color: getDefaultColor(draftExpenses.length),
@@ -48,7 +58,7 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
 
   const handleUpdateExpense = (
     id: string,
-    field: keyof Expense,
+    field: keyof GroupedExpense,
     value: string | Cycle[]
   ) => {
     setDraftExpenses(
@@ -103,7 +113,18 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setExpenses(draftExpenses);
+
+    // 既存の支出を削除
+    const existingExpenses = contextExpenses.filter(
+      (expense) => expense.groupId === groupId
+    );
+    existingExpenses.forEach((expense) => deleteExpense(expense.id));
+
+    // 新しい支出を追加
+    draftExpenses.forEach((expense) => {
+      addExpense(expense);
+    });
+
     if (onSubmit) {
       onSubmit();
     }

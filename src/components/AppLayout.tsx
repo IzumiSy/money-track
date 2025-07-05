@@ -28,26 +28,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   const handleSaveSimulation = () => {
     if (simulationName.trim()) {
-      // Note: We need to convert grouped data back to the old format for saving
-      // This is a temporary solution until we update the SimulationContext
-      const oldFormatExpenses = expenses.map((e) => ({
-        id: e.id,
-        name: e.name,
-        cycles: e.cycles,
-        color: e.color,
-      }));
-      const oldFormatIncomes = incomes.map((i) => ({
-        id: i.id,
-        name: i.name,
-        cycles: i.cycles,
-        color: i.color,
-      }));
-      saveSimulation(
-        simulationName.trim(),
-        financialAssets,
-        oldFormatExpenses,
-        oldFormatIncomes
-      );
+      saveSimulation(simulationName.trim(), financialAssets, expenses, incomes);
       setSimulationName("");
       setShowSaveModal(false);
     }
@@ -57,8 +38,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     const simulation = simulations.find((sim) => sim.id === id);
     if (simulation) {
       setFinancialAssets(simulation.financialAssets);
-      // Note: Loading old format data - we'll need to update this
-      // For now, we'll just clear the data
+      // TODO: Load grouped data into FinancialDataContext
       loadSimulation(id);
       setShowLoadModal(false);
     }
@@ -69,8 +49,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     setFinancialAssets({
       assets: [],
     });
-    // Note: We can't directly clear grouped data from here
-    // This would need to be handled in the FinancialDataContext
+    // TODO: Clear grouped data in FinancialDataContext
     // 現在のシミュレーションをクリア
     loadSimulation("");
   };

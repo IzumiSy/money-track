@@ -2,16 +2,15 @@
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import { FinancialAssets } from "@/components/FinancialAssetsForm";
-import { Expense } from "@/contexts/ExpensesContext";
-import { Income } from "@/contexts/IncomeContext";
+import { GroupedExpense, GroupedIncome } from "@/domains/group/types";
 
 export interface SimulationData {
   id: string;
   name: string;
   createdAt: Date;
   financialAssets: FinancialAssets;
-  expenses: Expense[];
-  incomes: Income[];
+  expenses: GroupedExpense[];
+  incomes: GroupedIncome[];
 }
 
 interface SimulationContextType {
@@ -20,8 +19,8 @@ interface SimulationContextType {
   saveSimulation: (
     name: string,
     financialAssets: FinancialAssets,
-    expenses: Expense[],
-    incomes: Income[]
+    expenses: GroupedExpense[],
+    incomes: GroupedIncome[]
   ) => void;
   loadSimulation: (id: string) => void;
   deleteSimulation: (id: string) => void;
@@ -40,8 +39,8 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   const saveSimulation = (
     name: string,
     financialAssets: FinancialAssets,
-    expenses: Expense[],
-    incomes: Income[]
+    expenses: GroupedExpense[],
+    incomes: GroupedIncome[]
   ) => {
     const newSimulation: SimulationData = {
       id: Date.now().toString(),

@@ -2,14 +2,13 @@
 
 import { useMemo } from "react";
 import { FinancialAssets } from "@/components/FinancialAssetsForm";
-import { Expense } from "@/contexts/ExpensesContext";
-import { Income } from "@/contexts/IncomeContext";
+import { GroupedExpense, GroupedIncome } from "@/domains/group/types";
 import { runFinancialSimulation } from "@/domains/simulation/financialSimulation";
 
 interface UseFinancialSimulationProps {
   assets: FinancialAssets;
-  expenses?: Expense[];
-  incomes?: Income[];
+  expenses?: GroupedExpense[];
+  incomes?: GroupedIncome[];
   simulationYears: number;
 }
 

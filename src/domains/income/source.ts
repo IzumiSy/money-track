@@ -1,4 +1,4 @@
-import { Income } from "@/contexts/IncomeContext";
+import { GroupedIncome } from "@/domains/group/types";
 import {
   CalculatorSource,
   CashFlowChange,
@@ -6,9 +6,11 @@ import {
 } from "@/domains/shared";
 
 /**
- * IncomeContextのIncome型をIncomeCalculatorのIncomeSource型に変換
+ * GroupedIncome型をIncomeCalculatorのIncomeSource型に変換
  */
-export function convertIncomeToIncomeSource(income: Income): CalculatorSource {
+export function convertIncomeToIncomeSource(
+  income: GroupedIncome
+): CalculatorSource {
   return {
     id: income.id,
     name: income.name,

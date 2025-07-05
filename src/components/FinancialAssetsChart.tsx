@@ -12,14 +12,13 @@ import {
   Legend,
 } from "recharts";
 import { FinancialAssets } from "./FinancialAssetsForm";
-import { Expense } from "@/contexts/ExpensesContext";
-import { Income } from "@/contexts/IncomeContext";
+import { GroupedExpense, GroupedIncome } from "@/domains/group/types";
 import { useFinancialSimulation } from "@/hooks/useFinancialSimulation";
 
 interface FinancialAssetsChartProps {
   assets: FinancialAssets;
-  expenses?: Expense[];
-  incomes?: Income[];
+  expenses?: GroupedExpense[];
+  incomes?: GroupedIncome[];
 }
 
 const COLORS = {

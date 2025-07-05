@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useIncome, Income } from "@/contexts/IncomeContext";
+import { useFinancialData } from "@/contexts/FinancialDataContext";
+import { GroupedIncome } from "@/domains/group/types";
 import { Cycle, CycleType } from "@/domains/shared/Cycle";
 import {
   convertIndexToYearMonth,
@@ -10,16 +11,24 @@ import {
 
 interface IncomeFormProps {
   onSubmit?: () => void;
+  groupId: string;
 }
 
-export default function IncomeForm({ onSubmit }: IncomeFormProps) {
-  const { incomes: contextIncomes, setIncomes } = useIncome();
-  const [draftIncomes, setDraftIncomes] = useState<Income[]>([]);
+export default function IncomeForm({ onSubmit, groupId }: IncomeFormProps) {
+  const {
+    incomes: contextIncomes,
+    addIncome,
+    deleteIncome,
+  } = useFinancialData();
+  const [draftIncomes, setDraftIncomes] = useState<GroupedIncome[]>([]);
 
-  // コンテキストの収入データをドラフトステートに同期
+  // コンテキストの収入データをドラフトステートに同期（グループIDでフィルタ）
   useEffect(() => {
-    setDraftIncomes(contextIncomes);
-  }, [contextIncomes]);
+    const groupIncomes = contextIncomes.filter(
+      (income) => income.groupId === groupId
+    );
+    setDraftIncomes(groupIncomes);
+  }, [contextIncomes, groupId]);
 
   // 収入ごとに異なるデフォルト色を設定
   const getDefaultColor = (index: number) => {
@@ -37,8 +46,9 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
   };
 
   const handleAddIncome = () => {
-    const newIncome: Income = {
+    const newIncome: GroupedIncome = {
       id: Date.now().toString(),
+      groupId: groupId,
       name: "",
       cycles: [],
       color: getDefaultColor(draftIncomes.length),
@@ -48,7 +58,7 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
 
   const handleUpdateIncome = (
     id: string,
-    field: keyof Income,
+    field: keyof GroupedIncome,
     value: string | Cycle[]
   ) => {
     setDraftIncomes(
@@ -101,7 +111,18 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIncomes(draftIncomes);
+
+    // 既存の収入を削除
+    const existingIncomes = contextIncomes.filter(
+      (income) => income.groupId === groupId
+    );
+    existingIncomes.forEach((income) => deleteIncome(income.id));
+
+    // 新しい収入を追加
+    draftIncomes.forEach((income) => {
+      addIncome(income);
+    });
+
     if (onSubmit) {
       onSubmit();
     }

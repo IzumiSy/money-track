@@ -1,6 +1,5 @@
 import { FinancialAssets } from "@/components/FinancialAssetsForm";
-import { Expense } from "@/contexts/ExpensesContext";
-import { Income } from "@/contexts/IncomeContext";
+import { GroupedExpense, GroupedIncome } from "@/domains/group/types";
 import { createCalculator } from "@/domains/shared/createCalculator";
 import { CalculatorSource } from "@/domains/shared/CalculatorSource";
 import { createSimulator } from "@/domains/simulation";
@@ -116,8 +115,8 @@ function convertToChartData(
  */
 export function runFinancialSimulation(
   assets: FinancialAssets,
-  expenses: Expense[],
-  incomes: Income[],
+  expenses: GroupedExpense[],
+  incomes: GroupedIncome[],
   simulationYears: number
 ): ChartSimulationResult {
   // 統合されたCalculatorインスタンスを作成
