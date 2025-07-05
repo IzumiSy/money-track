@@ -117,8 +117,9 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
     e.preventDefault();
 
     // 既存の収入を削除
-    const existingIncomes = getIncomesByGroupId(selectedGroupId);
-    existingIncomes.forEach((income) => deleteIncome(income.id));
+    getIncomesByGroupId(selectedGroupId).forEach((income) =>
+      deleteIncome(income.id)
+    );
 
     // 新しい収入を追加
     draftIncomes.forEach((income) => {

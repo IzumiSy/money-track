@@ -119,8 +119,9 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
     e.preventDefault();
 
     // 既存の支出を削除
-    const existingExpenses = getExpensesByGroupId(selectedGroupId);
-    existingExpenses.forEach((expense) => deleteExpense(expense.id));
+    getExpensesByGroupId(selectedGroupId).forEach((expense) =>
+      deleteExpense(expense.id)
+    );
 
     // 新しい支出を追加
     draftExpenses.forEach((expense) => {
