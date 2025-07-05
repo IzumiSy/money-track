@@ -9,7 +9,7 @@ export default function SimulatorPage() {
   return (
     <div className="space-y-8">
       {/* 資産状況チャート */}
-      <FinancialAssetsChart assets={financialAssets} useGroupFiltering />
+      <FinancialAssetsChart assets={financialAssets} />
     </div>
   );
 }

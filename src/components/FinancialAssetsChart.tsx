@@ -12,15 +12,11 @@ import {
   Legend,
 } from "recharts";
 import { FinancialAssets } from "./FinancialAssetsForm";
-import { GroupedExpense, GroupedIncome } from "@/domains/group/types";
 import { useFinancialSimulation } from "@/hooks/useFinancialSimulation";
 import { useFinancialData } from "@/contexts/FinancialDataContext";
 
 interface FinancialAssetsChartProps {
   assets: FinancialAssets;
-  expenses?: GroupedExpense[];
-  incomes?: GroupedIncome[];
-  useGroupFiltering?: boolean;
 }
 
 const COLORS = {
@@ -30,26 +26,16 @@ const COLORS = {
 
 export default function FinancialAssetsChart({
   assets,
-  expenses: propExpenses,
-  incomes: propIncomes,
-  useGroupFiltering = false,
 }: FinancialAssetsChartProps) {
   const [simulationYears, setSimulationYears] = useState(30);
   const financialDataContext = useFinancialData();
 
-  // グループフィルタリングモードの場合はコンテキストからデータを取得
-  const expenses =
-    useGroupFiltering && financialDataContext
-      ? financialDataContext.expenses
-      : propExpenses || [];
-  const incomes =
-    useGroupFiltering && financialDataContext
-      ? financialDataContext.incomes
-      : propIncomes || [];
-  const activeGroupIds =
-    useGroupFiltering && financialDataContext
-      ? financialDataContext.getActiveGroups().map((g) => g.id)
-      : undefined;
+  // コンテキストからデータを取得
+  const expenses = financialDataContext?.expenses || [];
+  const incomes = financialDataContext?.incomes || [];
+  const activeGroupIds = financialDataContext
+    ? financialDataContext.getActiveGroups().map((g) => g.id)
+    : [];
 
   // シミュレーション計算ロジックをhookに委譲
   const { simulationData, hasData } = useFinancialSimulation({
@@ -61,10 +47,7 @@ export default function FinancialAssetsChart({
   });
 
   // データが0の場合の処理
-  if (
-    !hasData ||
-    (useGroupFiltering && activeGroupIds && activeGroupIds.length === 0)
-  ) {
+  if (!hasData || activeGroupIds.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
@@ -87,9 +70,7 @@ export default function FinancialAssetsChart({
             </svg>
           </div>
           <p className="text-gray-600 dark:text-gray-400">
-            {useGroupFiltering
-              ? "グループを選択して、資産情報を入力すると、キャッシュフローシミュレーションが表示されます"
-              : "資産情報を入力すると、30年間のキャッシュフローシミュレーションが表示されます"}
+            グループを選択して、資産情報を入力すると、キャッシュフローシミュレーションが表示されます
           </p>
         </div>
       </div>
@@ -113,7 +94,7 @@ export default function FinancialAssetsChart({
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               資産推移シミュレーション
             </h3>
-            {useGroupFiltering && financialDataContext && (
+            {financialDataContext && (
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 表示グループ:{" "}
                 {financialDataContext
@@ -175,10 +156,7 @@ export default function FinancialAssetsChart({
                   />
                 ))}
               {incomes
-                .filter(
-                  (income) =>
-                    !activeGroupIds || activeGroupIds.includes(income.groupId)
-                )
+                .filter((income) => activeGroupIds.includes(income.groupId))
                 .map((income) => (
                   <Bar
                     key={income.id}
@@ -207,10 +185,7 @@ export default function FinancialAssetsChart({
                 );
               })}
               {expenses
-                .filter(
-                  (expense) =>
-                    !activeGroupIds || activeGroupIds.includes(expense.groupId)
-                )
+                .filter((expense) => activeGroupIds.includes(expense.groupId))
                 .map((expense) => (
                   <Bar
                     key={expense.id}
