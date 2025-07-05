@@ -78,10 +78,8 @@ src/
 
 ### フォームコンポーネント
 - **FinancialAssetsForm**: 金融資産入力フォーム
-- **GroupedIncomeForm**: グループ別収入入力フォーム
-- **GroupedExpenseForm**: グループ別支出入力フォーム
-- **IncomeForm**: 収入入力フォーム（グループID必須）
-- **ExpensesForm**: 支出入力フォーム（グループID必須）
+- **IncomeForm**: グループ別収入入力フォーム（グループ選択必須）
+- **ExpensesForm**: グループ別支出入力フォーム（グループ選択必須）
 - **GroupSelector**: グループ選択コンポーネント
 
 ### 表示コンポーネント
