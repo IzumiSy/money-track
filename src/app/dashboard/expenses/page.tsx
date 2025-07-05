@@ -1,6 +1,6 @@
 "use client";
 
-import ExpensesForm from "@/components/ExpensesForm";
+import GroupedExpenseForm from "@/components/GroupedExpenseForm";
 import { toast } from "sonner";
 
 export default function ExpensesPage() {
@@ -10,7 +10,7 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-8">
-      <ExpensesForm onSubmit={handleExpensesSubmit} />
+      <GroupedExpenseForm onSubmit={handleExpensesSubmit} />
     </div>
   );
 }
