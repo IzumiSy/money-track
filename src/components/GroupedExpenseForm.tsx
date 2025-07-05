@@ -17,7 +17,9 @@ export default function GroupedExpenseForm({
 }: GroupedExpenseFormProps) {
   const { groups, expenses, addExpense, updateExpense, deleteExpense } =
     useFinancialData();
-  const [selectedGroupId, setSelectedGroupId] = useState<string>("default");
+  const [selectedGroupId, setSelectedGroupId] = useState<string>(
+    groups.length > 0 ? groups[0].id : ""
+  );
 
   // 選択されたグループの支出のみを表示
   const groupExpenses = expenses.filter(
@@ -110,17 +112,23 @@ export default function GroupedExpenseForm({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             グループ
           </label>
-          <select
-            value={selectedGroupId}
-            onChange={(e) => setSelectedGroupId(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-          >
-            {groups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-          </select>
+          {groups.length === 0 ? (
+            <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+              グループを作成してください
+            </div>
+          ) : (
+            <select
+              value={selectedGroupId}
+              onChange={(e) => setSelectedGroupId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+            >
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div>
@@ -502,7 +510,8 @@ export default function GroupedExpenseForm({
         {/* 送信ボタン */}
         <button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+          disabled={groups.length === 0}
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
         >
           支出情報を保存
         </button>

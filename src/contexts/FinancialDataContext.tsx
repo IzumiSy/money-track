@@ -73,15 +73,7 @@ const DEFAULT_EXPENSE_COLORS = [
 ];
 
 export function FinancialDataProvider({ children }: { children: ReactNode }) {
-  const [groups, setGroups] = useState<Group[]>([
-    // デフォルトグループ「全体」を作成
-    {
-      id: "default",
-      name: "全体",
-      color: DEFAULT_GROUP_COLORS[0],
-      isActive: true,
-    },
-  ]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [incomes, setIncomes] = useState<GroupedIncome[]>([]);
   const [expenses, setExpenses] = useState<GroupedExpense[]>([]);
 
@@ -106,9 +98,6 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteGroup = (id: string) => {
-    // デフォルトグループは削除不可
-    if (id === "default") return;
-
     // グループを削除
     setGroups((prev) => prev.filter((group) => group.id !== id));
 

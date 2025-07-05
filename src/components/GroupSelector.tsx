@@ -11,6 +11,7 @@ export default function GroupSelector() {
   const [newGroupName, setNewGroupName] = useState("");
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [showAllGroups, setShowAllGroups] = useState(false);
 
   const handleAddGroup = () => {
     if (newGroupName.trim()) {
@@ -41,16 +42,21 @@ export default function GroupSelector() {
   };
 
   const handleDeleteGroup = (groupId: string) => {
-    if (groupId === "default") {
-      alert("デフォルトグループは削除できません");
-      return;
-    }
-
     if (
       confirm("このグループを削除しますか？関連する収入・支出も削除されます。")
     ) {
       deleteGroup(groupId);
     }
+  };
+
+  const handleToggleAllGroups = () => {
+    const newState = !showAllGroups;
+    setShowAllGroups(newState);
+
+    // 全グループの表示状態を切り替え
+    groups.forEach((group) => {
+      updateGroup(group.id, { isActive: newState });
+    });
   };
 
   return (
@@ -66,6 +72,22 @@ export default function GroupSelector() {
           + 追加
         </button>
       </div>
+
+      {/* 全体を表示ボタン */}
+      {groups.length > 0 && (
+        <div className="mb-3">
+          <button
+            onClick={handleToggleAllGroups}
+            className={`w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
+              showAllGroups
+                ? "bg-blue-600 text-white hover:bg-blue-700"
+                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+            }`}
+          >
+            全体を表示
+          </button>
+        </div>
+      )}
 
       <div className="space-y-2">
         {groups.map((group) => (
@@ -103,7 +125,7 @@ export default function GroupSelector() {
               )}
             </div>
 
-            {group.id !== "default" && !editingGroup && (
+            {!editingGroup && (
               <div className="flex space-x-1">
                 <button
                   onClick={() => handleEditGroup(group.id)}
