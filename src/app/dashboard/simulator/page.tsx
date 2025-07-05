@@ -1,6 +1,6 @@
 "use client";
 
-import GroupedFinancialAssetsChart from "@/components/GroupedFinancialAssetsChart";
+import FinancialAssetsChart from "@/components/FinancialAssetsChart";
 import { useFinancialAssets } from "@/contexts/FinancialAssetsContext";
 
 export default function SimulatorPage() {
@@ -9,7 +9,7 @@ export default function SimulatorPage() {
   return (
     <div className="space-y-8">
       {/* 資産状況チャート */}
-      <GroupedFinancialAssetsChart assets={financialAssets} />
+      <FinancialAssetsChart assets={financialAssets} useGroupFiltering />
     </div>
   );
 }

@@ -14,11 +14,13 @@ import {
 import { FinancialAssets } from "./FinancialAssetsForm";
 import { GroupedExpense, GroupedIncome } from "@/domains/group/types";
 import { useFinancialSimulation } from "@/hooks/useFinancialSimulation";
+import { useFinancialData } from "@/contexts/FinancialDataContext";
 
 interface FinancialAssetsChartProps {
   assets: FinancialAssets;
   expenses?: GroupedExpense[];
   incomes?: GroupedIncome[];
+  useGroupFiltering?: boolean;
 }
 
 const COLORS = {
@@ -28,10 +30,26 @@ const COLORS = {
 
 export default function FinancialAssetsChart({
   assets,
-  expenses = [],
-  incomes = [],
+  expenses: propExpenses,
+  incomes: propIncomes,
+  useGroupFiltering = false,
 }: FinancialAssetsChartProps) {
   const [simulationYears, setSimulationYears] = useState(30);
+  const financialDataContext = useFinancialData();
+
+  // グループフィルタリングモードの場合はコンテキストからデータを取得
+  const expenses =
+    useGroupFiltering && financialDataContext
+      ? financialDataContext.expenses
+      : propExpenses || [];
+  const incomes =
+    useGroupFiltering && financialDataContext
+      ? financialDataContext.incomes
+      : propIncomes || [];
+  const activeGroupIds =
+    useGroupFiltering && financialDataContext
+      ? financialDataContext.getActiveGroups().map((g) => g.id)
+      : undefined;
 
   // シミュレーション計算ロジックをhookに委譲
   const { simulationData, hasData } = useFinancialSimulation({
@@ -39,10 +57,14 @@ export default function FinancialAssetsChart({
     expenses,
     incomes,
     simulationYears,
+    activeGroupIds,
   });
 
   // データが0の場合の処理
-  if (!hasData) {
+  if (
+    !hasData ||
+    (useGroupFiltering && activeGroupIds && activeGroupIds.length === 0)
+  ) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
@@ -65,7 +87,9 @@ export default function FinancialAssetsChart({
             </svg>
           </div>
           <p className="text-gray-600 dark:text-gray-400">
-            資産情報を入力すると、30年間のキャッシュフローシミュレーションが表示されます
+            {useGroupFiltering
+              ? "グループを選択して、資産情報を入力すると、キャッシュフローシミュレーションが表示されます"
+              : "資産情報を入力すると、30年間のキャッシュフローシミュレーションが表示されます"}
           </p>
         </div>
       </div>
@@ -85,9 +109,20 @@ export default function FinancialAssetsChart({
       {/* 資産推移シミュレーション */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            資産推移シミュレーション
-          </h3>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              資産推移シミュレーション
+            </h3>
+            {useGroupFiltering && financialDataContext && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                表示グループ:{" "}
+                {financialDataContext
+                  .getActiveGroups()
+                  .map((g) => g.name)
+                  .join(", ")}
+              </p>
+            )}
+          </div>
           <div className="flex items-center space-x-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               期間:
@@ -139,15 +174,20 @@ export default function FinancialAssetsChart({
                     name={asset.name || `資産 #${index + 1}`}
                   />
                 ))}
-              {incomes.map((income) => (
-                <Bar
-                  key={income.id}
-                  dataKey={`income_${income.id}`}
-                  stackId="b"
-                  fill={income.color}
-                  name={income.name}
-                />
-              ))}
+              {incomes
+                .filter(
+                  (income) =>
+                    !activeGroupIds || activeGroupIds.includes(income.groupId)
+                )
+                .map((income) => (
+                  <Bar
+                    key={income.id}
+                    dataKey={`income_${income.id}`}
+                    stackId="b"
+                    fill={income.color}
+                    name={income.name}
+                  />
+                ))}
               {assets.assets.map((asset) => {
                 const hasWithdrawalOptions =
                   asset.withdrawalOptions && asset.withdrawalOptions.length > 0;
@@ -166,15 +206,20 @@ export default function FinancialAssetsChart({
                   />
                 );
               })}
-              {expenses.map((expense) => (
-                <Bar
-                  key={expense.id}
-                  dataKey={`expense_${expense.id}`}
-                  stackId="c"
-                  fill={expense.color}
-                  name={expense.name}
-                />
-              ))}
+              {expenses
+                .filter(
+                  (expense) =>
+                    !activeGroupIds || activeGroupIds.includes(expense.groupId)
+                )
+                .map((expense) => (
+                  <Bar
+                    key={expense.id}
+                    dataKey={`expense_${expense.id}`}
+                    stackId="c"
+                    fill={expense.color}
+                    name={expense.name}
+                  />
+                ))}
               {assets.assets.map((asset) => {
                 const hasContributionOptions =
                   asset.contributionOptions &&
