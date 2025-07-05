@@ -267,6 +267,13 @@ function simulationReducer(
         currentData: action.payload,
       };
 
+    case "INITIALIZE_SIMULATION":
+      return {
+        ...state,
+        currentData: initialState.currentData,
+        activeSimulationId: null,
+      };
+
     default:
       return state;
   }

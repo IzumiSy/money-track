@@ -59,16 +59,6 @@ export function useGroupManagement() {
     [state.currentData.groups, dispatch]
   );
 
-  const setAllGroups = useCallback(
-    (groups: Group[]) => {
-      dispatch({
-        type: "SET_GROUPS",
-        payload: groups,
-      });
-    },
-    [dispatch]
-  );
-
   const getGroupById = useCallback(
     (id: string) => {
       return state.currentData.groups.find((group) => group.id === id);
@@ -86,7 +76,6 @@ export function useGroupManagement() {
     updateGroup,
     deleteGroup,
     toggleGroupActive,
-    setAllGroups,
     getGroupById,
     getActiveGroups,
   };

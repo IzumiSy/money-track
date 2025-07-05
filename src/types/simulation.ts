@@ -63,7 +63,8 @@ export type SimulationAction =
   | { type: "DELETE_SIMULATION"; payload: string }
   | { type: "UPDATE_SIMULATION_NAME"; payload: { id: string; name: string } }
   | { type: "RESET_CURRENT_DATA" }
-  | { type: "SET_ALL_DATA"; payload: SimulationCurrentData };
+  | { type: "SET_ALL_DATA"; payload: SimulationCurrentData }
+  | { type: "INITIALIZE_SIMULATION" };
 
 /**
  * デフォルトのグループ色

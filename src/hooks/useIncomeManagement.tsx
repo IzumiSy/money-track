@@ -15,16 +15,6 @@ export function useIncomeManagement() {
     [dispatch]
   );
 
-  const setAllIncomes = useCallback(
-    (incomes: GroupedIncome[]) => {
-      dispatch({
-        type: "SET_INCOMES",
-        payload: incomes,
-      });
-    },
-    [dispatch]
-  );
-
   const getIncomesByGroupId = useCallback(
     (groupId: string) => {
       return state.currentData.incomes.filter(
@@ -37,7 +27,6 @@ export function useIncomeManagement() {
   return {
     incomes: state.currentData.incomes,
     upsertIncomes,
-    setAllIncomes,
     getIncomesByGroupId,
   };
 }

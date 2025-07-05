@@ -3,10 +3,6 @@
 import { useState } from "react";
 import Sidebar from "./Sidebar";
 import { useSimulationManagement } from "@/hooks/useSimulationManagement";
-import { useAssetManagement } from "@/hooks/useAssetManagement";
-import { useGroupManagement } from "@/hooks/useGroupManagement";
-import { useIncomeManagement } from "@/hooks/useIncomeManagement";
-import { useExpenseManagement } from "@/hooks/useExpenseManagement";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -23,13 +19,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
     saveSimulation,
     loadSimulation,
     deleteSimulation,
-    clearAllData,
+    initializeSimulation,
   } = useSimulationManagement();
-
-  const { setFinancialAssets } = useAssetManagement();
-  const { setAllGroups } = useGroupManagement();
-  const { setAllIncomes } = useIncomeManagement();
-  const { setAllExpenses } = useExpenseManagement();
 
   const handleSaveSimulation = () => {
     if (simulationName.trim()) {
@@ -40,25 +31,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
   };
 
   const handleLoadSimulation = (id: string) => {
-    const simulation = simulations.find((sim) => sim.id === id);
-    if (simulation) {
-      setFinancialAssets(simulation.data.financialAssets);
-      setAllGroups(simulation.data.groups);
-      setAllIncomes(simulation.data.incomes);
-      setAllExpenses(simulation.data.expenses);
-      loadSimulation(id);
-      setShowLoadModal(false);
-    }
+    loadSimulation(id);
+    setShowLoadModal(false);
   };
 
   const handleNewSimulation = () => {
-    // 全てのデータをクリア
-    setFinancialAssets({
-      assets: [],
-    });
-    clearAllData();
-    // 現在のシミュレーションをクリア
-    loadSimulation("");
+    initializeSimulation();
   };
 
   return (

@@ -48,8 +48,8 @@ export function useSimulationManagement() {
     [dispatch]
   );
 
-  const clearAllData = useCallback(() => {
-    dispatch({ type: "RESET_CURRENT_DATA" });
+  const initializeSimulation = useCallback(() => {
+    dispatch({ type: "INITIALIZE_SIMULATION" });
   }, [dispatch]);
 
   return {
@@ -62,6 +62,6 @@ export function useSimulationManagement() {
     loadSimulation,
     deleteSimulation,
     updateSimulationName,
-    clearAllData,
+    initializeSimulation,
   };
 }

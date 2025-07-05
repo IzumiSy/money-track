@@ -15,16 +15,6 @@ export function useExpenseManagement() {
     [dispatch]
   );
 
-  const setAllExpenses = useCallback(
-    (expenses: GroupedExpense[]) => {
-      dispatch({
-        type: "SET_EXPENSES",
-        payload: expenses,
-      });
-    },
-    [dispatch]
-  );
-
   const getExpensesByGroupId = useCallback(
     (groupId: string) => {
       return state.currentData.expenses.filter(
@@ -37,7 +27,6 @@ export function useExpenseManagement() {
   return {
     expenses: state.currentData.expenses,
     upsertExpenses,
-    setAllExpenses,
     getExpensesByGroupId,
   };
 }
