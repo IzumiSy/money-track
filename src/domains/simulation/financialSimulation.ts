@@ -1,6 +1,5 @@
 import { FinancialAssets } from "@/components/FinancialAssetsForm";
-import { Expense } from "@/contexts/ExpensesContext";
-import { Income } from "@/contexts/IncomeContext";
+import { GroupedExpense, GroupedIncome } from "@/domains/group/types";
 import { createCalculator } from "@/domains/shared/createCalculator";
 import { CalculatorSource } from "@/domains/shared/CalculatorSource";
 import { createSimulator } from "@/domains/simulation";
@@ -113,23 +112,38 @@ function convertToChartData(
 
 /**
  * 財務シミュレーションを実行する純粋関数
+ * @param assets 資産情報
+ * @param expenses 支出リスト
+ * @param incomes 収入リスト
+ * @param simulationYears シミュレーション年数
+ * @param activeGroupIds アクティブなグループIDのリスト（指定時はフィルタリング実行）
  */
 export function runFinancialSimulation(
   assets: FinancialAssets,
-  expenses: Expense[],
-  incomes: Income[],
-  simulationYears: number
+  expenses: GroupedExpense[],
+  incomes: GroupedIncome[],
+  simulationYears: number,
+  activeGroupIds?: string[]
 ): ChartSimulationResult {
+  // activeGroupIdsが指定されている場合はフィルタリング
+  const filteredIncomes = activeGroupIds
+    ? incomes.filter((income) => activeGroupIds.includes(income.groupId))
+    : incomes;
+
+  const filteredExpenses = activeGroupIds
+    ? expenses.filter((expense) => activeGroupIds.includes(expense.groupId))
+    : expenses;
+
   // 統合されたCalculatorインスタンスを作成
   const unifiedCalculator = createCalculator<CalculatorSource>();
 
   // Income[]をIncomeSourceに変換してCalculatorに追加
-  incomes.forEach((income) => {
+  filteredIncomes.forEach((income) => {
     unifiedCalculator.addSource(convertIncomeToIncomeSource(income));
   });
 
   // Expense[]をExpenseSourceに変換してCalculatorに追加
-  expenses.forEach((expense) => {
+  filteredExpenses.forEach((expense) => {
     unifiedCalculator.addSource(convertExpenseToExpenseSource(expense));
   });
 

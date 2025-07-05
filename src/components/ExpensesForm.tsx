@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useExpenses, Expense } from "@/contexts/ExpensesContext";
+import { useFinancialData } from "@/contexts/FinancialDataContext";
+import { GroupedExpense } from "@/domains/group/types";
 import { Cycle, CycleType } from "@/domains/shared/Cycle";
 import {
   convertIndexToYearMonth,
@@ -13,13 +14,17 @@ interface ExpensesFormProps {
 }
 
 export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
-  const { expenses: contextExpenses, setExpenses } = useExpenses();
-  const [draftExpenses, setDraftExpenses] = useState<Expense[]>([]);
+  const { groups, upsertExpenses, getExpensesByGroupId } = useFinancialData();
+  const [selectedGroupId, setSelectedGroupId] = useState<string>(
+    groups.length > 0 ? groups[0].id : ""
+  );
+  const [draftExpenses, setDraftExpenses] = useState<GroupedExpense[]>([]);
 
-  // コンテキストの支出データをドラフトステートに同期
+  // コンテキストの支出データをドラフトステートに同期（グループIDでフィルタ）
   useEffect(() => {
-    setDraftExpenses(contextExpenses);
-  }, [contextExpenses]);
+    const groupExpenses = getExpensesByGroupId(selectedGroupId);
+    setDraftExpenses(groupExpenses);
+  }, [getExpensesByGroupId, selectedGroupId]);
 
   // 支出ごとに異なるデフォルト色を設定
   const getDefaultColor = (index: number) => {
@@ -37,8 +42,14 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
   };
 
   const handleAddExpense = () => {
-    const newExpense: Expense = {
+    if (!selectedGroupId) {
+      alert("グループを選択してください");
+      return;
+    }
+
+    const newExpense: GroupedExpense = {
       id: Date.now().toString(),
+      groupId: selectedGroupId,
       name: "",
       cycles: [],
       color: getDefaultColor(draftExpenses.length),
@@ -48,7 +59,7 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
 
   const handleUpdateExpense = (
     id: string,
-    field: keyof Expense,
+    field: keyof GroupedExpense,
     value: string | Cycle[]
   ) => {
     setDraftExpenses(
@@ -59,7 +70,9 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
   };
 
   const handleRemoveExpense = (id: string) => {
-    setDraftExpenses(draftExpenses.filter((expense) => expense.id !== id));
+    if (confirm("この支出を削除しますか？")) {
+      setDraftExpenses(draftExpenses.filter((expense) => expense.id !== id));
+    }
   };
 
   const handleAddCycle = (expenseId: string) => {
@@ -103,7 +116,10 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setExpenses(draftExpenses);
+
+    // upsertExpensesを使用して支出データを一括更新
+    upsertExpenses(selectedGroupId, draftExpenses);
+
     if (onSubmit) {
       onSubmit();
     }
@@ -116,6 +132,30 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* グループ選択 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            グループ
+          </label>
+          {groups.length === 0 ? (
+            <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+              グループを作成してください
+            </div>
+          ) : (
+            <select
+              value={selectedGroupId}
+              onChange={(e) => setSelectedGroupId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+            >
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
         <div>
           <div className="flex justify-between items-center mb-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -133,7 +173,7 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
           {draftExpenses.length === 0 ? (
             <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
               <p className="text-gray-500 dark:text-gray-400">
-                支出を追加してください
+                このグループに支出を追加してください
               </p>
             </div>
           ) : (
@@ -507,7 +547,8 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
         {/* 送信ボタン */}
         <button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+          disabled={groups.length === 0}
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
         >
           支出情報を保存
         </button>

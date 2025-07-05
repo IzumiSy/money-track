@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useIncome, Income } from "@/contexts/IncomeContext";
+import { useFinancialData } from "@/contexts/FinancialDataContext";
+import { GroupedIncome } from "@/domains/group/types";
 import { Cycle, CycleType } from "@/domains/shared/Cycle";
 import {
   convertIndexToYearMonth,
@@ -13,13 +14,17 @@ interface IncomeFormProps {
 }
 
 export default function IncomeForm({ onSubmit }: IncomeFormProps) {
-  const { incomes: contextIncomes, setIncomes } = useIncome();
-  const [draftIncomes, setDraftIncomes] = useState<Income[]>([]);
+  const { groups, upsertIncomes, getIncomesByGroupId } = useFinancialData();
+  const [selectedGroupId, setSelectedGroupId] = useState<string>(
+    groups.length > 0 ? groups[0].id : ""
+  );
+  const [draftIncomes, setDraftIncomes] = useState<GroupedIncome[]>([]);
 
-  // コンテキストの収入データをドラフトステートに同期
+  // コンテキストの収入データをドラフトステートに同期（グループIDでフィルタ）
   useEffect(() => {
-    setDraftIncomes(contextIncomes);
-  }, [contextIncomes]);
+    const groupIncomes = getIncomesByGroupId(selectedGroupId);
+    setDraftIncomes(groupIncomes);
+  }, [getIncomesByGroupId, selectedGroupId]);
 
   // 収入ごとに異なるデフォルト色を設定
   const getDefaultColor = (index: number) => {
@@ -37,8 +42,14 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
   };
 
   const handleAddIncome = () => {
-    const newIncome: Income = {
+    if (!selectedGroupId) {
+      alert("グループを選択してください");
+      return;
+    }
+
+    const newIncome: GroupedIncome = {
       id: Date.now().toString(),
+      groupId: selectedGroupId,
       name: "",
       cycles: [],
       color: getDefaultColor(draftIncomes.length),
@@ -48,7 +59,7 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
 
   const handleUpdateIncome = (
     id: string,
-    field: keyof Income,
+    field: keyof GroupedIncome,
     value: string | Cycle[]
   ) => {
     setDraftIncomes(
@@ -59,7 +70,9 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
   };
 
   const handleRemoveIncome = (id: string) => {
-    setDraftIncomes(draftIncomes.filter((income) => income.id !== id));
+    if (confirm("この収入を削除しますか？")) {
+      setDraftIncomes(draftIncomes.filter((income) => income.id !== id));
+    }
   };
 
   const handleAddCycle = (incomeId: string) => {
@@ -101,7 +114,10 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIncomes(draftIncomes);
+
+    // upsertIncomesを使用して収入データを一括更新
+    upsertIncomes(selectedGroupId, draftIncomes);
+
     if (onSubmit) {
       onSubmit();
     }
@@ -114,6 +130,30 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* グループ選択 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            グループ
+          </label>
+          {groups.length === 0 ? (
+            <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+              グループを作成してください
+            </div>
+          ) : (
+            <select
+              value={selectedGroupId}
+              onChange={(e) => setSelectedGroupId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+            >
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
         <div>
           <div className="flex justify-between items-center mb-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -131,7 +171,7 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
           {draftIncomes.length === 0 ? (
             <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
               <p className="text-gray-500 dark:text-gray-400">
-                収入を追加してください
+                このグループに収入を追加してください
               </p>
             </div>
           ) : (
@@ -481,7 +521,8 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
         {/* 送信ボタン */}
         <button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+          disabled={groups.length === 0}
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
         >
           収入情報を保存
         </button>

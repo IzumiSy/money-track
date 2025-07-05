@@ -1,8 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { runFinancialSimulation } from "@/domains/simulation/financialSimulation";
 import { FinancialAssets } from "@/components/FinancialAssetsForm";
-import { Income } from "@/contexts/IncomeContext";
-import { Expense } from "@/contexts/ExpensesContext";
+import { GroupedIncome, GroupedExpense } from "@/domains/group/types";
 import { Cycle } from "@/domains/shared/Cycle";
 
 // Helper function to create a monthly cycle
@@ -44,9 +43,10 @@ describe("runFinancialSimulation", () => {
   });
 
   it("収入がある場合、資産が増加すること", () => {
-    const incomes: Income[] = [
+    const incomes: GroupedIncome[] = [
       {
         id: "income1",
+        groupId: "group1",
         name: "給与",
         cycles: [createMonthlyCycle(100000, 0)], // 月10万円、1年1ヶ月目から
         color: "#10B981",
@@ -65,9 +65,10 @@ describe("runFinancialSimulation", () => {
   });
 
   it("支出がある場合、資産が減少すること", () => {
-    const expenses: Expense[] = [
+    const expenses: GroupedExpense[] = [
       {
         id: "expense1",
+        groupId: "group1",
         name: "家賃",
         cycles: [createMonthlyCycle(20000, 0)], // 月2万円、1年1ヶ月目から
         color: "#EF4444",
@@ -85,18 +86,20 @@ describe("runFinancialSimulation", () => {
   });
 
   it("収入と支出の両方がある場合、正しく計算されること", () => {
-    const incomes: Income[] = [
+    const incomes: GroupedIncome[] = [
       {
         id: "income1",
+        groupId: "group1",
         name: "給与",
         cycles: [createMonthlyCycle(40000, 0)], // 月4万円、1年1ヶ月目から
         color: "#10B981",
       },
     ];
 
-    const expenses: Expense[] = [
+    const expenses: GroupedExpense[] = [
       {
         id: "expense1",
+        groupId: "group1",
         name: "生活費",
         cycles: [createMonthlyCycle(30000, 0)], // 月3万円、1年1ヶ月目から
         color: "#EF4444",
@@ -121,9 +124,10 @@ describe("runFinancialSimulation", () => {
   });
 
   it("年次サイクルの収入が正しく計算されること", () => {
-    const incomes: Income[] = [
+    const incomes: GroupedIncome[] = [
       {
         id: "income1",
+        groupId: "group1",
         name: "ボーナス",
         cycles: [
           {
@@ -148,9 +152,10 @@ describe("runFinancialSimulation", () => {
   });
 
   it("複数のサイクルを持つ収入が正しく計算されること", () => {
-    const incomes: Income[] = [
+    const incomes: GroupedIncome[] = [
       {
         id: "income1",
+        groupId: "group1",
         name: "総収入",
         cycles: [
           createMonthlyCycle(50000, 0), // 月5万円の基本給、1年1ヶ月目から
@@ -182,9 +187,10 @@ describe("runFinancialSimulation", () => {
   });
 
   it("カスタムサイクル（3ヶ月ごと）が正しく計算されること", () => {
-    const expenses: Expense[] = [
+    const expenses: GroupedExpense[] = [
       {
         id: "expense1",
+        groupId: "group1",
         name: "四半期支払い",
         cycles: [
           {

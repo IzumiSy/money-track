@@ -4,8 +4,7 @@ import { useState } from "react";
 import Sidebar from "./Sidebar";
 import { useSimulation } from "@/contexts/SimulationContext";
 import { useFinancialAssets } from "@/contexts/FinancialAssetsContext";
-import { useExpenses } from "@/contexts/ExpensesContext";
-import { useIncome } from "@/contexts/IncomeContext";
+import { useFinancialData } from "@/contexts/FinancialDataContext";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -25,12 +24,25 @@ export default function AppLayout({ children }: AppLayoutProps) {
   } = useSimulation();
 
   const { financialAssets, setFinancialAssets } = useFinancialAssets();
-  const { expenses, setExpenses } = useExpenses();
-  const { incomes, setIncomes } = useIncome();
+  const {
+    groups,
+    incomes,
+    expenses,
+    setAllGroups,
+    setAllIncomes,
+    setAllExpenses,
+    clearAllData,
+  } = useFinancialData();
 
   const handleSaveSimulation = () => {
     if (simulationName.trim()) {
-      saveSimulation(simulationName.trim(), financialAssets, expenses, incomes);
+      saveSimulation(
+        simulationName.trim(),
+        financialAssets,
+        groups,
+        expenses,
+        incomes
+      );
       setSimulationName("");
       setShowSaveModal(false);
     }
@@ -40,8 +52,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
     const simulation = simulations.find((sim) => sim.id === id);
     if (simulation) {
       setFinancialAssets(simulation.financialAssets);
-      setExpenses(simulation.expenses);
-      setIncomes(simulation.incomes);
+      setAllGroups(simulation.groups);
+      setAllIncomes(simulation.incomes);
+      setAllExpenses(simulation.expenses);
       loadSimulation(id);
       setShowLoadModal(false);
     }
@@ -52,8 +65,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     setFinancialAssets({
       assets: [],
     });
-    setExpenses([]);
-    setIncomes([]);
+    clearAllData();
     // 現在のシミュレーションをクリア
     loadSimulation("");
   };

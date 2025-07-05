@@ -2,28 +2,35 @@
 
 import { useMemo } from "react";
 import { FinancialAssets } from "@/components/FinancialAssetsForm";
-import { Expense } from "@/contexts/ExpensesContext";
-import { Income } from "@/contexts/IncomeContext";
+import { GroupedExpense, GroupedIncome } from "@/domains/group/types";
 import { runFinancialSimulation } from "@/domains/simulation/financialSimulation";
 
 interface UseFinancialSimulationProps {
   assets: FinancialAssets;
-  expenses?: Expense[];
-  incomes?: Income[];
+  expenses?: GroupedExpense[];
+  incomes?: GroupedIncome[];
   simulationYears: number;
+  activeGroupIds?: string[];
 }
 
 /**
- * 新しいIncomeCalculatorを使用したファイナンシャルシミュレーションフック
- * 既存のuseFinancialSimulationと同じインターフェースを維持
+ * ファイナンシャルシミュレーションフック
+ * グループフィルタリング機能をサポート
  */
 export function useFinancialSimulation({
   assets,
   expenses = [],
   incomes = [],
   simulationYears,
+  activeGroupIds,
 }: UseFinancialSimulationProps) {
   return useMemo(() => {
-    return runFinancialSimulation(assets, expenses, incomes, simulationYears);
-  }, [assets, expenses, incomes, simulationYears]);
+    return runFinancialSimulation(
+      assets,
+      expenses,
+      incomes,
+      simulationYears,
+      activeGroupIds
+    );
+  }, [assets, expenses, incomes, simulationYears, activeGroupIds]);
 }

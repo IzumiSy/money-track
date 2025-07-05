@@ -1,4 +1,4 @@
-import { Expense } from "@/contexts/ExpensesContext";
+import { GroupedExpense } from "@/domains/group/types";
 import {
   CalculatorSource,
   CashFlowChange,
@@ -6,10 +6,10 @@ import {
 } from "../shared";
 
 /**
- * ExpenseContextのExpense型をExpenseCalculatorのExpenseSource型に変換
+ * GroupedExpense型をExpenseCalculatorのExpenseSource型に変換
  */
 export function convertExpenseToExpenseSource(
-  expense: Expense
+  expense: GroupedExpense
 ): CalculatorSource {
   return {
     id: expense.id,

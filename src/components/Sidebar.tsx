@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import GroupSelector from "./GroupSelector";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -91,6 +92,7 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 min-h-[calc(100vh-73px)]">
+      <GroupSelector />
       <nav className="p-4">
         <ul className="space-y-2">
           {navItems.map((item) => (

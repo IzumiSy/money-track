@@ -25,6 +25,7 @@ src/
 ├── contexts/             # React Context（状態管理）
 ├── domains/              # ドメインロジック
 │   ├── shared/           # 共通ドメイン
+│   ├── group/            # グループドメイン
 │   ├── income/           # 収入ドメイン
 │   ├── expense/          # 支出ドメイン
 │   └── simulation/       # シミュレーションドメイン
@@ -41,6 +42,11 @@ src/
 - **CalculatorSource**: 計算対象の抽象化
 - **TimeRange**: 時間範囲の管理
 
+### グループドメイン (`domains/group/`)
+- **Group**: 収入・支出をまとめるグループ
+- **GroupedIncome**: グループに所属する収入
+- **GroupedExpense**: グループに所属する支出
+
 ### シミュレーションドメイン (`domains/simulation/`)
 - **Simulator**: 長期財務シミュレーション
 - **SimulationParams**: シミュレーションパラメータ
@@ -48,20 +54,23 @@ src/
 - **MonthlySimulationData**: 月次シミュレーションデータ
 
 ### 収入・支出ドメイン
-- **IncomeSource**: 収入データの計算用変換
-- **ExpenseSource**: 支出データの計算用変換
+- **IncomeSource**: 収入データの計算用変換（GroupedIncomeから変換）
+- **ExpenseSource**: 支出データの計算用変換（GroupedExpenseから変換）
 
 ## 状態管理
 
 ### React Context
 - **FinancialAssetsContext**: 金融資産データの管理
-- **IncomeContext**: 収入データの管理
-- **ExpensesContext**: 支出データの管理
+- **FinancialDataContext**: グループ、収入、支出データの統合管理
+  - `upsertIncomes`: 収入データの効率的な一括更新（追加・更新・削除を一度に処理）
+  - `upsertExpenses`: 支出データの効率的な一括更新（追加・更新・削除を一度に処理）
 - **SimulationContext**: シミュレーション設定の管理
 
 ### データフロー
 1. ユーザーがフォームに入力
 2. Context経由でデータを更新
+   - フォーム送信時は`upsert`操作で効率的に更新
+   - 既存データのIDは保持され、一貫性を維持
 3. カスタムフック（useFinancialSimulation）でシミュレーション実行
 4. 結果をチャートコンポーネントに表示
 
@@ -69,8 +78,9 @@ src/
 
 ### フォームコンポーネント
 - **FinancialAssetsForm**: 金融資産入力フォーム
-- **IncomeForm**: 収入入力フォーム
-- **ExpensesForm**: 支出入力フォーム
+- **IncomeForm**: グループ別収入入力フォーム（グループ選択必須）
+- **ExpensesForm**: グループ別支出入力フォーム（グループ選択必須）
+- **GroupSelector**: グループ選択コンポーネント
 
 ### 表示コンポーネント
 - **FinancialAssetsChart**: シミュレーション結果のチャート表示
