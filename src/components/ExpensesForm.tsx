@@ -14,12 +14,8 @@ interface ExpensesFormProps {
 }
 
 export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
-  const {
-    groups,
-    expenses: contextExpenses,
-    addExpense,
-    deleteExpense,
-  } = useFinancialData();
+  const { groups, addExpense, deleteExpense, getExpensesByGroupId } =
+    useFinancialData();
   const [selectedGroupId, setSelectedGroupId] = useState<string>(
     groups.length > 0 ? groups[0].id : ""
   );
@@ -27,11 +23,9 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
 
   // コンテキストの支出データをドラフトステートに同期（グループIDでフィルタ）
   useEffect(() => {
-    const groupExpenses = contextExpenses.filter(
-      (expense) => expense.groupId === selectedGroupId
-    );
+    const groupExpenses = getExpensesByGroupId(selectedGroupId);
     setDraftExpenses(groupExpenses);
-  }, [contextExpenses, selectedGroupId]);
+  }, [getExpensesByGroupId, selectedGroupId]);
 
   // 支出ごとに異なるデフォルト色を設定
   const getDefaultColor = (index: number) => {
@@ -125,9 +119,7 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
     e.preventDefault();
 
     // 既存の支出を削除
-    const existingExpenses = contextExpenses.filter(
-      (expense) => expense.groupId === selectedGroupId
-    );
+    const existingExpenses = getExpensesByGroupId(selectedGroupId);
     existingExpenses.forEach((expense) => deleteExpense(expense.id));
 
     // 新しい支出を追加

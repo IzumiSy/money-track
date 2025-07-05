@@ -14,12 +14,8 @@ interface IncomeFormProps {
 }
 
 export default function IncomeForm({ onSubmit }: IncomeFormProps) {
-  const {
-    groups,
-    incomes: contextIncomes,
-    addIncome,
-    deleteIncome,
-  } = useFinancialData();
+  const { groups, addIncome, deleteIncome, getIncomesByGroupId } =
+    useFinancialData();
   const [selectedGroupId, setSelectedGroupId] = useState<string>(
     groups.length > 0 ? groups[0].id : ""
   );
@@ -27,11 +23,9 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
 
   // コンテキストの収入データをドラフトステートに同期（グループIDでフィルタ）
   useEffect(() => {
-    const groupIncomes = contextIncomes.filter(
-      (income) => income.groupId === selectedGroupId
-    );
+    const groupIncomes = getIncomesByGroupId(selectedGroupId);
     setDraftIncomes(groupIncomes);
-  }, [contextIncomes, selectedGroupId]);
+  }, [getIncomesByGroupId, selectedGroupId]);
 
   // 収入ごとに異なるデフォルト色を設定
   const getDefaultColor = (index: number) => {
@@ -123,9 +117,7 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
     e.preventDefault();
 
     // 既存の収入を削除
-    const existingIncomes = contextIncomes.filter(
-      (income) => income.groupId === selectedGroupId
-    );
+    const existingIncomes = getIncomesByGroupId(selectedGroupId);
     existingIncomes.forEach((income) => deleteIncome(income.id));
 
     // 新しい収入を追加
