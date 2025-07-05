@@ -21,6 +21,12 @@ interface FinancialDataContextType {
   // 支出操作
   upsertExpenses: (groupId: string, expenses: GroupedExpense[]) => void;
 
+  // データ設定・クリア操作
+  setAllGroups: (groups: Group[]) => void;
+  setAllIncomes: (incomes: GroupedIncome[]) => void;
+  setAllExpenses: (expenses: GroupedExpense[]) => void;
+  clearAllData: () => void;
+
   // ユーティリティ
   getGroupById: (id: string) => Group | undefined;
   getIncomesByGroupId: (groupId: string) => GroupedIncome[];
@@ -193,6 +199,25 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
     return groups.filter((group) => group.isActive);
   };
 
+  // データ設定・クリア操作
+  const setAllGroups = (newGroups: Group[]) => {
+    setGroups(newGroups);
+  };
+
+  const setAllIncomes = (newIncomes: GroupedIncome[]) => {
+    setIncomes(newIncomes);
+  };
+
+  const setAllExpenses = (newExpenses: GroupedExpense[]) => {
+    setExpenses(newExpenses);
+  };
+
+  const clearAllData = () => {
+    setGroups([]);
+    setIncomes([]);
+    setExpenses([]);
+  };
+
   return (
     <FinancialDataContext.Provider
       value={{
@@ -205,6 +230,10 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
         toggleGroupActive,
         upsertIncomes,
         upsertExpenses,
+        setAllGroups,
+        setAllIncomes,
+        setAllExpenses,
+        clearAllData,
         getGroupById,
         getIncomesByGroupId,
         getExpensesByGroupId,

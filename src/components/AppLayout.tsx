@@ -24,11 +24,25 @@ export default function AppLayout({ children }: AppLayoutProps) {
   } = useSimulation();
 
   const { financialAssets, setFinancialAssets } = useFinancialAssets();
-  const { incomes, expenses } = useFinancialData();
+  const {
+    groups,
+    incomes,
+    expenses,
+    setAllGroups,
+    setAllIncomes,
+    setAllExpenses,
+    clearAllData,
+  } = useFinancialData();
 
   const handleSaveSimulation = () => {
     if (simulationName.trim()) {
-      saveSimulation(simulationName.trim(), financialAssets, expenses, incomes);
+      saveSimulation(
+        simulationName.trim(),
+        financialAssets,
+        groups,
+        expenses,
+        incomes
+      );
       setSimulationName("");
       setShowSaveModal(false);
     }
@@ -38,7 +52,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
     const simulation = simulations.find((sim) => sim.id === id);
     if (simulation) {
       setFinancialAssets(simulation.financialAssets);
-      // TODO: Load grouped data into FinancialDataContext
+      setAllGroups(simulation.groups);
+      setAllIncomes(simulation.incomes);
+      setAllExpenses(simulation.expenses);
       loadSimulation(id);
       setShowLoadModal(false);
     }
@@ -49,7 +65,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     setFinancialAssets({
       assets: [],
     });
-    // TODO: Clear grouped data in FinancialDataContext
+    clearAllData();
     // 現在のシミュレーションをクリア
     loadSimulation("");
   };
