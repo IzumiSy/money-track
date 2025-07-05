@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useSimulation } from "@/contexts/SimulationContext";
+import { SIMULATION_ACTION_TYPES } from "@/types/simulation";
 
 export function useSimulationManagement() {
   const { state, dispatch } = useSimulation();
@@ -7,7 +8,7 @@ export function useSimulationManagement() {
   const saveSimulation = useCallback(
     (name: string) => {
       dispatch({
-        type: "SAVE_SIMULATION",
+        type: SIMULATION_ACTION_TYPES.SAVE_SIMULATION,
         payload: { name },
       });
     },
@@ -17,10 +18,10 @@ export function useSimulationManagement() {
   const loadSimulation = useCallback(
     (id: string) => {
       if (id === "") {
-        dispatch({ type: "RESET_CURRENT_DATA" });
+        dispatch({ type: SIMULATION_ACTION_TYPES.RESET_CURRENT_DATA });
       } else {
         dispatch({
-          type: "LOAD_SIMULATION",
+          type: SIMULATION_ACTION_TYPES.LOAD_SIMULATION,
           payload: id,
         });
       }
@@ -31,7 +32,7 @@ export function useSimulationManagement() {
   const deleteSimulation = useCallback(
     (id: string) => {
       dispatch({
-        type: "DELETE_SIMULATION",
+        type: SIMULATION_ACTION_TYPES.DELETE_SIMULATION,
         payload: id,
       });
     },
@@ -41,7 +42,7 @@ export function useSimulationManagement() {
   const updateSimulationName = useCallback(
     (id: string, name: string) => {
       dispatch({
-        type: "UPDATE_SIMULATION_NAME",
+        type: SIMULATION_ACTION_TYPES.UPDATE_SIMULATION_NAME,
         payload: { id, name },
       });
     },
@@ -49,7 +50,7 @@ export function useSimulationManagement() {
   );
 
   const initializeSimulation = useCallback(() => {
-    dispatch({ type: "INITIALIZE_SIMULATION" });
+    dispatch({ type: SIMULATION_ACTION_TYPES.INITIALIZE_SIMULATION });
   }, [dispatch]);
 
   return {

@@ -14,6 +14,7 @@ import {
   DEFAULT_INCOME_COLORS,
   DEFAULT_EXPENSE_COLORS,
   DEFAULT_ASSET_COLORS,
+  SIMULATION_ACTION_TYPES,
 } from "@/types/simulation";
 
 interface SimulationContextType {
@@ -44,7 +45,7 @@ function simulationReducer(
 ): SimulationState {
   switch (action.type) {
     // グループ関連
-    case "SET_GROUPS":
+    case SIMULATION_ACTION_TYPES.SET_GROUPS:
       return {
         ...state,
         currentData: {
@@ -53,7 +54,7 @@ function simulationReducer(
         },
       };
 
-    case "ADD_GROUP":
+    case SIMULATION_ACTION_TYPES.ADD_GROUP:
       return {
         ...state,
         currentData: {
@@ -62,7 +63,7 @@ function simulationReducer(
         },
       };
 
-    case "UPDATE_GROUP":
+    case SIMULATION_ACTION_TYPES.UPDATE_GROUP:
       return {
         ...state,
         currentData: {
@@ -75,7 +76,7 @@ function simulationReducer(
         },
       };
 
-    case "DELETE_GROUP": {
+    case SIMULATION_ACTION_TYPES.DELETE_GROUP: {
       const groupId = action.payload;
       return {
         ...state,
@@ -95,7 +96,7 @@ function simulationReducer(
     }
 
     // 収入関連
-    case "SET_INCOMES":
+    case SIMULATION_ACTION_TYPES.SET_INCOMES:
       return {
         ...state,
         currentData: {
@@ -104,7 +105,7 @@ function simulationReducer(
         },
       };
 
-    case "UPSERT_INCOMES": {
+    case SIMULATION_ACTION_TYPES.UPSERT_INCOMES: {
       const { groupId, incomes } = action.payload;
       const otherGroupIncomes = state.currentData.incomes.filter(
         (income) => income.groupId !== groupId
@@ -137,7 +138,7 @@ function simulationReducer(
     }
 
     // 支出関連
-    case "SET_EXPENSES":
+    case SIMULATION_ACTION_TYPES.SET_EXPENSES:
       return {
         ...state,
         currentData: {
@@ -146,7 +147,7 @@ function simulationReducer(
         },
       };
 
-    case "UPSERT_EXPENSES": {
+    case SIMULATION_ACTION_TYPES.UPSERT_EXPENSES: {
       const { groupId, expenses } = action.payload;
       const otherGroupExpenses = state.currentData.expenses.filter(
         (expense) => expense.groupId !== groupId
@@ -179,7 +180,7 @@ function simulationReducer(
     }
 
     // 資産関連
-    case "SET_FINANCIAL_ASSETS": {
+    case SIMULATION_ACTION_TYPES.SET_FINANCIAL_ASSETS: {
       const assetsWithDefaults = action.payload.assets.map((asset, index) => ({
         ...asset,
         color:
@@ -202,7 +203,7 @@ function simulationReducer(
     }
 
     // シミュレーション管理
-    case "SAVE_SIMULATION": {
+    case SIMULATION_ACTION_TYPES.SAVE_SIMULATION: {
       const newSimulation: SimulationData = {
         id: Date.now().toString(),
         name: action.payload.name,
@@ -217,7 +218,7 @@ function simulationReducer(
       };
     }
 
-    case "LOAD_SIMULATION": {
+    case SIMULATION_ACTION_TYPES.LOAD_SIMULATION: {
       const simulation = state.savedSimulations.find(
         (sim) => sim.id === action.payload
       );
@@ -230,7 +231,7 @@ function simulationReducer(
       };
     }
 
-    case "DELETE_SIMULATION": {
+    case SIMULATION_ACTION_TYPES.DELETE_SIMULATION: {
       const simulationId = action.payload;
       return {
         ...state,
@@ -244,7 +245,7 @@ function simulationReducer(
       };
     }
 
-    case "UPDATE_SIMULATION_NAME": {
+    case SIMULATION_ACTION_TYPES.UPDATE_SIMULATION_NAME: {
       const { id, name } = action.payload;
       return {
         ...state,
@@ -254,20 +255,20 @@ function simulationReducer(
       };
     }
 
-    case "RESET_CURRENT_DATA":
+    case SIMULATION_ACTION_TYPES.RESET_CURRENT_DATA:
       return {
         ...state,
         currentData: initialState.currentData,
         activeSimulationId: null,
       };
 
-    case "SET_ALL_DATA":
+    case SIMULATION_ACTION_TYPES.SET_ALL_DATA:
       return {
         ...state,
         currentData: action.payload,
       };
 
-    case "INITIALIZE_SIMULATION":
+    case SIMULATION_ACTION_TYPES.INITIALIZE_SIMULATION:
       return {
         ...state,
         currentData: initialState.currentData,
@@ -299,7 +300,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
         }
         // 完全な状態を復元
         dispatch({
-          type: "SET_ALL_DATA",
+          type: SIMULATION_ACTION_TYPES.SET_ALL_DATA,
           payload: parsedState.currentData || initialState.currentData,
         });
         // Note: savedSimulationsの復元は現在のreducerでは対応していないため、

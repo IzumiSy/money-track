@@ -1,7 +1,10 @@
 import { useCallback } from "react";
 import { useSimulation } from "@/contexts/SimulationContext";
 import { Group } from "@/domains/group/types";
-import { DEFAULT_GROUP_COLORS } from "@/types/simulation";
+import {
+  DEFAULT_GROUP_COLORS,
+  SIMULATION_ACTION_TYPES,
+} from "@/types/simulation";
 
 export function useGroupManagement() {
   const { state, dispatch } = useSimulation();
@@ -19,7 +22,7 @@ export function useGroupManagement() {
       };
 
       dispatch({
-        type: "ADD_GROUP",
+        type: SIMULATION_ACTION_TYPES.ADD_GROUP,
         payload: newGroup,
       });
     },
@@ -29,7 +32,7 @@ export function useGroupManagement() {
   const updateGroup = useCallback(
     (id: string, updates: Partial<Group>) => {
       dispatch({
-        type: "UPDATE_GROUP",
+        type: SIMULATION_ACTION_TYPES.UPDATE_GROUP,
         payload: { id, updates },
       });
     },
@@ -39,7 +42,7 @@ export function useGroupManagement() {
   const deleteGroup = useCallback(
     (id: string) => {
       dispatch({
-        type: "DELETE_GROUP",
+        type: SIMULATION_ACTION_TYPES.DELETE_GROUP,
         payload: id,
       });
     },
@@ -51,7 +54,7 @@ export function useGroupManagement() {
       const group = state.currentData.groups.find((g) => g.id === id);
       if (group) {
         dispatch({
-          type: "UPDATE_GROUP",
+          type: SIMULATION_ACTION_TYPES.UPDATE_GROUP,
           payload: { id, updates: { isActive: !group.isActive } },
         });
       }

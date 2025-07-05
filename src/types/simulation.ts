@@ -2,6 +2,37 @@ import { Group, GroupedExpense, GroupedIncome } from "@/domains/group/types";
 import { FinancialAssets } from "@/components/FinancialAssetsForm";
 
 /**
+ * シミュレーションのアクションタイプ定数
+ */
+export const SIMULATION_ACTION_TYPES = {
+  // グループ関連
+  SET_GROUPS: "SET_GROUPS",
+  ADD_GROUP: "ADD_GROUP",
+  UPDATE_GROUP: "UPDATE_GROUP",
+  DELETE_GROUP: "DELETE_GROUP",
+
+  // 収入関連
+  SET_INCOMES: "SET_INCOMES",
+  UPSERT_INCOMES: "UPSERT_INCOMES",
+
+  // 支出関連
+  SET_EXPENSES: "SET_EXPENSES",
+  UPSERT_EXPENSES: "UPSERT_EXPENSES",
+
+  // 資産関連
+  SET_FINANCIAL_ASSETS: "SET_FINANCIAL_ASSETS",
+
+  // シミュレーション管理
+  SAVE_SIMULATION: "SAVE_SIMULATION",
+  LOAD_SIMULATION: "LOAD_SIMULATION",
+  DELETE_SIMULATION: "DELETE_SIMULATION",
+  UPDATE_SIMULATION_NAME: "UPDATE_SIMULATION_NAME",
+  RESET_CURRENT_DATA: "RESET_CURRENT_DATA",
+  SET_ALL_DATA: "SET_ALL_DATA",
+  INITIALIZE_SIMULATION: "INITIALIZE_SIMULATION",
+} as const;
+
+/**
  * 現在編集中のデータ
  */
 export interface SimulationCurrentData {
@@ -35,36 +66,57 @@ export interface SimulationState {
  */
 export type SimulationAction =
   // グループ関連
-  | { type: "SET_GROUPS"; payload: Group[] }
-  | { type: "ADD_GROUP"; payload: Group }
-  | { type: "UPDATE_GROUP"; payload: { id: string; updates: Partial<Group> } }
-  | { type: "DELETE_GROUP"; payload: string }
+  | { type: typeof SIMULATION_ACTION_TYPES.SET_GROUPS; payload: Group[] }
+  | { type: typeof SIMULATION_ACTION_TYPES.ADD_GROUP; payload: Group }
+  | {
+      type: typeof SIMULATION_ACTION_TYPES.UPDATE_GROUP;
+      payload: { id: string; updates: Partial<Group> };
+    }
+  | { type: typeof SIMULATION_ACTION_TYPES.DELETE_GROUP; payload: string }
 
   // 収入関連
-  | { type: "SET_INCOMES"; payload: GroupedIncome[] }
   | {
-      type: "UPSERT_INCOMES";
+      type: typeof SIMULATION_ACTION_TYPES.SET_INCOMES;
+      payload: GroupedIncome[];
+    }
+  | {
+      type: typeof SIMULATION_ACTION_TYPES.UPSERT_INCOMES;
       payload: { groupId: string; incomes: GroupedIncome[] };
     }
 
   // 支出関連
-  | { type: "SET_EXPENSES"; payload: GroupedExpense[] }
   | {
-      type: "UPSERT_EXPENSES";
+      type: typeof SIMULATION_ACTION_TYPES.SET_EXPENSES;
+      payload: GroupedExpense[];
+    }
+  | {
+      type: typeof SIMULATION_ACTION_TYPES.UPSERT_EXPENSES;
       payload: { groupId: string; expenses: GroupedExpense[] };
     }
 
   // 資産関連
-  | { type: "SET_FINANCIAL_ASSETS"; payload: FinancialAssets }
+  | {
+      type: typeof SIMULATION_ACTION_TYPES.SET_FINANCIAL_ASSETS;
+      payload: FinancialAssets;
+    }
 
   // シミュレーション管理
-  | { type: "SAVE_SIMULATION"; payload: { name: string } }
-  | { type: "LOAD_SIMULATION"; payload: string }
-  | { type: "DELETE_SIMULATION"; payload: string }
-  | { type: "UPDATE_SIMULATION_NAME"; payload: { id: string; name: string } }
-  | { type: "RESET_CURRENT_DATA" }
-  | { type: "SET_ALL_DATA"; payload: SimulationCurrentData }
-  | { type: "INITIALIZE_SIMULATION" };
+  | {
+      type: typeof SIMULATION_ACTION_TYPES.SAVE_SIMULATION;
+      payload: { name: string };
+    }
+  | { type: typeof SIMULATION_ACTION_TYPES.LOAD_SIMULATION; payload: string }
+  | { type: typeof SIMULATION_ACTION_TYPES.DELETE_SIMULATION; payload: string }
+  | {
+      type: typeof SIMULATION_ACTION_TYPES.UPDATE_SIMULATION_NAME;
+      payload: { id: string; name: string };
+    }
+  | { type: typeof SIMULATION_ACTION_TYPES.RESET_CURRENT_DATA }
+  | {
+      type: typeof SIMULATION_ACTION_TYPES.SET_ALL_DATA;
+      payload: SimulationCurrentData;
+    }
+  | { type: typeof SIMULATION_ACTION_TYPES.INITIALIZE_SIMULATION };
 
 /**
  * デフォルトのグループ色

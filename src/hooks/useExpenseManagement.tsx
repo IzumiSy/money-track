@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useSimulation } from "@/contexts/SimulationContext";
 import { GroupedExpense } from "@/domains/group/types";
+import { SIMULATION_ACTION_TYPES } from "@/types/simulation";
 
 export function useExpenseManagement() {
   const { state, dispatch } = useSimulation();
@@ -8,7 +9,7 @@ export function useExpenseManagement() {
   const upsertExpenses = useCallback(
     (groupId: string, expenses: GroupedExpense[]) => {
       dispatch({
-        type: "UPSERT_EXPENSES",
+        type: SIMULATION_ACTION_TYPES.UPSERT_EXPENSES,
         payload: { groupId, expenses },
       });
     },
