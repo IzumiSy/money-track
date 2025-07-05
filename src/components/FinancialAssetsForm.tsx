@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useFinancialAssets } from "@/contexts/FinancialAssetsContext";
+import { useAssetManagement } from "@/hooks/useAssetManagement";
 
 export interface ContributionOption {
   id: string;
@@ -43,7 +43,7 @@ export default function FinancialAssetsForm({
   onSubmit,
 }: FinancialAssetsFormProps) {
   const { financialAssets: contextAssets, setFinancialAssets } =
-    useFinancialAssets();
+    useAssetManagement();
   const [draftAssets, setDraftAssets] = useState<Asset[]>([]);
 
   // コンテキストの金融資産データをドラフトステートに同期

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useFinancialData } from "@/contexts/FinancialDataContext";
+import { useGroupManagement } from "@/hooks/useGroupManagement";
+import { useIncomeManagement } from "@/hooks/useIncomeManagement";
 import { GroupedIncome } from "@/domains/group/types";
 import { Cycle, CycleType } from "@/domains/shared/Cycle";
 import {
@@ -14,7 +15,8 @@ interface IncomeFormProps {
 }
 
 export default function IncomeForm({ onSubmit }: IncomeFormProps) {
-  const { groups, upsertIncomes, getIncomesByGroupId } = useFinancialData();
+  const { groups } = useGroupManagement();
+  const { upsertIncomes, getIncomesByGroupId } = useIncomeManagement();
   const [selectedGroupId, setSelectedGroupId] = useState<string>(
     groups.length > 0 ? groups[0].id : ""
   );

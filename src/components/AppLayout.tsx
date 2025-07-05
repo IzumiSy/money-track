@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Sidebar from "./Sidebar";
-import { useSimulation } from "@/contexts/SimulationContext";
-import { useFinancialAssets } from "@/contexts/FinancialAssetsContext";
-import { useFinancialData } from "@/contexts/FinancialDataContext";
+import { useSimulationManagement } from "@/hooks/useSimulationManagement";
+import { useAssetManagement } from "@/hooks/useAssetManagement";
+import { useGroupManagement } from "@/hooks/useGroupManagement";
+import { useIncomeManagement } from "@/hooks/useIncomeManagement";
+import { useExpenseManagement } from "@/hooks/useExpenseManagement";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -21,28 +23,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
     saveSimulation,
     loadSimulation,
     deleteSimulation,
-  } = useSimulation();
-
-  const { financialAssets, setFinancialAssets } = useFinancialAssets();
-  const {
-    groups,
-    incomes,
-    expenses,
-    setAllGroups,
-    setAllIncomes,
-    setAllExpenses,
     clearAllData,
-  } = useFinancialData();
+  } = useSimulationManagement();
+
+  const { setFinancialAssets } = useAssetManagement();
+  const { setAllGroups } = useGroupManagement();
+  const { setAllIncomes } = useIncomeManagement();
+  const { setAllExpenses } = useExpenseManagement();
 
   const handleSaveSimulation = () => {
     if (simulationName.trim()) {
-      saveSimulation(
-        simulationName.trim(),
-        financialAssets,
-        groups,
-        expenses,
-        incomes
-      );
+      saveSimulation(simulationName.trim());
       setSimulationName("");
       setShowSaveModal(false);
     }
@@ -51,10 +42,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const handleLoadSimulation = (id: string) => {
     const simulation = simulations.find((sim) => sim.id === id);
     if (simulation) {
-      setFinancialAssets(simulation.financialAssets);
-      setAllGroups(simulation.groups);
-      setAllIncomes(simulation.incomes);
-      setAllExpenses(simulation.expenses);
+      setFinancialAssets(simulation.data.financialAssets);
+      setAllGroups(simulation.data.groups);
+      setAllIncomes(simulation.data.incomes);
+      setAllExpenses(simulation.data.expenses);
       loadSimulation(id);
       setShowLoadModal(false);
     }
