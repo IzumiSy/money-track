@@ -25,9 +25,3 @@ Precise rules that you always have to keep in mind in making changes on codebase
 
 * Update `README.md` if you make changes related to application feature, Remember that `README.md` is not a technical document. 
 * Update `ARCHITECTURE.md` if you make changes that affect technical detail such as architecture, data flow, and code-level stuff. 
-
-## Other
-
-Others
-
-* Anytime you use the terminal, make sure to append an `&& sleep 1`, otherwise you won't be able to view the result
