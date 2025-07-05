@@ -16,15 +16,9 @@ interface FinancialDataContextType {
   toggleGroupActive: (id: string) => void;
 
   // 収入操作
-  addIncome: (income: Omit<GroupedIncome, "id">) => void;
-  updateIncome: (id: string, income: Partial<GroupedIncome>) => void;
-  deleteIncome: (id: string) => void;
   upsertIncomes: (groupId: string, incomes: GroupedIncome[]) => void;
 
   // 支出操作
-  addExpense: (expense: Omit<GroupedExpense, "id">) => void;
-  updateExpense: (id: string, expense: Partial<GroupedExpense>) => void;
-  deleteExpense: (id: string) => void;
   upsertExpenses: (groupId: string, expenses: GroupedExpense[]) => void;
 
   // ユーティリティ
@@ -117,29 +111,6 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
   };
 
   // 収入操作
-  const addIncome = (income: Omit<GroupedIncome, "id">) => {
-    const newIncome: GroupedIncome = {
-      ...income,
-      id: Date.now().toString(),
-      color:
-        income.color ||
-        DEFAULT_INCOME_COLORS[incomes.length % DEFAULT_INCOME_COLORS.length],
-    };
-    setIncomes((prev) => [...prev, newIncome]);
-  };
-
-  const updateIncome = (id: string, updatedIncome: Partial<GroupedIncome>) => {
-    setIncomes((prev) =>
-      prev.map((income) =>
-        income.id === id ? { ...income, ...updatedIncome } : income
-      )
-    );
-  };
-
-  const deleteIncome = (id: string) => {
-    setIncomes((prev) => prev.filter((income) => income.id !== id));
-  };
-
   const upsertIncomes = (groupId: string, newIncomes: GroupedIncome[]) => {
     setIncomes((prev) => {
       // 指定されたグループ以外の収入を保持
@@ -173,32 +144,6 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
   };
 
   // 支出操作
-  const addExpense = (expense: Omit<GroupedExpense, "id">) => {
-    const newExpense: GroupedExpense = {
-      ...expense,
-      id: Date.now().toString(),
-      color:
-        expense.color ||
-        DEFAULT_EXPENSE_COLORS[expenses.length % DEFAULT_EXPENSE_COLORS.length],
-    };
-    setExpenses((prev) => [...prev, newExpense]);
-  };
-
-  const updateExpense = (
-    id: string,
-    updatedExpense: Partial<GroupedExpense>
-  ) => {
-    setExpenses((prev) =>
-      prev.map((expense) =>
-        expense.id === id ? { ...expense, ...updatedExpense } : expense
-      )
-    );
-  };
-
-  const deleteExpense = (id: string) => {
-    setExpenses((prev) => prev.filter((expense) => expense.id !== id));
-  };
-
   const upsertExpenses = (groupId: string, newExpenses: GroupedExpense[]) => {
     setExpenses((prev) => {
       // 指定されたグループ以外の支出を保持
@@ -258,13 +203,7 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
         updateGroup,
         deleteGroup,
         toggleGroupActive,
-        addIncome,
-        updateIncome,
-        deleteIncome,
         upsertIncomes,
-        addExpense,
-        updateExpense,
-        deleteExpense,
         upsertExpenses,
         getGroupById,
         getIncomesByGroupId,
