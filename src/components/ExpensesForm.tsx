@@ -14,8 +14,7 @@ interface ExpensesFormProps {
 }
 
 export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
-  const { groups, addExpense, deleteExpense, getExpensesByGroupId } =
-    useFinancialData();
+  const { groups, upsertExpenses, getExpensesByGroupId } = useFinancialData();
   const [selectedGroupId, setSelectedGroupId] = useState<string>(
     groups.length > 0 ? groups[0].id : ""
   );
@@ -118,15 +117,8 @@ export default function ExpensesForm({ onSubmit }: ExpensesFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 既存の支出を削除
-    getExpensesByGroupId(selectedGroupId).forEach((expense) =>
-      deleteExpense(expense.id)
-    );
-
-    // 新しい支出を追加
-    draftExpenses.forEach((expense) => {
-      addExpense(expense);
-    });
+    // upsertExpensesを使用して支出データを一括更新
+    upsertExpenses(selectedGroupId, draftExpenses);
 
     if (onSubmit) {
       onSubmit();

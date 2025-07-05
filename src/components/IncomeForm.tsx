@@ -14,8 +14,7 @@ interface IncomeFormProps {
 }
 
 export default function IncomeForm({ onSubmit }: IncomeFormProps) {
-  const { groups, addIncome, deleteIncome, getIncomesByGroupId } =
-    useFinancialData();
+  const { groups, upsertIncomes, getIncomesByGroupId } = useFinancialData();
   const [selectedGroupId, setSelectedGroupId] = useState<string>(
     groups.length > 0 ? groups[0].id : ""
   );
@@ -116,15 +115,8 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 既存の収入を削除
-    getIncomesByGroupId(selectedGroupId).forEach((income) =>
-      deleteIncome(income.id)
-    );
-
-    // 新しい収入を追加
-    draftIncomes.forEach((income) => {
-      addIncome(income);
-    });
+    // upsertIncomesを使用して収入データを一括更新
+    upsertIncomes(selectedGroupId, draftIncomes);
 
     if (onSubmit) {
       onSubmit();

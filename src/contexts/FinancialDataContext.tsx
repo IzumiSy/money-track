@@ -19,11 +19,13 @@ interface FinancialDataContextType {
   addIncome: (income: Omit<GroupedIncome, "id">) => void;
   updateIncome: (id: string, income: Partial<GroupedIncome>) => void;
   deleteIncome: (id: string) => void;
+  upsertIncomes: (groupId: string, incomes: GroupedIncome[]) => void;
 
   // 支出操作
   addExpense: (expense: Omit<GroupedExpense, "id">) => void;
   updateExpense: (id: string, expense: Partial<GroupedExpense>) => void;
   deleteExpense: (id: string) => void;
+  upsertExpenses: (groupId: string, expenses: GroupedExpense[]) => void;
 
   // ユーティリティ
   getGroupById: (id: string) => Group | undefined;
@@ -138,6 +140,38 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
     setIncomes((prev) => prev.filter((income) => income.id !== id));
   };
 
+  const upsertIncomes = (groupId: string, newIncomes: GroupedIncome[]) => {
+    setIncomes((prev) => {
+      // 指定されたグループ以外の収入を保持
+      const otherGroupIncomes = prev.filter(
+        (income) => income.groupId !== groupId
+      );
+
+      // 新しい収入データの処理
+      const processedIncomes = newIncomes.map((income) => {
+        // 既存のIDがある場合はそのまま使用、なければ新規ID生成
+        if (!income.id || income.id.startsWith("temp-")) {
+          return {
+            ...income,
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            groupId,
+            color:
+              income.color ||
+              DEFAULT_INCOME_COLORS[
+                newIncomes.indexOf(income) % DEFAULT_INCOME_COLORS.length
+              ],
+          };
+        }
+        return {
+          ...income,
+          groupId,
+        };
+      });
+
+      return [...otherGroupIncomes, ...processedIncomes];
+    });
+  };
+
   // 支出操作
   const addExpense = (expense: Omit<GroupedExpense, "id">) => {
     const newExpense: GroupedExpense = {
@@ -163,6 +197,38 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
 
   const deleteExpense = (id: string) => {
     setExpenses((prev) => prev.filter((expense) => expense.id !== id));
+  };
+
+  const upsertExpenses = (groupId: string, newExpenses: GroupedExpense[]) => {
+    setExpenses((prev) => {
+      // 指定されたグループ以外の支出を保持
+      const otherGroupExpenses = prev.filter(
+        (expense) => expense.groupId !== groupId
+      );
+
+      // 新しい支出データの処理
+      const processedExpenses = newExpenses.map((expense) => {
+        // 既存のIDがある場合はそのまま使用、なければ新規ID生成
+        if (!expense.id || expense.id.startsWith("temp-")) {
+          return {
+            ...expense,
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            groupId,
+            color:
+              expense.color ||
+              DEFAULT_EXPENSE_COLORS[
+                newExpenses.indexOf(expense) % DEFAULT_EXPENSE_COLORS.length
+              ],
+          };
+        }
+        return {
+          ...expense,
+          groupId,
+        };
+      });
+
+      return [...otherGroupExpenses, ...processedExpenses];
+    });
   };
 
   // ユーティリティ関数
@@ -195,9 +261,11 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
         addIncome,
         updateIncome,
         deleteIncome,
+        upsertIncomes,
         addExpense,
         updateExpense,
         deleteExpense,
+        upsertExpenses,
         getGroupById,
         getIncomesByGroupId,
         getExpensesByGroupId,
