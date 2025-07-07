@@ -8,6 +8,7 @@ import { CalculatorSource } from "@/domains/shared/CalculatorSource";
 import { createSimulator } from "@/domains/simulation";
 import { convertExpenseToExpenseSource } from "@/domains/expense/source";
 import { convertIncomeToIncomeSource } from "@/domains/income/source";
+import { convertAssetToAssetSource } from "@/domains/asset/source";
 
 // チャート用のデータポイント型
 interface SimulationDataPoint {
@@ -91,6 +92,23 @@ function convertToChartData(
         chartData[incomeKey] = Math.round(yearlyIncomeAmount);
       });
 
+    // 各資産項目の収入（利息・積立）と支出（引き出し）を追加
+    sources
+      .filter((source) => source.type === "asset")
+      .forEach((assetSource) => {
+        const assetIncomeKey = `asset_income_${assetSource.id}`;
+        const assetExpenseKey = `asset_expense_${assetSource.id}`;
+        const yearlyAssetIncome = yearlyIncomeMap.get(assetSource.id) || 0;
+        const yearlyAssetExpense = yearlyExpenseMap.get(assetSource.id) || 0;
+
+        if (yearlyAssetIncome > 0) {
+          chartData[assetIncomeKey] = Math.round(yearlyAssetIncome);
+        }
+        if (yearlyAssetExpense > 0) {
+          chartData[assetExpenseKey] = -Math.round(yearlyAssetExpense);
+        }
+      });
+
     yearlyAggregatedData.push(chartData);
   }
 
@@ -152,6 +170,11 @@ export function runFinancialSimulation(
   // Expense[]をExpenseSourceに変換してCalculatorに追加
   filteredExpenses.forEach((expense) => {
     unifiedCalculator.addSource(convertExpenseToExpenseSource(expense));
+  });
+
+  // Asset[]をAssetSourceに変換してCalculatorに追加
+  filteredAssets.forEach((asset) => {
+    unifiedCalculator.addSource(convertAssetToAssetSource(asset));
   });
 
   // すべての資産の初期額を合計（現金を含む）
