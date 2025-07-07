@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { runFinancialSimulation } from "@/domains/simulation/financialSimulation";
-import { FinancialAssets } from "@/components/FinancialAssetsForm";
-import { GroupedIncome, GroupedExpense } from "@/domains/group/types";
+import {
+  GroupedIncome,
+  GroupedExpense,
+  GroupedAsset,
+} from "@/domains/group/types";
 import { Cycle } from "@/domains/shared/Cycle";
 
 // Helper function to create a monthly cycle
@@ -15,19 +18,18 @@ function createMonthlyCycle(amount: number, startMonthIndex: number): Cycle {
 }
 
 describe("runFinancialSimulation", () => {
-  const defaultAssets: FinancialAssets = {
-    assets: [
-      {
-        id: "1",
-        name: "現金",
-        baseAmount: 1000000,
-        returnRate: 0,
-        color: "#3B82F6",
-        contributionOptions: [],
-        withdrawalOptions: [],
-      },
-    ],
-  };
+  const defaultAssets: GroupedAsset[] = [
+    {
+      id: "1",
+      groupId: "group1",
+      name: "現金",
+      baseAmount: 1000000,
+      returnRate: 0,
+      color: "#3B82F6",
+      contributionOptions: [],
+      withdrawalOptions: [],
+    },
+  ];
 
   it("初期資産のみの場合、資産額が変わらないこと", () => {
     const result = runFinancialSimulation(defaultAssets, [], [], 5);

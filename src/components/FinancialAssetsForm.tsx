@@ -1,39 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useGroupManagement } from "@/hooks/useGroupManagement";
 import { useAssetManagement } from "@/hooks/useAssetManagement";
-
-export interface ContributionOption {
-  id: string;
-  startYear: number;
-  startMonth: number;
-  endYear: number;
-  endMonth: number;
-  monthlyAmount: number;
-}
-
-export interface WithdrawalOption {
-  id: string;
-  startYear: number;
-  startMonth: number;
-  endYear: number;
-  endMonth: number;
-  monthlyAmount: number;
-}
-
-export interface Asset {
-  id: string;
-  name: string;
-  returnRate: number;
-  color: string;
-  baseAmount: number;
-  contributionOptions: ContributionOption[];
-  withdrawalOptions: WithdrawalOption[];
-}
-
-export interface FinancialAssets {
-  assets: Asset[];
-}
+import {
+  GroupedAsset,
+  ContributionOption,
+  WithdrawalOption,
+} from "@/domains/group/types";
 
 interface FinancialAssetsFormProps {
   onSubmit?: () => void;
@@ -42,25 +16,25 @@ interface FinancialAssetsFormProps {
 export default function FinancialAssetsForm({
   onSubmit,
 }: FinancialAssetsFormProps) {
-  const { financialAssets: contextAssets, setFinancialAssets } =
-    useAssetManagement();
-  const [draftAssets, setDraftAssets] = useState<Asset[]>([]);
+  const { groups } = useGroupManagement();
+  const { upsertAssets, getAssetsByGroupId } = useAssetManagement();
+  const [selectedGroupId, setSelectedGroupId] = useState<string>(
+    groups.length > 0 ? groups[0].id : ""
+  );
+  const [draftAssets, setDraftAssets] = useState<GroupedAsset[]>([]);
 
-  // コンテキストの金融資産データをドラフトステートに同期
+  // コンテキストの金融資産データをドラフトステートに同期（グループIDでフィルタ）
   useEffect(() => {
-    if (contextAssets && contextAssets.assets) {
-      setDraftAssets(contextAssets.assets);
-    } else {
-      // 初期状態は空の配列
-      setDraftAssets([]);
-    }
-  }, [contextAssets]);
+    const groupAssets = getAssetsByGroupId(selectedGroupId);
+    setDraftAssets(groupAssets);
+  }, [getAssetsByGroupId, selectedGroupId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFinancialAssets({
-      assets: draftAssets,
-    });
+
+    // upsertAssetsを使用して資産データを一括更新
+    upsertAssets(selectedGroupId, draftAssets);
+
     if (onSubmit) {
       onSubmit();
     }
@@ -81,11 +55,17 @@ export default function FinancialAssetsForm({
   };
 
   const addAsset = () => {
-    const newAsset: Asset = {
+    if (!selectedGroupId) {
+      alert("グループを選択してください");
+      return;
+    }
+
+    const newAsset: GroupedAsset = {
       id: Date.now().toString(),
+      groupId: selectedGroupId,
       name: "",
       returnRate: 0.05,
-      color: getDefaultColor(draftAssets.length - 1),
+      color: getDefaultColor(draftAssets.length),
       baseAmount: 0,
       contributionOptions: [],
       withdrawalOptions: [],
@@ -95,7 +75,7 @@ export default function FinancialAssetsForm({
 
   const updateAsset = (
     id: string,
-    field: keyof Asset,
+    field: keyof GroupedAsset,
     value: string | number | boolean | ContributionOption[] | WithdrawalOption[]
   ) => {
     setDraftAssets(
@@ -106,11 +86,16 @@ export default function FinancialAssetsForm({
   };
 
   const removeAsset = (id: string) => {
-    setDraftAssets(draftAssets.filter((asset) => asset.id !== id));
+    if (confirm("この資産を削除しますか？")) {
+      setDraftAssets(draftAssets.filter((asset) => asset.id !== id));
+    }
   };
 
   const addContributionOption = (assetId: string) => {
-    const newOption: ContributionOption = {
+    const asset = draftAssets.find((a) => a.id === assetId);
+    if (!asset) return;
+
+    const newOption = {
       id: Date.now().toString(),
       startYear: 0,
       startMonth: 1,
@@ -119,55 +104,44 @@ export default function FinancialAssetsForm({
       monthlyAmount: 0,
     };
 
-    setDraftAssets(
-      draftAssets.map((asset) =>
-        asset.id === assetId
-          ? {
-              ...asset,
-              contributionOptions: [...asset.contributionOptions, newOption],
-            }
-          : asset
-      )
-    );
+    updateAsset(assetId, "contributionOptions", [
+      ...asset.contributionOptions,
+      newOption,
+    ]);
   };
 
   const updateContributionOption = (
     assetId: string,
     optionId: string,
-    field: keyof ContributionOption,
+    field: string,
     value: string | number
   ) => {
-    setDraftAssets(
-      draftAssets.map((asset) =>
-        asset.id === assetId
-          ? {
-              ...asset,
-              contributionOptions: asset.contributionOptions.map((option) =>
-                option.id === optionId ? { ...option, [field]: value } : option
-              ),
-            }
-          : asset
-      )
+    const asset = draftAssets.find((a) => a.id === assetId);
+    if (!asset) return;
+
+    const updatedOptions = asset.contributionOptions.map((option) =>
+      option.id === optionId ? { ...option, [field]: value } : option
     );
+
+    updateAsset(assetId, "contributionOptions", updatedOptions);
   };
 
   const removeContributionOption = (assetId: string, optionId: string) => {
-    setDraftAssets(
-      draftAssets.map((asset) =>
-        asset.id === assetId
-          ? {
-              ...asset,
-              contributionOptions: asset.contributionOptions.filter(
-                (option) => option.id !== optionId
-              ),
-            }
-          : asset
-      )
+    const asset = draftAssets.find((a) => a.id === assetId);
+    if (!asset) return;
+
+    const updatedOptions = asset.contributionOptions.filter(
+      (option) => option.id !== optionId
     );
+
+    updateAsset(assetId, "contributionOptions", updatedOptions);
   };
 
   const addWithdrawalOption = (assetId: string) => {
-    const newOption: WithdrawalOption = {
+    const asset = draftAssets.find((a) => a.id === assetId);
+    if (!asset) return;
+
+    const newOption = {
       id: Date.now().toString(),
       startYear: 0,
       startMonth: 1,
@@ -176,51 +150,37 @@ export default function FinancialAssetsForm({
       monthlyAmount: 0,
     };
 
-    setDraftAssets(
-      draftAssets.map((asset) =>
-        asset.id === assetId
-          ? {
-              ...asset,
-              withdrawalOptions: [...asset.withdrawalOptions, newOption],
-            }
-          : asset
-      )
-    );
+    updateAsset(assetId, "withdrawalOptions", [
+      ...asset.withdrawalOptions,
+      newOption,
+    ]);
   };
 
   const updateWithdrawalOption = (
     assetId: string,
     optionId: string,
-    field: keyof WithdrawalOption,
+    field: string,
     value: string | number
   ) => {
-    setDraftAssets(
-      draftAssets.map((asset) =>
-        asset.id === assetId
-          ? {
-              ...asset,
-              withdrawalOptions: asset.withdrawalOptions.map((option) =>
-                option.id === optionId ? { ...option, [field]: value } : option
-              ),
-            }
-          : asset
-      )
+    const asset = draftAssets.find((a) => a.id === assetId);
+    if (!asset) return;
+
+    const updatedOptions = asset.withdrawalOptions.map((option) =>
+      option.id === optionId ? { ...option, [field]: value } : option
     );
+
+    updateAsset(assetId, "withdrawalOptions", updatedOptions);
   };
 
   const removeWithdrawalOption = (assetId: string, optionId: string) => {
-    setDraftAssets(
-      draftAssets.map((asset) =>
-        asset.id === assetId
-          ? {
-              ...asset,
-              withdrawalOptions: asset.withdrawalOptions.filter(
-                (option) => option.id !== optionId
-              ),
-            }
-          : asset
-      )
+    const asset = draftAssets.find((a) => a.id === assetId);
+    if (!asset) return;
+
+    const updatedOptions = asset.withdrawalOptions.filter(
+      (option) => option.id !== optionId
     );
+
+    updateAsset(assetId, "withdrawalOptions", updatedOptions);
   };
 
   return (
@@ -230,6 +190,30 @@ export default function FinancialAssetsForm({
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* グループ選択 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            グループ
+          </label>
+          {groups.length === 0 ? (
+            <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+              グループを作成してください
+            </div>
+          ) : (
+            <select
+              value={selectedGroupId}
+              onChange={(e) => setSelectedGroupId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+            >
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
         <div>
           <div className="flex justify-between items-center mb-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -247,7 +231,7 @@ export default function FinancialAssetsForm({
           {draftAssets.length === 0 ? (
             <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
               <p className="text-gray-500 dark:text-gray-400">
-                資産を追加してください
+                このグループに資産を追加してください
               </p>
             </div>
           ) : (
@@ -677,9 +661,11 @@ export default function FinancialAssetsForm({
           )}
         </div>
 
+        {/* 送信ボタン */}
         <button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+          disabled={groups.length === 0}
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
         >
           資産情報を保存
         </button>

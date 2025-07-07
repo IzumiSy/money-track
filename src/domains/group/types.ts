@@ -31,4 +31,42 @@ export interface GroupedExpense {
   color: string;
 }
 
+/**
+ * グループに所属する金融資産
+ */
+export interface GroupedAsset {
+  id: string;
+  groupId: string;
+  name: string;
+  returnRate: number;
+  color: string;
+  baseAmount: number;
+  contributionOptions: ContributionOption[];
+  withdrawalOptions: WithdrawalOption[];
+}
+
+/**
+ * 積立オプション
+ */
+export interface ContributionOption {
+  id: string;
+  startYear: number;
+  startMonth: number;
+  endYear: number;
+  endMonth: number;
+  monthlyAmount: number;
+}
+
+/**
+ * 引き出しオプション
+ */
+export interface WithdrawalOption {
+  id: string;
+  startYear: number;
+  startMonth: number;
+  endYear: number;
+  endMonth: number;
+  monthlyAmount: number;
+}
+
 import { Cycle } from "@/domains/shared/Cycle";

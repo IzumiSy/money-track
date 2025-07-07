@@ -11,14 +11,14 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { FinancialAssets } from "./FinancialAssetsForm";
 import { useFinancialSimulation } from "@/hooks/useFinancialSimulation";
 import { useGroupManagement } from "@/hooks/useGroupManagement";
 import { useIncomeManagement } from "@/hooks/useIncomeManagement";
 import { useExpenseManagement } from "@/hooks/useExpenseManagement";
+import { GroupedAsset } from "@/domains/group/types";
 
 interface FinancialAssetsChartProps {
-  assets: FinancialAssets;
+  assets: GroupedAsset[];
 }
 
 const COLORS = {
@@ -141,8 +141,12 @@ export default function FinancialAssetsChart({
                 fill={COLORS.deposits}
                 name="資産"
               />
-              {assets.assets
-                .filter((asset) => asset.returnRate > 0)
+              {assets
+                .filter(
+                  (asset) =>
+                    asset.returnRate > 0 &&
+                    activeGroupIds.includes(asset.groupId)
+                )
                 .map((asset, index) => (
                   <Bar
                     key={asset.id}
@@ -163,24 +167,27 @@ export default function FinancialAssetsChart({
                     name={income.name}
                   />
                 ))}
-              {assets.assets.map((asset) => {
-                const hasWithdrawalOptions =
-                  asset.withdrawalOptions && asset.withdrawalOptions.length > 0;
-                if (!hasWithdrawalOptions) return null;
+              {assets
+                .filter((asset) => activeGroupIds.includes(asset.groupId))
+                .map((asset) => {
+                  const hasWithdrawalOptions =
+                    asset.withdrawalOptions &&
+                    asset.withdrawalOptions.length > 0;
+                  if (!hasWithdrawalOptions) return null;
 
-                return (
-                  <Bar
-                    key={`sellback_income_${asset.id}`}
-                    dataKey={`sellback_income_${asset.id}`}
-                    stackId="b"
-                    fill={asset.color}
-                    name={`${
-                      asset.name || `資産 #${assets.assets.indexOf(asset) + 1}`
-                    } 売却益`}
-                    opacity={0.8}
-                  />
-                );
-              })}
+                  return (
+                    <Bar
+                      key={`sellback_income_${asset.id}`}
+                      dataKey={`sellback_income_${asset.id}`}
+                      stackId="b"
+                      fill={asset.color}
+                      name={`${
+                        asset.name || `資産 #${assets.indexOf(asset) + 1}`
+                      } 売却益`}
+                      opacity={0.8}
+                    />
+                  );
+                })}
               {expenses
                 .filter((expense) => activeGroupIds.includes(expense.groupId))
                 .map((expense) => (
@@ -192,25 +199,27 @@ export default function FinancialAssetsChart({
                     name={expense.name}
                   />
                 ))}
-              {assets.assets.map((asset) => {
-                const hasContributionOptions =
-                  asset.contributionOptions &&
-                  asset.contributionOptions.length > 0;
-                if (!hasContributionOptions) return null;
+              {assets
+                .filter((asset) => activeGroupIds.includes(asset.groupId))
+                .map((asset) => {
+                  const hasContributionOptions =
+                    asset.contributionOptions &&
+                    asset.contributionOptions.length > 0;
+                  if (!hasContributionOptions) return null;
 
-                return (
-                  <Bar
-                    key={`investment_expense_${asset.id}`}
-                    dataKey={`investment_expense_${asset.id}`}
-                    stackId="c"
-                    fill={asset.color}
-                    name={`${
-                      asset.name || `資産 #${assets.assets.indexOf(asset) + 1}`
-                    } 積立`}
-                    opacity={0.7}
-                  />
-                );
-              })}
+                  return (
+                    <Bar
+                      key={`investment_expense_${asset.id}`}
+                      dataKey={`investment_expense_${asset.id}`}
+                      stackId="c"
+                      fill={asset.color}
+                      name={`${
+                        asset.name || `資産 #${assets.indexOf(asset) + 1}`
+                      } 積立`}
+                      opacity={0.7}
+                    />
+                  );
+                })}
             </BarChart>
           </ResponsiveContainer>
         </div>
