@@ -58,9 +58,11 @@ src/
 - **IncomeSource**: 収入データの計算用変換（GroupedIncomeから変換）
 - **ExpenseSource**: 支出データの計算用変換（GroupedExpenseから変換）
 - **AssetSource**: 資産データの計算用変換（GroupedAssetから変換）
-  - ReturnRateによる複利計算
+  - ReturnRateによる複利計算（初月は利息なし）
   - 積立・引き出しオプションの処理
   - 内部残高キャッシュによる正確な複利効果の実現
+  - getBalanceメソッドによる資産残高の取得
+  - **注意**: 現在のシステムはキャッシュフローベースのため、理想的な複利計算とは若干の差異があります
 
 ## 状態管理
 
