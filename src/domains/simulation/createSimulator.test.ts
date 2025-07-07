@@ -17,7 +17,6 @@ describe("unifiedCalculator.getBreakdown", () => {
     it("シミュレーション期間が0ヶ月の場合はエラーになる", () => {
       expect(() =>
         createSimulator(calculator, {
-          initialDeposits: 1000000,
           simulationMonths: 0,
         })
       ).toThrow(
@@ -28,7 +27,6 @@ describe("unifiedCalculator.getBreakdown", () => {
     it("シミュレーション期間が1201ヶ月の場合はエラーになる", () => {
       expect(() =>
         createSimulator(calculator, {
-          initialDeposits: 1000000,
           simulationMonths: 1201,
         })
       ).toThrow(
@@ -39,7 +37,6 @@ describe("unifiedCalculator.getBreakdown", () => {
     it("シミュレーション期間が1ヶ月の場合は正常に動作する", () => {
       expect(() =>
         createSimulator(calculator, {
-          initialDeposits: 1000000,
           simulationMonths: 1,
         })
       ).not.toThrow();
@@ -48,7 +45,6 @@ describe("unifiedCalculator.getBreakdown", () => {
     it("シミュレーション期間が1200ヶ月の場合は正常に動作する", () => {
       expect(() =>
         createSimulator(calculator, {
-          initialDeposits: 1000000,
           simulationMonths: 1200,
         })
       ).not.toThrow();
@@ -57,7 +53,6 @@ describe("unifiedCalculator.getBreakdown", () => {
     it("シミュレーション期間が負の値の場合はエラーになる", () => {
       expect(() =>
         createSimulator(calculator, {
-          initialDeposits: 1000000,
           simulationMonths: -5,
         })
       ).toThrow(
@@ -454,7 +449,6 @@ describe("unifiedCalculator.getBreakdown", () => {
       calculator.addSource(expense);
 
       const simulator = createSimulator(calculator, {
-        initialDeposits: 1000000,
         simulationMonths: 36, // 3年間
       });
 
@@ -466,12 +460,12 @@ describe("unifiedCalculator.getBreakdown", () => {
       expect(result.currentMonthlyCashFlow.expense).toBe(200000);
 
       // 月次データの確認
-      // 1ヶ月目: 1000000 + 100000 = 1100000
-      expect(result.monthlyData[0].deposits).toBe(1100000);
+      // 1ヶ月目: 0 + 100000 = 100000
+      expect(result.monthlyData[0].deposits).toBe(100000);
       expect(result.monthlyData[0].monthIndex).toBe(0);
 
-      // 12ヶ月目: 1000000 + 100000 * 12 = 2200000
-      expect(result.monthlyData[11].deposits).toBe(2200000);
+      // 12ヶ月目: 0 + 100000 * 12 = 1200000
+      expect(result.monthlyData[11].deposits).toBe(1200000);
       expect(result.monthlyData[11].monthIndex).toBe(11);
 
       // 収入・支出のブレークダウンを確認（月次）
@@ -482,12 +476,12 @@ describe("unifiedCalculator.getBreakdown", () => {
         200000
       );
 
-      // 24ヶ月目: 1000000 + 100000 * 24 = 3400000
-      expect(result.monthlyData[23].deposits).toBe(3400000);
+      // 24ヶ月目: 0 + 100000 * 24 = 2400000
+      expect(result.monthlyData[23].deposits).toBe(2400000);
       expect(result.monthlyData[23].monthIndex).toBe(23);
 
-      // 36ヶ月目: 1000000 + 100000 * 36 = 4600000
-      expect(result.monthlyData[35].deposits).toBe(4600000);
+      // 36ヶ月目: 0 + 100000 * 36 = 3600000
+      expect(result.monthlyData[35].deposits).toBe(3600000);
       expect(result.monthlyData[35].monthIndex).toBe(35);
 
       // hasDataフラグの確認

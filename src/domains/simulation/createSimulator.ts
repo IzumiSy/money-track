@@ -16,7 +16,7 @@ export function createSimulator(
   calculator: Calculator<CalculatorSource>,
   params: SimulationParams
 ): Simulator {
-  const { initialDeposits, simulationMonths } = params;
+  const { simulationMonths } = params;
 
   // シミュレーション期間の検証（1ヶ月から1200ヶ月まで）
   if (simulationMonths < 1 || simulationMonths > 1200) {
@@ -58,11 +58,8 @@ export function createSimulator(
         cumulativeCashFlow += monthlyCashFlow.income - monthlyCashFlow.expense;
       }
 
-      // 調整済み預金額（基本預金 + 純キャッシュフロー）
-      const adjustedDeposits = Math.max(
-        0,
-        initialDeposits + cumulativeCashFlow
-      );
+      // 調整済み預金額（累積キャッシュフローのみ）
+      const adjustedDeposits = Math.max(0, cumulativeCashFlow);
 
       // 月の収入・支出を集計するためのマップ（IDをキーとする）
       const monthlyIncomeMap = new Map<string, number>();
@@ -92,7 +89,7 @@ export function createSimulator(
 
     // データが存在するかどうかの判定
     const totalMonthlyCashFlow = calculator.calculateTotal(0);
-    const hasData = initialDeposits > 0 || totalMonthlyCashFlow.income > 0;
+    const hasData = totalMonthlyCashFlow.income > 0;
 
     return {
       monthlyData,

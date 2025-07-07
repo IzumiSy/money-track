@@ -178,9 +178,8 @@ export function runFinancialSimulation(
   });
 
   // シミュレーターを作成（年数を月数に変換）
-  // 初期預金額は0とし、各資産の初期額はAssetSource内で管理される
+  // 各資産の初期額はAssetSource内で管理される
   const simulator = createSimulator(unifiedCalculator, {
-    initialDeposits: 0,
     simulationMonths: simulationYears * 12,
   });
 
