@@ -193,11 +193,6 @@ describe("convertAssetToAssetSource", () => {
       totalExpense += result.expense;
     }
 
-    // デバッグ情報
-    console.log("Monthly incomes:", monthlyIncomes);
-    console.log("Total income:", totalIncome);
-    console.log("Total expense:", totalExpense);
-
     // 現在の実装では、収入の累積を計算している
     // 初期額50,000円 + 12ヶ月分の利息の合計
     const actualFinalBalance = totalIncome - totalExpense;
@@ -210,10 +205,6 @@ describe("convertAssetToAssetSource", () => {
       .slice(1)
       .reduce((sum, income) => sum + income, 0);
     const expectedCumulativeIncome = 50000 + totalInterest;
-
-    console.log("Expected asset balance (compound):", expectedAssetBalance);
-    console.log("Actual cumulative income:", actualFinalBalance);
-    console.log("Initial amount + total interest:", expectedCumulativeIncome);
 
     // 現在の実装は累積収入を計算しているため、
     // 複利計算の最終残高とは一致しない
@@ -232,25 +223,11 @@ describe("convertAssetToAssetSource", () => {
       getBalance: (monthIndex: number) => number;
     };
 
-    // 各月の残高を確認
-    console.log("Monthly balances (cash-flow based):");
-    const actualBalances: number[] = [];
-    for (let month = 0; month < 12; month++) {
-      const balance = sourceWithBalance.getBalance(month);
-      actualBalances.push(balance);
-      console.log(`Month ${month}: balance=${balance.toFixed(2)}`);
-    }
-
     // 12ヶ月後の残高を取得
     const balance11Months = sourceWithBalance.getBalance(11);
 
     // 理想的な複利計算の結果
     const idealBalance = 50000 * Math.pow(1 + 0.05 / 12, 12);
-
-    console.log("\nComparison:");
-    console.log("Actual balance (cash-flow based):", balance11Months);
-    console.log("Ideal balance (compound interest):", idealBalance);
-    console.log("Difference:", idealBalance - balance11Months);
 
     // 現在の実装はキャッシュフローベースのため、
     // 実際の複利計算とは異なる結果となる
