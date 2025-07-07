@@ -1,5 +1,8 @@
-import { FinancialAssets } from "@/components/FinancialAssetsForm";
-import { GroupedExpense, GroupedIncome } from "@/domains/group/types";
+import {
+  GroupedExpense,
+  GroupedIncome,
+  GroupedAsset,
+} from "@/domains/group/types";
 import { createCalculator } from "@/domains/shared/createCalculator";
 import { CalculatorSource } from "@/domains/shared/CalculatorSource";
 import { createSimulator } from "@/domains/simulation";
@@ -119,7 +122,7 @@ function convertToChartData(
  * @param activeGroupIds アクティブなグループIDのリスト（指定時はフィルタリング実行）
  */
 export function runFinancialSimulation(
-  assets: FinancialAssets,
+  assets: GroupedAsset[],
   expenses: GroupedExpense[],
   incomes: GroupedIncome[],
   simulationYears: number,
@@ -133,6 +136,10 @@ export function runFinancialSimulation(
   const filteredExpenses = activeGroupIds
     ? expenses.filter((expense) => activeGroupIds.includes(expense.groupId))
     : expenses;
+
+  const filteredAssets = activeGroupIds
+    ? assets.filter((asset) => activeGroupIds.includes(asset.groupId))
+    : assets;
 
   // 統合されたCalculatorインスタンスを作成
   const unifiedCalculator = createCalculator<CalculatorSource>();
@@ -148,7 +155,7 @@ export function runFinancialSimulation(
   });
 
   // すべての資産の初期額を合計（現金を含む）
-  const totalInitialAmount = assets.assets.reduce(
+  const totalInitialAmount = filteredAssets.reduce(
     (sum, asset) => sum + asset.baseAmount,
     0
   );

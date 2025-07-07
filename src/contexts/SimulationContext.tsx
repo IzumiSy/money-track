@@ -32,7 +32,7 @@ const initialState: SimulationState = {
     groups: [],
     expenses: [],
     incomes: [],
-    financialAssets: { assets: [] },
+    financialAssets: [],
   },
   savedSimulations: [],
   activeSimulationId: null,
@@ -81,6 +81,9 @@ function simulationReducer(
           ),
           expenses: state.currentData.expenses.filter(
             (expense) => expense.groupId !== groupId
+          ),
+          financialAssets: state.currentData.financialAssets.filter(
+            (asset) => asset.groupId !== groupId
           ),
         },
       };
@@ -153,24 +156,40 @@ function simulationReducer(
     }
 
     // 資産関連
-    case SIMULATION_ACTION_TYPES.SET_FINANCIAL_ASSETS: {
-      const assetsWithDefaults = action.payload.assets.map((asset, index) => ({
-        ...asset,
-        color:
-          asset.color ||
-          DEFAULT_ASSET_COLORS[index % DEFAULT_ASSET_COLORS.length],
-        baseAmount: asset.baseAmount ?? 0,
-        contributionOptions: asset.contributionOptions ?? [],
-        withdrawalOptions: asset.withdrawalOptions ?? [],
-      }));
+    case SIMULATION_ACTION_TYPES.UPSERT_ASSETS: {
+      const { groupId, assets } = action.payload;
+      const otherGroupAssets = state.currentData.financialAssets.filter(
+        (asset) => asset.groupId !== groupId
+      );
+
+      const processedAssets = assets.map((asset, index) => {
+        if (!asset.id || asset.id.startsWith("temp-")) {
+          return {
+            ...asset,
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            groupId,
+            color:
+              asset.color ||
+              DEFAULT_ASSET_COLORS[index % DEFAULT_ASSET_COLORS.length],
+            baseAmount: asset.baseAmount ?? 0,
+            contributionOptions: asset.contributionOptions ?? [],
+            withdrawalOptions: asset.withdrawalOptions ?? [],
+          };
+        }
+        return {
+          ...asset,
+          groupId,
+          baseAmount: asset.baseAmount ?? 0,
+          contributionOptions: asset.contributionOptions ?? [],
+          withdrawalOptions: asset.withdrawalOptions ?? [],
+        };
+      });
 
       return {
         ...state,
         currentData: {
           ...state.currentData,
-          financialAssets: {
-            assets: assetsWithDefaults,
-          },
+          financialAssets: [...otherGroupAssets, ...processedAssets],
         },
       };
     }

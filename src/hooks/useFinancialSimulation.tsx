@@ -1,12 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import { FinancialAssets } from "@/components/FinancialAssetsForm";
-import { GroupedExpense, GroupedIncome } from "@/domains/group/types";
+import {
+  GroupedExpense,
+  GroupedIncome,
+  GroupedAsset,
+} from "@/domains/group/types";
 import { runFinancialSimulation } from "@/domains/simulation/financialSimulation";
 
 interface UseFinancialSimulationProps {
-  assets: FinancialAssets;
+  assets: GroupedAsset[];
   expenses?: GroupedExpense[];
   incomes?: GroupedIncome[];
   simulationYears: number;

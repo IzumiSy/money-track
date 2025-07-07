@@ -1,5 +1,9 @@
-import { Group, GroupedExpense, GroupedIncome } from "@/domains/group/types";
-import { FinancialAssets } from "@/components/FinancialAssetsForm";
+import {
+  Group,
+  GroupedExpense,
+  GroupedIncome,
+  GroupedAsset,
+} from "@/domains/group/types";
 
 /**
  * シミュレーションのアクションタイプ定数
@@ -17,7 +21,7 @@ export const SIMULATION_ACTION_TYPES = {
   UPSERT_EXPENSES: "UPSERT_EXPENSES",
 
   // 資産関連
-  SET_FINANCIAL_ASSETS: "SET_FINANCIAL_ASSETS",
+  UPSERT_ASSETS: "UPSERT_ASSETS",
 
   // シミュレーション管理
   SAVE_SIMULATION: "SAVE_SIMULATION",
@@ -36,7 +40,7 @@ export interface SimulationCurrentData {
   groups: Group[];
   expenses: GroupedExpense[];
   incomes: GroupedIncome[];
-  financialAssets: FinancialAssets;
+  financialAssets: GroupedAsset[];
 }
 
 /**
@@ -84,8 +88,8 @@ export type SimulationAction =
 
   // 資産関連
   | {
-      type: typeof SIMULATION_ACTION_TYPES.SET_FINANCIAL_ASSETS;
-      payload: FinancialAssets;
+      type: typeof SIMULATION_ACTION_TYPES.UPSERT_ASSETS;
+      payload: { groupId: string; assets: GroupedAsset[] };
     }
 
   // シミュレーション管理

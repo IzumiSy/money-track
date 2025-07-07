@@ -4,12 +4,12 @@ import FinancialAssetsChart from "@/components/FinancialAssetsChart";
 import { useAssetManagement } from "@/hooks/useAssetManagement";
 
 export default function SimulatorPage() {
-  const { financialAssets } = useAssetManagement();
+  const { assets } = useAssetManagement();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* 資産状況チャート */}
-      <FinancialAssetsChart assets={financialAssets} />
+      <FinancialAssetsChart assets={assets} />
     </div>
   );
 }
