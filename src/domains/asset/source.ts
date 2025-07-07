@@ -25,14 +25,13 @@ class AssetSourceImpl implements CalculatorSource {
     // 初月（monthIndex === 0）の場合は初期額を収入として含める
     const initialAmount = monthIndex === 0 ? this.asset.baseAmount : 0;
 
-    // 前月の残高を取得
-    const previousBalance =
-      monthIndex > 0
-        ? this.getBalanceAt(monthIndex - 1)
-        : this.asset.baseAmount;
-
-    // 利息収入を計算
-    const interestIncome = previousBalance * this.monthlyReturnRate;
+    // 利息収入を計算（初月は利息なし）
+    let interestIncome = 0;
+    if (monthIndex > 0) {
+      // 前月の残高を取得
+      const previousBalance = this.getBalanceAt(monthIndex - 1);
+      interestIncome = previousBalance * this.monthlyReturnRate;
+    }
 
     // 積立・引き出しを計算
     const contribution = this.getContributionAt(monthIndex);
@@ -53,6 +52,13 @@ class AssetSourceImpl implements CalculatorSource {
       assetType: "investment",
       returnRate: this.asset.returnRate,
     };
+  }
+
+  /**
+   * 指定月の実際の資産残高を取得（公開メソッド）
+   */
+  getBalance(monthIndex: number): number {
+    return this.getBalanceAt(monthIndex);
   }
 
   /**
@@ -88,9 +94,18 @@ class AssetSourceImpl implements CalculatorSource {
         ? this.asset.baseAmount
         : this.balanceCache.get(lastCachedMonth)!;
 
+    // 0月目の残高をキャッシュ（初期額 + 0月目の積立 - 0月目の引き出し）
+    if (lastCachedMonth === -1) {
+      const month0Contribution = this.getContributionAt(0);
+      const month0Withdrawal = this.getWithdrawalAt(0);
+      balance = balance + month0Contribution - month0Withdrawal;
+      this.balanceCache.set(0, balance);
+      lastCachedMonth = 0;
+    }
+
     // lastCachedMonth + 1 から targetMonth まで計算
     for (let month = lastCachedMonth + 1; month <= targetMonth; month++) {
-      // 利息を加算
+      // 前月末の残高に利息を加算
       balance = balance * (1 + this.monthlyReturnRate);
 
       // 積立を加算
