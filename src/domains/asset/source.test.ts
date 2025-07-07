@@ -30,11 +30,11 @@ describe("convertAssetToAssetSource", () => {
     const asset = createMockAsset({ returnRate: 12 }); // 年利12%
     const source = convertAssetToAssetSource(asset);
 
-    // 初月の計算
+    // 初月の計算（初期額を含む）
     const result = source.calculate(0);
 
-    // 月利約1%（正確には0.9489%）の利息収入
-    expect(result.income).toBeCloseTo(9489, 0);
+    // 初期額100万円 + 月利約1%（正確には0.9489%）の利息収入
+    expect(result.income).toBeCloseTo(1009489, 0);
     expect(result.expense).toBe(0);
   });
 
@@ -42,10 +42,11 @@ describe("convertAssetToAssetSource", () => {
     const asset = createMockAsset({ returnRate: 12 }); // 年利12%
     const source = convertAssetToAssetSource(asset);
 
-    // 1ヶ月目
+    // 1ヶ月目（初期額は含まない）
     const month1 = source.calculate(1);
-    // 2ヶ月目は1ヶ月目の残高に対して利息計算
-    expect(month1.income).toBeGreaterThan(9489); // 複利効果で初月より増加
+    // 1ヶ月目は初月の残高に対して利息計算
+    expect(month1.income).toBeGreaterThan(9489); // 複利効果で基本利息より増加
+    expect(month1.income).toBeLessThan(20000); // 初期額は含まないので大幅に少ない
   });
 
   it("積立オプションが正しく処理される", () => {
@@ -63,13 +64,13 @@ describe("convertAssetToAssetSource", () => {
     });
     const source = convertAssetToAssetSource(asset);
 
-    // 0ヶ月目（1年1月）
+    // 0ヶ月目（1年1月）- 初期額 + 利息 + 積立
     const month0 = source.calculate(0);
-    expect(month0.income).toBeGreaterThan(50000); // 利息 + 積立
+    expect(month0.income).toBeGreaterThan(1050000); // 初期額100万 + 利息 + 積立5万
 
     // 12ヶ月目（2年1月）- 積立期間外
     const month12 = source.calculate(12);
-    expect(month12.income).toBeLessThan(50000); // 利息のみ
+    expect(month12.income).toBeLessThan(50000); // 利息のみ（初期額なし）
   });
 
   it("引き出しオプションが正しく処理される", () => {
@@ -133,7 +134,11 @@ describe("convertAssetToAssetSource", () => {
     });
     const source = convertAssetToAssetSource(asset);
 
-    // 3ヶ月目（1年4月）- 両方の積立が有効
+    // 0ヶ月目（1年1月）- 初期額 + 利息 + 積立1
+    const month0 = source.calculate(0);
+    expect(month0.income).toBeGreaterThan(1030000); // 初期額100万 + 利息 + 30000
+
+    // 3ヶ月目（1年4月）- 両方の積立が有効（初期額なし）
     const month3 = source.calculate(3);
     expect(month3.income).toBeGreaterThan(50000); // 利息 + 30000 + 20000
 

@@ -22,6 +22,9 @@ class AssetSourceImpl implements CalculatorSource {
   }
 
   calculate(monthIndex: number): CashFlowChange {
+    // 初月（monthIndex === 0）の場合は初期額を収入として含める
+    const initialAmount = monthIndex === 0 ? this.asset.baseAmount : 0;
+
     // 前月の残高を取得
     const previousBalance =
       monthIndex > 0
@@ -36,9 +39,9 @@ class AssetSourceImpl implements CalculatorSource {
     const withdrawal = this.getWithdrawalAt(monthIndex);
 
     // CashFlowChangeとして返す
-    // 利息と積立は収入、引き出しは支出として扱う
+    // 初期額、利息と積立は収入、引き出しは支出として扱う
     return {
-      income: interestIncome + contribution,
+      income: initialAmount + interestIncome + contribution,
       expense: withdrawal,
     };
   }

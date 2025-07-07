@@ -177,15 +177,10 @@ export function runFinancialSimulation(
     unifiedCalculator.addSource(convertAssetToAssetSource(asset));
   });
 
-  // すべての資産の初期額を合計（現金を含む）
-  const totalInitialAmount = filteredAssets.reduce(
-    (sum, asset) => sum + asset.baseAmount,
-    0
-  );
-
   // シミュレーターを作成（年数を月数に変換）
+  // 初期預金額は0とし、各資産の初期額はAssetSource内で管理される
   const simulator = createSimulator(unifiedCalculator, {
-    initialDeposits: totalInitialAmount,
+    initialDeposits: 0,
     simulationMonths: simulationYears * 12,
   });
 
