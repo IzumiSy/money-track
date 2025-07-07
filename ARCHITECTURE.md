@@ -28,6 +28,7 @@ src/
 │   ├── group/            # グループドメイン
 │   ├── income/           # 収入ドメイン
 │   ├── expense/          # 支出ドメイン
+│   ├── asset/            # 資産ドメイン
 │   └── simulation/       # シミュレーションドメイン
 ├── hooks/                # カスタムフック
 └── utils/                # ユーティリティ
@@ -53,9 +54,13 @@ src/
 - **SimulationResult**: シミュレーション結果
 - **MonthlySimulationData**: 月次シミュレーションデータ
 
-### 収入・支出ドメイン
+### 収入・支出・資産ドメイン
 - **IncomeSource**: 収入データの計算用変換（GroupedIncomeから変換）
 - **ExpenseSource**: 支出データの計算用変換（GroupedExpenseから変換）
+- **AssetSource**: 資産データの計算用変換（GroupedAssetから変換）
+  - ReturnRateによる複利計算
+  - 積立・引き出しオプションの処理
+  - 内部残高キャッシュによる正確な複利効果の実現
 
 ## 状態管理
 
@@ -137,6 +142,7 @@ src/
 ### テストファイル
 - `createSimulator.test.ts`: シミュレーター生成のテスト
 - `useFinancialSimulation.test.ts`: カスタムフックのテスト
+- `asset/source.test.ts`: 資産ソースの複利計算・積立・引き出しのテスト
 
 ## パフォーマンス最適化
 
