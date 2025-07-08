@@ -47,10 +47,16 @@ function convertToChartData(
 
     if (!lastMonth) continue;
 
+    // 資産の合計残高を計算
+    let totalAssetBalance = 0;
+    lastMonth.assetBalances.forEach((balance) => {
+      totalAssetBalance += balance;
+    });
+
     const chartData: SimulationDataPoint = {
       year: `${year + 1}年目`,
-      deposits: lastMonth.deposits,
-      total: lastMonth.deposits,
+      deposits: totalAssetBalance,
+      total: totalAssetBalance,
     };
 
     // unifiedCalculatorから全てのソースを取得
@@ -114,7 +120,14 @@ function convertToChartData(
     hasData,
     netMonthlyCashFlow: currentMonthlyCashFlow.net,
     totalBaseAmount: 0, // 投資は無視するため0
-    initialTotal: monthlyData[0]?.deposits || 0,
+    initialTotal: (() => {
+      if (!monthlyData[0]) return 0;
+      let total = 0;
+      monthlyData[0].assetBalances.forEach((balance) => {
+        total += balance;
+      });
+      return total;
+    })(),
   };
 }
 
@@ -164,15 +177,8 @@ export function runFinancialSimulation(
     unifiedCalculator.addSource(convertAssetToAssetSource(asset));
   });
 
-  // すべての資産の初期額を合計（現金を含む）
-  const totalInitialAmount = filteredAssets.reduce(
-    (sum, asset) => sum + asset.baseAmount,
-    0
-  );
-
   // シミュレーターを作成（年数を月数に変換）
   const simulator = createSimulator(unifiedCalculator, {
-    initialDeposits: totalInitialAmount,
     simulationMonths: simulationYears * 12,
   });
 
