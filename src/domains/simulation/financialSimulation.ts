@@ -80,9 +80,9 @@ function convertToChartData(
       });
     });
 
-    // 各支出項目を個別にマイナスのバーとして追加（資産の積立も含む）
+    // 各支出項目を個別にマイナスのバーとして追加
     sources
-      .filter((source) => source.type === "expense" || source.type === "asset")
+      .filter((source) => source.type === "expense")
       .forEach((expenseSource) => {
         const expenseKey = `expense_${expenseSource.id}`;
         const yearlyExpenseAmount = yearlyExpenseMap.get(expenseSource.id) || 0;
@@ -91,13 +91,35 @@ function convertToChartData(
         }
       });
 
-    // 各収入項目を個別にPositiveバーとして追加（資産の引き出しも含む）
+    // 資産の積立（支出）を特別なキーで追加
     sources
-      .filter((source) => source.type === "income" || source.type === "asset")
+      .filter((source) => source.type === "asset")
+      .forEach((assetSource) => {
+        const yearlyExpenseAmount = yearlyExpenseMap.get(assetSource.id) || 0;
+        if (yearlyExpenseAmount > 0) {
+          const expenseKey = `investment_expense_${assetSource.id}`;
+          chartData[expenseKey] = -Math.round(yearlyExpenseAmount);
+        }
+      });
+
+    // 各収入項目を個別にPositiveバーとして追加
+    sources
+      .filter((source) => source.type === "income")
       .forEach((incomeSource) => {
         const incomeKey = `income_${incomeSource.id}`;
         const yearlyIncomeAmount = yearlyIncomeMap.get(incomeSource.id) || 0;
         if (yearlyIncomeAmount > 0) {
+          chartData[incomeKey] = Math.round(yearlyIncomeAmount);
+        }
+      });
+
+    // 資産の引き出し（収入）を特別なキーで追加
+    sources
+      .filter((source) => source.type === "asset")
+      .forEach((assetSource) => {
+        const yearlyIncomeAmount = yearlyIncomeMap.get(assetSource.id) || 0;
+        if (yearlyIncomeAmount > 0) {
+          const incomeKey = `sellback_income_${assetSource.id}`;
           chartData[incomeKey] = Math.round(yearlyIncomeAmount);
         }
       });
