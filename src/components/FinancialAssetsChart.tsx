@@ -142,11 +142,7 @@ export default function FinancialAssetsChart({
                 name="総資産"
               />
               {assets
-                .filter(
-                  (asset) =>
-                    asset.returnRate > 0 &&
-                    activeGroupIds.includes(asset.groupId)
-                )
+                .filter((asset) => activeGroupIds.includes(asset.groupId))
                 .map((asset, index) => (
                   <Bar
                     key={asset.id}

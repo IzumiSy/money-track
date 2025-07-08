@@ -59,6 +59,12 @@ function convertToChartData(
       total: totalAssetBalance,
     };
 
+    // 各資産の個別残高を追加
+    lastMonth.assetBalances.forEach((balance, assetId) => {
+      const investmentKey = `investment_${assetId}`;
+      chartData[investmentKey] = Math.round(balance);
+    });
+
     // unifiedCalculatorから全てのソースを取得
     const sources = unifiedCalculator.getSources();
 
