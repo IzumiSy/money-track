@@ -18,6 +18,7 @@ export interface GroupedIncome {
   name: string;
   cycles: Cycle[];
   color: string;
+  assetSourceId: string; // 収入が加算される資産のID
 }
 
 /**
@@ -29,6 +30,7 @@ export interface GroupedExpense {
   name: string;
   cycles: Cycle[];
   color: string;
+  assetSourceId: string; // 支出が減算される資産のID
 }
 
 /**

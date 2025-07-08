@@ -46,7 +46,9 @@ src/
 ### グループドメイン (`domains/group/`)
 - **Group**: 収入・支出・金融資産をまとめるグループ
 - **GroupedIncome**: グループに所属する収入
+  - `assetSourceId`: 収入が加算される対象資産のID
 - **GroupedExpense**: グループに所属する支出
+  - `assetSourceId`: 支出が減算される対象資産のID
 - **GroupedAsset**: グループに所属する金融資産
 
 ### シミュレーションドメイン (`domains/simulation/`)
@@ -57,7 +59,9 @@ src/
 
 ### 収入・支出・金融資産ドメイン
 - **IncomeSource**: 収入データの計算用変換（GroupedIncomeから変換）
+  - 収入は指定された資産（assetSourceId）に加算される
 - **ExpenseSource**: 支出データの計算用変換（GroupedExpenseから変換）
+  - 支出は指定された資産（assetSourceId）から減算される
 - **AssetSource**: 金融資産データの計算用変換（GroupedAssetから変換）
   - 積立オプションを支出として計算
   - 引き出しオプションを収入として計算
@@ -100,14 +104,21 @@ src/
 1. ユーザーがフォームに入力
 2. ドメイン別フック経由でSimulationContextを更新
 3. useFinancialSimulationフックでシミュレーション実行
+   - 収入は対象資産の残高を増加
+   - 支出は対象資産の残高を減少
+   - 資産の積立・引き出しも同時に計算
 4. 結果をチャートコンポーネントに表示
 
 ## 主要コンポーネント
 
 ### フォームコンポーネント
 - **FinancialAssetsForm**: 金融資産入力フォーム
-- **IncomeForm**: グループ別収入入力フォーム（グループ選択必須）
-- **ExpensesForm**: グループ別支出入力フォーム（グループ選択必須）
+- **IncomeForm**: グループ別収入入力フォーム
+  - グループ選択必須
+  - 対象資産選択必須（収入が加算される資産）
+- **ExpensesForm**: グループ別支出入力フォーム
+  - グループ選択必須
+  - 対象資産選択必須（支出が減算される資産）
 - **GroupSelector**: グループ選択コンポーネント
 
 ### 表示コンポーネント

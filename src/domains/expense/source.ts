@@ -22,6 +22,7 @@ export function convertExpenseToExpenseSource(
     getMetadata: () => ({
       color: expense.color,
       originalExpense: expense,
+      assetSourceId: expense.assetSourceId,
     }),
   };
 }

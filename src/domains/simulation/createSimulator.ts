@@ -89,6 +89,28 @@ export function createSimulator(
             currentBalance + cashFlowChange.expense - cashFlowChange.income;
           assetBalances.set(sourceId, newBalance);
         }
+
+        // 収入タイプの場合、対象資産の残高を増加
+        if (source?.type === "income") {
+          const metadata = source.getMetadata?.();
+          const assetSourceId = metadata?.assetSourceId as string | undefined;
+          if (assetSourceId) {
+            const currentBalance = assetBalances.get(assetSourceId) || 0;
+            const newBalance = currentBalance + cashFlowChange.income;
+            assetBalances.set(assetSourceId, newBalance);
+          }
+        }
+
+        // 支出タイプの場合、対象資産の残高を減少
+        if (source?.type === "expense") {
+          const metadata = source.getMetadata?.();
+          const assetSourceId = metadata?.assetSourceId as string | undefined;
+          if (assetSourceId) {
+            const currentBalance = assetBalances.get(assetSourceId) || 0;
+            const newBalance = currentBalance - cashFlowChange.expense;
+            assetBalances.set(assetSourceId, newBalance);
+          }
+        }
       });
 
       // 現在の資産残高をコピー

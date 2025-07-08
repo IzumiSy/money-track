@@ -22,6 +22,7 @@ export function convertIncomeToIncomeSource(
     getMetadata: () => ({
       color: income.color,
       originalIncome: income,
+      assetSourceId: income.assetSourceId,
     }),
   };
 }

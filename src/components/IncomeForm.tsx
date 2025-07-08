@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useGroupManagement } from "@/hooks/useGroupManagement";
 import { useIncomeManagement } from "@/hooks/useIncomeManagement";
+import { useAssetManagement } from "@/hooks/useAssetManagement";
 import { GroupedIncome } from "@/domains/group/types";
 import { Cycle, CycleType } from "@/domains/shared/Cycle";
 import {
@@ -17,6 +18,7 @@ interface IncomeFormProps {
 export default function IncomeForm({ onSubmit }: IncomeFormProps) {
   const { groups } = useGroupManagement();
   const { upsertIncomes, getIncomesByGroupId } = useIncomeManagement();
+  const { getAssetsByGroupId } = useAssetManagement();
   const [selectedGroupId, setSelectedGroupId] = useState<string>(
     groups.length > 0 ? groups[0].id : ""
   );
@@ -49,12 +51,19 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
       return;
     }
 
+    const groupAssets = getAssetsByGroupId(selectedGroupId);
+    if (groupAssets.length === 0) {
+      alert("先に資産を作成してください");
+      return;
+    }
+
     const newIncome: GroupedIncome = {
       id: Date.now().toString(),
       groupId: selectedGroupId,
       name: "",
       cycles: [],
       color: getDefaultColor(draftIncomes.length),
+      assetSourceId: groupAssets[0].id, // デフォルトで最初の資産を選択
     };
     setDraftIncomes([...draftIncomes, newIncome]);
   };
@@ -196,7 +205,7 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     {/* 収入名 */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -211,6 +220,30 @@ export default function IncomeForm({ onSubmit }: IncomeFormProps) {
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
                         placeholder="例：給与、副業、投資収益"
                       />
+                    </div>
+
+                    {/* 対象資産 */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        対象資産
+                      </label>
+                      <select
+                        value={income.assetSourceId}
+                        onChange={(e) =>
+                          handleUpdateIncome(
+                            income.id,
+                            "assetSourceId",
+                            e.target.value
+                          )
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
+                      >
+                        {getAssetsByGroupId(selectedGroupId).map((asset) => (
+                          <option key={asset.id} value={asset.id}>
+                            {asset.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     {/* グラフの色 */}
