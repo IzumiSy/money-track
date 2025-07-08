@@ -13,8 +13,6 @@ import { convertAssetToAssetSource } from "@/domains/asset/source";
 // チャート用のデータポイント型
 interface SimulationDataPoint {
   year: string;
-  deposits: number;
-  total: number;
   [key: string]: string | number; // 動的なキー（investment_*, income_*, expense_*）
 }
 
@@ -47,16 +45,8 @@ function convertToChartData(
 
     if (!lastMonth) continue;
 
-    // 資産の合計残高を計算
-    let totalAssetBalance = 0;
-    lastMonth.assetBalances.forEach((balance) => {
-      totalAssetBalance += balance;
-    });
-
     const chartData: SimulationDataPoint = {
       year: `${year + 1}年目`,
-      deposits: totalAssetBalance,
-      total: totalAssetBalance,
     };
 
     // 各資産の個別残高を追加
@@ -138,8 +128,6 @@ function convertToChartData(
     yearlyAggregatedData.length - 1
   ] || {
     year: "0年目",
-    deposits: 0,
-    total: 0,
   };
 
   return {

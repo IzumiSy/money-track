@@ -39,8 +39,7 @@ describe("runFinancialSimulation", () => {
 
     // 各年の資産額が初期値と同じであること
     result.simulationData.forEach((data) => {
-      expect(data.deposits).toBe(1000000);
-      expect(data.total).toBe(1000000);
+      expect(data.investment_1).toBe(1000000);
     });
   });
 
@@ -61,8 +60,8 @@ describe("runFinancialSimulation", () => {
     expect(result.simulationData).toHaveLength(2);
 
     // 収入は資産残高に影響しない（積立設定がないため）
-    expect(result.simulationData[0].deposits).toBe(1000000);
-    expect(result.simulationData[1].deposits).toBe(1000000);
+    expect(result.simulationData[0].investment_1).toBe(1000000);
+    expect(result.simulationData[1].investment_1).toBe(1000000);
   });
 
   it("支出がある場合でも、現金資産は変わらないこと", () => {
@@ -81,8 +80,8 @@ describe("runFinancialSimulation", () => {
     expect(result.hasData).toBe(true);
 
     // 支出は資産残高に影響しない（引き出し設定がないため）
-    expect(result.simulationData[0].deposits).toBe(1000000);
-    expect(result.simulationData[1].deposits).toBe(1000000);
+    expect(result.simulationData[0].investment_1).toBe(1000000);
+    expect(result.simulationData[1].investment_1).toBe(1000000);
   });
 
   it("資産の積立がある場合、資産が増加すること", () => {
@@ -113,9 +112,9 @@ describe("runFinancialSimulation", () => {
     expect(result.hasData).toBe(true);
 
     // 1年目: 初期資産 + 12ヶ月分の積立
-    expect(result.simulationData[0].deposits).toBe(1000000 + 50000 * 12);
+    expect(result.simulationData[0].investment_1).toBe(1000000 + 50000 * 12);
     // 2年目: 1年目の資産 + 12ヶ月分の積立
-    expect(result.simulationData[1].deposits).toBe(1000000 + 50000 * 24);
+    expect(result.simulationData[1].investment_1).toBe(1000000 + 50000 * 24);
   });
 
   it("資産の引き出しがある場合、資産が減少すること", () => {
@@ -146,9 +145,9 @@ describe("runFinancialSimulation", () => {
     expect(result.hasData).toBe(true);
 
     // 1年目: 初期資産 - 12ヶ月分の引き出し
-    expect(result.simulationData[0].deposits).toBe(5000000 - 100000 * 12);
+    expect(result.simulationData[0].investment_1).toBe(5000000 - 100000 * 12);
     // 2年目: 1年目の資産 - 12ヶ月分の引き出し
-    expect(result.simulationData[1].deposits).toBe(5000000 - 100000 * 24);
+    expect(result.simulationData[1].investment_1).toBe(5000000 - 100000 * 24);
   });
 
   it("複数の資産がある場合、合計が正しく計算されること", () => {
@@ -188,7 +187,8 @@ describe("runFinancialSimulation", () => {
 
     expect(result.hasData).toBe(true);
 
-    // 1年目: (現金100万 + 投資信託50万) + 投資信託積立3万×12ヶ月
-    expect(result.simulationData[0].deposits).toBe(1500000 + 30000 * 12);
+    // 1年目: 現金100万はそのまま、投資信託は50万 + 積立3万×12ヶ月
+    expect(result.simulationData[0].investment_1).toBe(1000000);
+    expect(result.simulationData[0].investment_2).toBe(500000 + 30000 * 12);
   });
 });

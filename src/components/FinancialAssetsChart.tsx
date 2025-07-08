@@ -135,12 +135,6 @@ export default function FinancialAssetsChart({
                 labelFormatter={(label) => `${label}`}
               />
               <Legend />
-              <Bar
-                dataKey="deposits"
-                stackId="a"
-                fill={COLORS.deposits}
-                name="総資産"
-              />
               {assets
                 .filter((asset) => activeGroupIds.includes(asset.groupId))
                 .map((asset, index) => (
