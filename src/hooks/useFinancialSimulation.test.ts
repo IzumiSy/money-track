@@ -43,7 +43,7 @@ describe("runFinancialSimulation", () => {
     });
   });
 
-  it("収入がある場合でも、現金資産は変わらないこと", () => {
+  it("収入がある場合、対象資産が増加すること", () => {
     const incomes: GroupedIncome[] = [
       {
         id: "income1",
@@ -51,6 +51,7 @@ describe("runFinancialSimulation", () => {
         name: "給与",
         cycles: [createMonthlyCycle(100000, 0)], // 月10万円、1年1ヶ月目から
         color: "#10B981",
+        assetSourceId: "1", // 現金資産に紐付け
       },
     ];
 
@@ -59,12 +60,12 @@ describe("runFinancialSimulation", () => {
     expect(result.hasData).toBe(true);
     expect(result.simulationData).toHaveLength(2);
 
-    // 収入は資産残高に影響しない（積立設定がないため）
-    expect(result.simulationData[0].investment_1).toBe(1000000);
-    expect(result.simulationData[1].investment_1).toBe(1000000);
+    // 収入により資産残高が増加する
+    expect(result.simulationData[0].investment_1).toBe(1000000 + 100000 * 12); // 初期資産 + 月10万円×12ヶ月
+    expect(result.simulationData[1].investment_1).toBe(1000000 + 100000 * 24); // 初期資産 + 月10万円×24ヶ月
   });
 
-  it("支出がある場合でも、現金資産は変わらないこと", () => {
+  it("支出がある場合、対象資産が減少すること", () => {
     const expenses: GroupedExpense[] = [
       {
         id: "expense1",
@@ -72,6 +73,7 @@ describe("runFinancialSimulation", () => {
         name: "家賃",
         cycles: [createMonthlyCycle(20000, 0)], // 月2万円、1年1ヶ月目から
         color: "#EF4444",
+        assetSourceId: "1", // 現金資産に紐付け
       },
     ];
 
@@ -79,9 +81,9 @@ describe("runFinancialSimulation", () => {
 
     expect(result.hasData).toBe(true);
 
-    // 支出は資産残高に影響しない（引き出し設定がないため）
-    expect(result.simulationData[0].investment_1).toBe(1000000);
-    expect(result.simulationData[1].investment_1).toBe(1000000);
+    // 支出により資産残高が減少する
+    expect(result.simulationData[0].investment_1).toBe(1000000 - 20000 * 12); // 初期資産 - 月2万円×12ヶ月
+    expect(result.simulationData[1].investment_1).toBe(1000000 - 20000 * 24); // 初期資産 - 月2万円×24ヶ月
   });
 
   it("資産の積立がある場合、資産が増加すること", () => {
