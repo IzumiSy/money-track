@@ -10,6 +10,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  Brush,
 } from "recharts";
 import { useFinancialSimulation } from "@/hooks/useFinancialSimulation";
 import { useGroupManagement } from "@/hooks/useGroupManagement";
@@ -130,6 +131,7 @@ export default function FinancialAssetsChart({
                 labelFormatter={(label) => `${label}`}
               />
               <Legend />
+              <Brush dataKey="year" height={30} stroke="#8884d8" />
               {assets
                 .filter((asset) => activeGroupIds.includes(asset.groupId))
                 .map((asset, index) => (
