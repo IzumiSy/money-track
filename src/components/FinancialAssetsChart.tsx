@@ -21,11 +21,6 @@ interface FinancialAssetsChartProps {
   assets: GroupedAsset[];
 }
 
-const COLORS = {
-  deposits: "#3B82F6", // Blue
-  income: "#10B981", // Green
-};
-
 export default function FinancialAssetsChart({
   assets,
 }: FinancialAssetsChartProps) {
