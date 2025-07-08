@@ -139,7 +139,7 @@ export default function FinancialAssetsChart({
                 dataKey="deposits"
                 stackId="a"
                 fill={COLORS.deposits}
-                name="資産"
+                name="総資産"
               />
               {assets
                 .filter(
