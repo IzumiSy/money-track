@@ -28,6 +28,7 @@ src/
 │   ├── group/            # グループドメイン
 │   ├── income/           # 収入ドメイン
 │   ├── expense/          # 支出ドメイン
+│   ├── asset/            # 金融資産ドメイン
 │   └── simulation/       # シミュレーションドメイン
 ├── hooks/                # カスタムフック
 └── utils/                # ユーティリティ
@@ -43,9 +44,10 @@ src/
 - **TimeRange**: 時間範囲の管理
 
 ### グループドメイン (`domains/group/`)
-- **Group**: 収入・支出をまとめるグループ
+- **Group**: 収入・支出・金融資産をまとめるグループ
 - **GroupedIncome**: グループに所属する収入
 - **GroupedExpense**: グループに所属する支出
+- **GroupedAsset**: グループに所属する金融資産
 
 ### シミュレーションドメイン (`domains/simulation/`)
 - **Simulator**: 長期財務シミュレーション
@@ -53,9 +55,12 @@ src/
 - **SimulationResult**: シミュレーション結果
 - **MonthlySimulationData**: 月次シミュレーションデータ
 
-### 収入・支出ドメイン
+### 収入・支出・金融資産ドメイン
 - **IncomeSource**: 収入データの計算用変換（GroupedIncomeから変換）
 - **ExpenseSource**: 支出データの計算用変換（GroupedExpenseから変換）
+- **AssetSource**: 金融資産データの計算用変換（GroupedAssetから変換）
+  - 積立オプションを支出として計算
+  - 引き出しオプションを収入として計算
 
 ## 状態管理
 
@@ -83,7 +88,8 @@ src/
   - `getExpensesByGroupId`: グループ別支出取得
 
 - **useAssetManagement**: 金融資産管理
-  - `setFinancialAssets`: 金融資産データの更新
+  - `upsertAssets`: 金融資産データの効率的な一括更新
+  - `getAssetsByGroupId`: グループ別金融資産取得
 
 - **useSimulationManagement**: シミュレーション管理
   - `saveSimulation`: 現在のデータをシミュレーションとして保存
@@ -137,6 +143,7 @@ src/
 ### テストファイル
 - `createSimulator.test.ts`: シミュレーター生成のテスト
 - `useFinancialSimulation.test.ts`: カスタムフックのテスト
+- `asset/source.test.ts`: 金融資産ソース変換のテスト
 
 ## パフォーマンス最適化
 
