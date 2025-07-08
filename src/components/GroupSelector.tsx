@@ -93,7 +93,7 @@ export default function GroupSelector() {
         {groups.map((group) => (
           <div
             key={group.id}
-            className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+            className="flex items-center justify-between py-1 px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
           >
             <div className="flex items-center flex-1">
               <input

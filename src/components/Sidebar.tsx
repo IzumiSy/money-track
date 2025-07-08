@@ -99,7 +99,7 @@ export default function Sidebar() {
             <li key={item.href}>
               <Link
                 href={item.href}
-                className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors duration-200 ${
+                className={`w-full flex items-center px-4 py-2 text-left rounded-lg transition-colors duration-200 ${
                   isActive(item.href)
                     ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
                     : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
