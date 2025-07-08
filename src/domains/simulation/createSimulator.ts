@@ -16,7 +16,7 @@ export function createSimulator(
   calculator: Calculator<CalculatorSource>,
   params: SimulationParams
 ): Simulator {
-  const { initialDeposits, simulationMonths } = params;
+  const { simulationMonths } = params;
 
   // シミュレーション期間の検証（1ヶ月から1200ヶ月まで）
   if (simulationMonths < 1 || simulationMonths > 1200) {
@@ -46,53 +46,68 @@ export function createSimulator(
     // 月額のキャッシュフローを計算（現在時点での有効な収入・支出）
     const currentMonthlyCashFlow = getCurrentMonthlyCashFlow();
 
+    // 資産の初期残高を設定
+    const assetBalances = new Map<string, number>();
+    const sources = calculator.getSources();
+
+    sources.forEach((source) => {
+      if (source.type === "asset") {
+        const metadata = source.getMetadata?.();
+        const baseAmount = (metadata?.baseAmount as number) || 0;
+        assetBalances.set(source.id, baseAmount);
+      }
+    });
+
     // 月ごとのシミュレーションデータを計算
     const monthlyData: MonthlySimulationData[] = [];
 
     for (let monthIndex = 0; monthIndex < simulationMonths; monthIndex++) {
-      // 累積キャッシュフローを計算
-      let cumulativeCashFlow = 0;
-
-      for (let m = 0; m <= monthIndex; m++) {
-        const monthlyCashFlow = calculator.calculateTotal(m);
-        cumulativeCashFlow += monthlyCashFlow.income - monthlyCashFlow.expense;
-      }
-
-      // 調整済み預金額（基本預金 + 純キャッシュフロー）
-      const adjustedDeposits = Math.max(
-        0,
-        initialDeposits + cumulativeCashFlow
-      );
-
       // 月の収入・支出を集計するためのマップ（IDをキーとする）
       const monthlyIncomeMap = new Map<string, number>();
       const monthlyExpenseMap = new Map<string, number>();
+      const monthlyAssetBalances = new Map<string, number>();
 
       // 月のbreakdownを取得して、収入・支出を集計
       const monthlyBreakdown = calculator.getBreakdown(monthIndex);
 
       // breakdownから全ての収入・支出を集計（キーはsourceId）
       Object.entries(monthlyBreakdown).forEach(([sourceId, cashFlowChange]) => {
+        const source = sources.find((s) => s.id === sourceId);
+
         if (cashFlowChange.income > 0) {
           monthlyIncomeMap.set(sourceId, cashFlowChange.income);
         }
         if (cashFlowChange.expense > 0) {
           monthlyExpenseMap.set(sourceId, cashFlowChange.expense);
         }
+
+        // 資産タイプの場合、残高を更新
+        if (source?.type === "asset") {
+          const currentBalance = assetBalances.get(sourceId) || 0;
+          // 積立（expense）で残高増加、引き出し（income）で残高減少
+          const newBalance =
+            currentBalance + cashFlowChange.expense - cashFlowChange.income;
+          assetBalances.set(sourceId, newBalance);
+        }
+      });
+
+      // 現在の資産残高をコピー
+      assetBalances.forEach((balance, assetId) => {
+        monthlyAssetBalances.set(assetId, balance);
       });
 
       // 月ごとのデータを作成
       monthlyData.push({
         monthIndex,
-        deposits: Math.round(adjustedDeposits),
         incomeBreakdown: monthlyIncomeMap,
         expenseBreakdown: monthlyExpenseMap,
+        assetBalances: monthlyAssetBalances,
       });
     }
 
     // データが存在するかどうかの判定
     const totalMonthlyCashFlow = calculator.calculateTotal(0);
-    const hasData = initialDeposits > 0 || totalMonthlyCashFlow.income > 0;
+    const hasData = totalMonthlyCashFlow.income > 0 || assetBalances.size > 0;
 
     return {
       monthlyData,

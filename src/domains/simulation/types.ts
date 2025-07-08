@@ -4,9 +4,9 @@
  */
 export interface MonthlySimulationData {
   monthIndex: number;
-  deposits: number;
   incomeBreakdown: Map<string, number>;
   expenseBreakdown: Map<string, number>;
+  assetBalances: Map<string, number>;
 }
 
 /**
@@ -14,7 +14,6 @@ export interface MonthlySimulationData {
  * シミュレーターの初期化に必要な設定
  */
 export interface SimulationParams {
-  initialDeposits: number;
   /**
    * シミュレーション期間（月数）
    * 現在時点からの相対的な月数を指定します

@@ -8,12 +8,11 @@ import { CalculatorSource } from "@/domains/shared/CalculatorSource";
 import { createSimulator } from "@/domains/simulation";
 import { convertExpenseToExpenseSource } from "@/domains/expense/source";
 import { convertIncomeToIncomeSource } from "@/domains/income/source";
+import { convertAssetToAssetSource } from "@/domains/asset/source";
 
 // チャート用のデータポイント型
 interface SimulationDataPoint {
   year: string;
-  deposits: number;
-  total: number;
   [key: string]: string | number; // 動的なキー（investment_*, income_*, expense_*）
 }
 
@@ -48,9 +47,13 @@ function convertToChartData(
 
     const chartData: SimulationDataPoint = {
       year: `${year + 1}年目`,
-      deposits: lastMonth.deposits,
-      total: lastMonth.deposits,
     };
+
+    // 各資産の個別残高を追加
+    lastMonth.assetBalances.forEach((balance, assetId) => {
+      const investmentKey = `investment_${assetId}`;
+      chartData[investmentKey] = Math.round(balance);
+    });
 
     // unifiedCalculatorから全てのソースを取得
     const sources = unifiedCalculator.getSources();
@@ -79,7 +82,20 @@ function convertToChartData(
       .forEach((expenseSource) => {
         const expenseKey = `expense_${expenseSource.id}`;
         const yearlyExpenseAmount = yearlyExpenseMap.get(expenseSource.id) || 0;
-        chartData[expenseKey] = -Math.round(yearlyExpenseAmount);
+        if (yearlyExpenseAmount > 0) {
+          chartData[expenseKey] = -Math.round(yearlyExpenseAmount);
+        }
+      });
+
+    // 資産の積立（支出）を特別なキーで追加
+    sources
+      .filter((source) => source.type === "asset")
+      .forEach((assetSource) => {
+        const yearlyExpenseAmount = yearlyExpenseMap.get(assetSource.id) || 0;
+        if (yearlyExpenseAmount > 0) {
+          const expenseKey = `investment_expense_${assetSource.id}`;
+          chartData[expenseKey] = -Math.round(yearlyExpenseAmount);
+        }
       });
 
     // 各収入項目を個別にPositiveバーとして追加
@@ -88,7 +104,20 @@ function convertToChartData(
       .forEach((incomeSource) => {
         const incomeKey = `income_${incomeSource.id}`;
         const yearlyIncomeAmount = yearlyIncomeMap.get(incomeSource.id) || 0;
-        chartData[incomeKey] = Math.round(yearlyIncomeAmount);
+        if (yearlyIncomeAmount > 0) {
+          chartData[incomeKey] = Math.round(yearlyIncomeAmount);
+        }
+      });
+
+    // 資産の引き出し（収入）を特別なキーで追加
+    sources
+      .filter((source) => source.type === "asset")
+      .forEach((assetSource) => {
+        const yearlyIncomeAmount = yearlyIncomeMap.get(assetSource.id) || 0;
+        if (yearlyIncomeAmount > 0) {
+          const incomeKey = `sellback_income_${assetSource.id}`;
+          chartData[incomeKey] = Math.round(yearlyIncomeAmount);
+        }
       });
 
     yearlyAggregatedData.push(chartData);
@@ -99,8 +128,6 @@ function convertToChartData(
     yearlyAggregatedData.length - 1
   ] || {
     year: "0年目",
-    deposits: 0,
-    total: 0,
   };
 
   return {
@@ -109,7 +136,14 @@ function convertToChartData(
     hasData,
     netMonthlyCashFlow: currentMonthlyCashFlow.net,
     totalBaseAmount: 0, // 投資は無視するため0
-    initialTotal: monthlyData[0]?.deposits || 0,
+    initialTotal: (() => {
+      if (!monthlyData[0]) return 0;
+      let total = 0;
+      monthlyData[0].assetBalances.forEach((balance) => {
+        total += balance;
+      });
+      return total;
+    })(),
   };
 }
 
@@ -154,15 +188,13 @@ export function runFinancialSimulation(
     unifiedCalculator.addSource(convertExpenseToExpenseSource(expense));
   });
 
-  // すべての資産の初期額を合計（現金を含む）
-  const totalInitialAmount = filteredAssets.reduce(
-    (sum, asset) => sum + asset.baseAmount,
-    0
-  );
+  // Asset[]をAssetSourceに変換してCalculatorに追加
+  filteredAssets.forEach((asset) => {
+    unifiedCalculator.addSource(convertAssetToAssetSource(asset));
+  });
 
   // シミュレーターを作成（年数を月数に変換）
   const simulator = createSimulator(unifiedCalculator, {
-    initialDeposits: totalInitialAmount,
     simulationMonths: simulationYears * 12,
   });
 

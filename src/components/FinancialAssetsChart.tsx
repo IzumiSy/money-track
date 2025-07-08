@@ -21,11 +21,6 @@ interface FinancialAssetsChartProps {
   assets: GroupedAsset[];
 }
 
-const COLORS = {
-  deposits: "#3B82F6", // Blue
-  income: "#10B981", // Green
-};
-
 export default function FinancialAssetsChart({
   assets,
 }: FinancialAssetsChartProps) {
@@ -135,18 +130,8 @@ export default function FinancialAssetsChart({
                 labelFormatter={(label) => `${label}`}
               />
               <Legend />
-              <Bar
-                dataKey="deposits"
-                stackId="a"
-                fill={COLORS.deposits}
-                name="資産"
-              />
               {assets
-                .filter(
-                  (asset) =>
-                    asset.returnRate > 0 &&
-                    activeGroupIds.includes(asset.groupId)
-                )
+                .filter((asset) => activeGroupIds.includes(asset.groupId))
                 .map((asset, index) => (
                   <Bar
                     key={asset.id}

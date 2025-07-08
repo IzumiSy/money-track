@@ -17,7 +17,6 @@ describe("unifiedCalculator.getBreakdown", () => {
     it("シミュレーション期間が0ヶ月の場合はエラーになる", () => {
       expect(() =>
         createSimulator(calculator, {
-          initialDeposits: 1000000,
           simulationMonths: 0,
         })
       ).toThrow(
@@ -28,7 +27,6 @@ describe("unifiedCalculator.getBreakdown", () => {
     it("シミュレーション期間が1201ヶ月の場合はエラーになる", () => {
       expect(() =>
         createSimulator(calculator, {
-          initialDeposits: 1000000,
           simulationMonths: 1201,
         })
       ).toThrow(
@@ -39,7 +37,6 @@ describe("unifiedCalculator.getBreakdown", () => {
     it("シミュレーション期間が1ヶ月の場合は正常に動作する", () => {
       expect(() =>
         createSimulator(calculator, {
-          initialDeposits: 1000000,
           simulationMonths: 1,
         })
       ).not.toThrow();
@@ -48,7 +45,6 @@ describe("unifiedCalculator.getBreakdown", () => {
     it("シミュレーション期間が1200ヶ月の場合は正常に動作する", () => {
       expect(() =>
         createSimulator(calculator, {
-          initialDeposits: 1000000,
           simulationMonths: 1200,
         })
       ).not.toThrow();
@@ -57,7 +53,6 @@ describe("unifiedCalculator.getBreakdown", () => {
     it("シミュレーション期間が負の値の場合はエラーになる", () => {
       expect(() =>
         createSimulator(calculator, {
-          initialDeposits: 1000000,
           simulationMonths: -5,
         })
       ).toThrow(
@@ -432,66 +427,181 @@ describe("unifiedCalculator.getBreakdown", () => {
     });
   });
 
-  describe("createSimulatorとの統合テスト", () => {
-    it("収入と支出の両方を含むシミュレーションが正しく動作する", () => {
-      // 収入ソース
-      const income: CalculatorSource = {
-        id: "income-1",
-        name: "月収",
-        type: "income",
-        calculate: () => ({ income: 300000, expense: 0 }),
+  describe("資産の残高追跡テスト", () => {
+    it("資産の積立による残高増加が正しく追跡される", () => {
+      // 資産ソース（積立あり）
+      const asset: CalculatorSource = {
+        id: "asset-1",
+        name: "投資信託",
+        type: "asset",
+        calculate: (monthIndex: number) => {
+          // 最初の12ヶ月は月5万円積立
+          if (monthIndex < 12) {
+            return { income: 0, expense: 50000 };
+          }
+          return { income: 0, expense: 0 };
+        },
+        getMetadata: () => ({
+          baseAmount: 1000000, // 初期残高100万円
+        }),
       };
 
-      // 支出ソース
-      const expense: CalculatorSource = {
-        id: "expense-1",
-        name: "月間支出",
-        type: "expense",
-        calculate: () => ({ income: 0, expense: 200000 }),
-      };
-
-      calculator.addSource(income);
-      calculator.addSource(expense);
+      calculator.addSource(asset);
 
       const simulator = createSimulator(calculator, {
-        initialDeposits: 1000000,
-        simulationMonths: 36, // 3年間
+        simulationMonths: 24,
       });
 
       const result = simulator.simulate();
 
-      // 月間純キャッシュフロー = 300000 - 200000 = 100000
-      expect(result.currentMonthlyCashFlow.net).toBe(100000);
-      expect(result.currentMonthlyCashFlow.income).toBe(300000);
-      expect(result.currentMonthlyCashFlow.expense).toBe(200000);
+      // 初月の資産残高確認
+      expect(result.monthlyData[0].assetBalances.get("asset-1")).toBe(1050000); // 100万 + 5万
 
-      // 月次データの確認
-      // 1ヶ月目: 1000000 + 100000 = 1100000
-      expect(result.monthlyData[0].deposits).toBe(1100000);
-      expect(result.monthlyData[0].monthIndex).toBe(0);
+      // 6ヶ月目の資産残高確認
+      expect(result.monthlyData[5].assetBalances.get("asset-1")).toBe(1300000); // 100万 + 5万 × 6
 
-      // 12ヶ月目: 1000000 + 100000 * 12 = 2200000
-      expect(result.monthlyData[11].deposits).toBe(2200000);
-      expect(result.monthlyData[11].monthIndex).toBe(11);
+      // 12ヶ月目の資産残高確認（最後の積立月）
+      expect(result.monthlyData[11].assetBalances.get("asset-1")).toBe(1600000); // 100万 + 5万 × 12
 
-      // 収入・支出のブレークダウンを確認（月次）
-      expect(result.monthlyData[0].incomeBreakdown.get("income-1")).toBe(
-        300000
-      );
-      expect(result.monthlyData[0].expenseBreakdown.get("expense-1")).toBe(
-        200000
-      );
+      // 13ヶ月目以降は積立なし
+      expect(result.monthlyData[12].assetBalances.get("asset-1")).toBe(1600000);
+      expect(result.monthlyData[23].assetBalances.get("asset-1")).toBe(1600000);
+    });
 
-      // 24ヶ月目: 1000000 + 100000 * 24 = 3400000
-      expect(result.monthlyData[23].deposits).toBe(3400000);
-      expect(result.monthlyData[23].monthIndex).toBe(23);
+    it("資産の引き出しによる残高減少が正しく追跡される", () => {
+      // 資産ソース（引き出しあり）
+      const asset: CalculatorSource = {
+        id: "asset-1",
+        name: "退職金",
+        type: "asset",
+        calculate: (monthIndex: number) => {
+          // 12ヶ月目から月10万円引き出し
+          if (monthIndex >= 12 && monthIndex < 24) {
+            return { income: 100000, expense: 0 };
+          }
+          return { income: 0, expense: 0 };
+        },
+        getMetadata: () => ({
+          baseAmount: 5000000, // 初期残高500万円
+        }),
+      };
 
-      // 36ヶ月目: 1000000 + 100000 * 36 = 4600000
-      expect(result.monthlyData[35].deposits).toBe(4600000);
-      expect(result.monthlyData[35].monthIndex).toBe(35);
+      calculator.addSource(asset);
 
-      // hasDataフラグの確認
-      expect(result.hasData).toBe(true);
+      const simulator = createSimulator(calculator, {
+        simulationMonths: 36,
+      });
+
+      const result = simulator.simulate();
+
+      // 最初の12ヶ月は引き出しなし
+      expect(result.monthlyData[0].assetBalances.get("asset-1")).toBe(5000000);
+      expect(result.monthlyData[11].assetBalances.get("asset-1")).toBe(5000000);
+
+      // 13ヶ月目から引き出し開始
+      expect(result.monthlyData[12].assetBalances.get("asset-1")).toBe(4900000); // 500万 - 10万
+      expect(result.monthlyData[23].assetBalances.get("asset-1")).toBe(3800000); // 500万 - 10万 × 12
+
+      // 25ヶ月目以降は引き出しなし
+      expect(result.monthlyData[24].assetBalances.get("asset-1")).toBe(3800000);
+      expect(result.monthlyData[35].assetBalances.get("asset-1")).toBe(3800000);
+    });
+
+    it("複数の資産が独立して管理される", () => {
+      // 資産1: 積立のみ
+      const asset1: CalculatorSource = {
+        id: "asset-1",
+        name: "つみたてNISA",
+        type: "asset",
+        calculate: () => ({ income: 0, expense: 30000 }), // 月3万円積立
+        getMetadata: () => ({ baseAmount: 0 }),
+      };
+
+      // 資産2: 引き出しのみ
+      const asset2: CalculatorSource = {
+        id: "asset-2",
+        name: "定期預金",
+        type: "asset",
+        calculate: () => ({ income: 20000, expense: 0 }), // 月2万円引き出し
+        getMetadata: () => ({ baseAmount: 1000000 }),
+      };
+
+      // 通常の収入
+      const income: CalculatorSource = {
+        id: "income-1",
+        name: "給与",
+        type: "income",
+        calculate: () => ({ income: 250000, expense: 0 }),
+      };
+
+      calculator.addSource(asset1);
+      calculator.addSource(asset2);
+      calculator.addSource(income);
+
+      const simulator = createSimulator(calculator, {
+        simulationMonths: 12,
+      });
+
+      const result = simulator.simulate();
+
+      // 初月
+      expect(result.monthlyData[0].assetBalances.get("asset-1")).toBe(30000);
+      expect(result.monthlyData[0].assetBalances.get("asset-2")).toBe(980000);
+
+      // 6ヶ月目
+      expect(result.monthlyData[5].assetBalances.get("asset-1")).toBe(180000); // 3万 × 6
+      expect(result.monthlyData[5].assetBalances.get("asset-2")).toBe(880000); // 100万 - 2万 × 6
+
+      // 12ヶ月目
+      expect(result.monthlyData[11].assetBalances.get("asset-1")).toBe(360000); // 3万 × 12
+      expect(result.monthlyData[11].assetBalances.get("asset-2")).toBe(760000); // 100万 - 2万 × 12
+
+      // 収入は資産残高に影響しない
+      expect(result.monthlyData[0].assetBalances.has("income-1")).toBe(false);
+    });
+
+    it("積立と引き出しが同時に発生する資産の残高が正しく計算される", () => {
+      // 資産ソース（積立と引き出しが重複）
+      const asset: CalculatorSource = {
+        id: "asset-1",
+        name: "フレキシブル資産",
+        type: "asset",
+        calculate: (monthIndex: number) => {
+          if (monthIndex < 6) {
+            // 最初の6ヶ月は積立のみ（月5万円）
+            return { income: 0, expense: 50000 };
+          } else if (monthIndex >= 6 && monthIndex < 12) {
+            // 6-11ヶ月目は積立と引き出し両方
+            return { income: 30000, expense: 50000 }; // 差し引き2万円の積立
+          } else {
+            // 12ヶ月目以降は引き出しのみ（月3万円）
+            return { income: 30000, expense: 0 };
+          }
+        },
+        getMetadata: () => ({
+          baseAmount: 2000000, // 初期残高200万円
+        }),
+      };
+
+      calculator.addSource(asset);
+
+      const simulator = createSimulator(calculator, {
+        simulationMonths: 18,
+      });
+
+      const result = simulator.simulate();
+
+      // 最初の6ヶ月（積立のみ）
+      expect(result.monthlyData[0].assetBalances.get("asset-1")).toBe(2050000); // 200万 + 5万
+      expect(result.monthlyData[5].assetBalances.get("asset-1")).toBe(2300000); // 200万 + 5万 × 6
+
+      // 6-11ヶ月目（積立と引き出し）
+      expect(result.monthlyData[6].assetBalances.get("asset-1")).toBe(2320000); // 230万 + 2万
+      expect(result.monthlyData[11].assetBalances.get("asset-1")).toBe(2420000); // 230万 + 2万 × 6
+
+      // 12ヶ月目以降（引き出しのみ）
+      expect(result.monthlyData[12].assetBalances.get("asset-1")).toBe(2390000); // 242万 - 3万
+      expect(result.monthlyData[17].assetBalances.get("asset-1")).toBe(2240000); // 242万 - 3万 × 6
     });
   });
 });
