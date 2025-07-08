@@ -8,6 +8,7 @@ import { CalculatorSource } from "@/domains/shared/CalculatorSource";
 import { createSimulator } from "@/domains/simulation";
 import { convertExpenseToExpenseSource } from "@/domains/expense/source";
 import { convertIncomeToIncomeSource } from "@/domains/income/source";
+import { convertAssetToAssetSource } from "@/domains/asset/source";
 
 // チャート用のデータポイント型
 interface SimulationDataPoint {
@@ -73,22 +74,26 @@ function convertToChartData(
       });
     });
 
-    // 各支出項目を個別にマイナスのバーとして追加
+    // 各支出項目を個別にマイナスのバーとして追加（資産の積立も含む）
     sources
-      .filter((source) => source.type === "expense")
+      .filter((source) => source.type === "expense" || source.type === "asset")
       .forEach((expenseSource) => {
         const expenseKey = `expense_${expenseSource.id}`;
         const yearlyExpenseAmount = yearlyExpenseMap.get(expenseSource.id) || 0;
-        chartData[expenseKey] = -Math.round(yearlyExpenseAmount);
+        if (yearlyExpenseAmount > 0) {
+          chartData[expenseKey] = -Math.round(yearlyExpenseAmount);
+        }
       });
 
-    // 各収入項目を個別にPositiveバーとして追加
+    // 各収入項目を個別にPositiveバーとして追加（資産の引き出しも含む）
     sources
-      .filter((source) => source.type === "income")
+      .filter((source) => source.type === "income" || source.type === "asset")
       .forEach((incomeSource) => {
         const incomeKey = `income_${incomeSource.id}`;
         const yearlyIncomeAmount = yearlyIncomeMap.get(incomeSource.id) || 0;
-        chartData[incomeKey] = Math.round(yearlyIncomeAmount);
+        if (yearlyIncomeAmount > 0) {
+          chartData[incomeKey] = Math.round(yearlyIncomeAmount);
+        }
       });
 
     yearlyAggregatedData.push(chartData);
@@ -152,6 +157,11 @@ export function runFinancialSimulation(
   // Expense[]をExpenseSourceに変換してCalculatorに追加
   filteredExpenses.forEach((expense) => {
     unifiedCalculator.addSource(convertExpenseToExpenseSource(expense));
+  });
+
+  // Asset[]をAssetSourceに変換してCalculatorに追加
+  filteredAssets.forEach((asset) => {
+    unifiedCalculator.addSource(convertAssetToAssetSource(asset));
   });
 
   // すべての資産の初期額を合計（現金を含む）
