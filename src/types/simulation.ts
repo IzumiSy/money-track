@@ -3,6 +3,7 @@ import {
   GroupedExpense,
   GroupedIncome,
   GroupedAsset,
+  GroupedLiability,
 } from "@/domains/group/types";
 
 /**
@@ -23,6 +24,9 @@ export const SIMULATION_ACTION_TYPES = {
   // 資産関連
   UPSERT_ASSETS: "UPSERT_ASSETS",
 
+  // 負債関連
+  UPSERT_LIABILITIES: "UPSERT_LIABILITIES",
+
   // シミュレーション管理
   SAVE_SIMULATION: "SAVE_SIMULATION",
   LOAD_SIMULATION: "LOAD_SIMULATION",
@@ -41,6 +45,7 @@ export interface SimulationCurrentData {
   expenses: GroupedExpense[];
   incomes: GroupedIncome[];
   financialAssets: GroupedAsset[];
+  liabilities: GroupedLiability[];
 }
 
 /**
@@ -90,6 +95,12 @@ export type SimulationAction =
   | {
       type: typeof SIMULATION_ACTION_TYPES.UPSERT_ASSETS;
       payload: { groupId: string; assets: GroupedAsset[] };
+    }
+
+  // 負債関連
+  | {
+      type: typeof SIMULATION_ACTION_TYPES.UPSERT_LIABILITIES;
+      payload: { groupId: string; liabilities: GroupedLiability[] };
     }
 
   // シミュレーション管理

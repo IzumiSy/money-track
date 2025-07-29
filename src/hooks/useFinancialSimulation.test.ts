@@ -32,7 +32,7 @@ describe("runFinancialSimulation", () => {
   ];
 
   it("初期資産のみの場合、資産額が変わらないこと", () => {
-    const result = runFinancialSimulation(defaultAssets, [], [], 5);
+    const result = runFinancialSimulation(defaultAssets, [], [], [], 5);
 
     expect(result.hasData).toBe(true);
     expect(result.simulationData).toHaveLength(5);
@@ -55,7 +55,7 @@ describe("runFinancialSimulation", () => {
       },
     ];
 
-    const result = runFinancialSimulation(defaultAssets, [], incomes, 2);
+    const result = runFinancialSimulation(defaultAssets, [], incomes, [], 2);
 
     expect(result.hasData).toBe(true);
     expect(result.simulationData).toHaveLength(2);
@@ -77,7 +77,7 @@ describe("runFinancialSimulation", () => {
       },
     ];
 
-    const result = runFinancialSimulation(defaultAssets, expenses, [], 2);
+    const result = runFinancialSimulation(defaultAssets, expenses, [], [], 2);
 
     expect(result.hasData).toBe(true);
 
@@ -109,7 +109,13 @@ describe("runFinancialSimulation", () => {
       },
     ];
 
-    const result = runFinancialSimulation(assetsWithContribution, [], [], 2);
+    const result = runFinancialSimulation(
+      assetsWithContribution,
+      [],
+      [],
+      [],
+      2
+    );
 
     expect(result.hasData).toBe(true);
 
@@ -142,7 +148,7 @@ describe("runFinancialSimulation", () => {
       },
     ];
 
-    const result = runFinancialSimulation(assetsWithWithdrawal, [], [], 2);
+    const result = runFinancialSimulation(assetsWithWithdrawal, [], [], [], 2);
 
     expect(result.hasData).toBe(true);
 
@@ -185,7 +191,7 @@ describe("runFinancialSimulation", () => {
       },
     ];
 
-    const result = runFinancialSimulation(multipleAssets, [], [], 1);
+    const result = runFinancialSimulation(multipleAssets, [], [], [], 1);
 
     expect(result.hasData).toBe(true);
 

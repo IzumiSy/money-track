@@ -2,6 +2,7 @@ import {
   GroupedExpense,
   GroupedIncome,
   GroupedAsset,
+  GroupedLiability,
 } from "@/domains/group/types";
 import { createCalculator } from "@/domains/shared/createCalculator";
 import { CalculatorSource } from "@/domains/shared/CalculatorSource";
@@ -9,6 +10,7 @@ import { createSimulator } from "@/domains/simulation";
 import { convertExpenseToExpenseSource } from "@/domains/expense/source";
 import { convertIncomeToIncomeSource } from "@/domains/income/source";
 import { convertAssetToAssetSource } from "@/domains/asset/source";
+import { convertLiabilityToLiabilitySource } from "@/domains/liability/source";
 
 // チャート用のデータポイント型
 interface SimulationDataPoint {
@@ -54,6 +56,14 @@ function convertToChartData(
       const investmentKey = `investment_${assetId}`;
       chartData[investmentKey] = Math.round(balance);
     });
+
+    // 各負債の個別残高をマイナス値で追加
+    if (lastMonth.liabilityBalances) {
+      lastMonth.liabilityBalances.forEach((balance, liabilityId) => {
+        const liabilityKey = `liability_${liabilityId}`;
+        chartData[liabilityKey] = -Math.round(balance);
+      });
+    }
 
     // unifiedCalculatorから全てのソースを取得
     const sources = unifiedCalculator.getSources();
@@ -152,6 +162,7 @@ function convertToChartData(
  * @param assets 資産情報
  * @param expenses 支出リスト
  * @param incomes 収入リスト
+ * @param liabilities 負債リスト
  * @param simulationYears シミュレーション年数
  * @param activeGroupIds アクティブなグループIDのリスト（指定時はフィルタリング実行）
  */
@@ -159,6 +170,7 @@ export function runFinancialSimulation(
   assets: GroupedAsset[],
   expenses: GroupedExpense[],
   incomes: GroupedIncome[],
+  liabilities: GroupedLiability[],
   simulationYears: number,
   activeGroupIds?: string[]
 ): ChartSimulationResult {
@@ -191,6 +203,16 @@ export function runFinancialSimulation(
   // Asset[]をAssetSourceに変換してCalculatorに追加
   filteredAssets.forEach((asset) => {
     unifiedCalculator.addSource(convertAssetToAssetSource(asset));
+  });
+
+  // Liability[]をLiabilitySourceに変換してCalculatorに追加
+  const filteredLiabilities = activeGroupIds
+    ? liabilities.filter((liability) =>
+        activeGroupIds.includes(liability.groupId)
+      )
+    : liabilities;
+  filteredLiabilities.forEach((liability) => {
+    unifiedCalculator.addSource(convertLiabilityToLiabilitySource(liability));
   });
 
   // シミュレーターを作成（年数を月数に変換）

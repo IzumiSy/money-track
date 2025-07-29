@@ -5,6 +5,7 @@ import {
   GroupedExpense,
   GroupedIncome,
   GroupedAsset,
+  GroupedLiability,
 } from "@/domains/group/types";
 import { runFinancialSimulation } from "@/domains/simulation/financialSimulation";
 
@@ -12,6 +13,7 @@ interface UseFinancialSimulationProps {
   assets: GroupedAsset[];
   expenses?: GroupedExpense[];
   incomes?: GroupedIncome[];
+  liabilities?: GroupedLiability[];
   simulationYears: number;
   activeGroupIds?: string[];
 }
@@ -24,6 +26,7 @@ export function useFinancialSimulation({
   assets,
   expenses = [],
   incomes = [],
+  liabilities = [],
   simulationYears,
   activeGroupIds,
 }: UseFinancialSimulationProps) {
@@ -32,8 +35,9 @@ export function useFinancialSimulation({
       assets,
       expenses,
       incomes,
+      liabilities,
       simulationYears,
       activeGroupIds
     );
-  }, [assets, expenses, incomes, simulationYears, activeGroupIds]);
+  }, [assets, expenses, incomes, liabilities, simulationYears, activeGroupIds]);
 }

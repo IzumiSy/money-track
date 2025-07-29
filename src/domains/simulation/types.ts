@@ -7,6 +7,7 @@ export interface MonthlySimulationData {
   incomeBreakdown: Map<string, number>;
   expenseBreakdown: Map<string, number>;
   assetBalances: Map<string, number>;
+  liabilityBalances: Map<string, number>;
 }
 
 /**

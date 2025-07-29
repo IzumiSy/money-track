@@ -17,6 +17,7 @@ import { useGroupManagement } from "@/hooks/useGroupManagement";
 import { useIncomeManagement } from "@/hooks/useIncomeManagement";
 import { useExpenseManagement } from "@/hooks/useExpenseManagement";
 import { GroupedAsset } from "@/domains/group/types";
+import { useLiabilityManagement } from "@/hooks/useLiabilityManagement";
 
 interface FinancialAssetsChartProps {
   assets: GroupedAsset[];
@@ -35,10 +36,14 @@ export default function FinancialAssetsChart({
   const activeGroupIds = activeGroups.map((g) => g.id);
 
   // シミュレーション計算ロジックをhookに委譲
+  // 負債データ
+  const { liabilities } = useLiabilityManagement();
+
   const { simulationData, hasData } = useFinancialSimulation({
     assets,
     expenses,
     incomes,
+    liabilities,
     simulationYears,
     activeGroupIds,
   });
@@ -141,6 +146,19 @@ export default function FinancialAssetsChart({
                     stackId="a"
                     fill={asset.color}
                     name={asset.name || `資産 #${index + 1}`}
+                  />
+                ))}
+              {liabilities
+                .filter((liability) =>
+                  activeGroupIds.includes(liability.groupId)
+                )
+                .map((liability, index) => (
+                  <Bar
+                    key={liability.id}
+                    dataKey={`liability_${liability.id}`}
+                    stackId="liabilities"
+                    fill={liability.color}
+                    name={liability.name || `負債 #${index + 1}`}
                   />
                 ))}
               {incomes
