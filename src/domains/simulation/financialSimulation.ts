@@ -222,8 +222,28 @@ export function runFinancialSimulation(
         type: "expense",
         calculate: (monthIndex) => {
           // 返済サイクルに基づく返済額（支出）を計算
-          const amount = calculateCyclesForMonth(liability.cycles, monthIndex);
-          return { income: 0, expense: amount };
+          // 元本を超えたら返済を止める
+          let totalPaid = 0;
+          let thisMonthAmount = 0;
+          for (let i = 0; i <= monthIndex; i++) {
+            const amt = calculateCyclesForMonth(liability.cycles, i);
+            if (i === monthIndex) thisMonthAmount = amt;
+            totalPaid += amt;
+          }
+          // 今月の支払いで元本を超える場合、残りだけ支払う
+          if (totalPaid - thisMonthAmount >= liability.principal) {
+            return { income: 0, expense: 0 };
+          }
+          if (totalPaid > liability.principal) {
+            return {
+              income: 0,
+              expense: Math.max(
+                0,
+                liability.principal - (totalPaid - thisMonthAmount)
+              ),
+            };
+          }
+          return { income: 0, expense: thisMonthAmount };
         },
         getMetadata: () => ({
           color: liability.color,
