@@ -204,6 +204,25 @@ export default function FinancialAssetsChart({
                     name={expense.name}
                   />
                 ))}
+              {/* 負債返済バー */}
+              {liabilities
+                .filter((liability) =>
+                  activeGroupIds.includes(liability.groupId)
+                )
+                .map((liability, index) => (
+                  <Bar
+                    key={`liability-repayment-${liability.id}`}
+                    dataKey={`expense_liability-repayment-${liability.id}`}
+                    stackId="c"
+                    fill={liability.color}
+                    name={
+                      liability.name
+                        ? `${liability.name} 返済`
+                        : `負債 #${index + 1} 返済`
+                    }
+                    opacity={0.8}
+                  />
+                ))}
               {assets
                 .filter((asset) => activeGroupIds.includes(asset.groupId))
                 .map((asset) => {

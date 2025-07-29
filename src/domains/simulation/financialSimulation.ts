@@ -11,6 +11,7 @@ import { convertExpenseToExpenseSource } from "@/domains/expense/source";
 import { convertIncomeToIncomeSource } from "@/domains/income/source";
 import { convertAssetToAssetSource } from "@/domains/asset/source";
 import { convertLiabilityToLiabilitySource } from "@/domains/liability/source";
+import { calculateCyclesForMonth } from "@/domains/shared";
 
 // チャート用のデータポイント型
 interface SimulationDataPoint {
@@ -213,6 +214,24 @@ export function runFinancialSimulation(
     : liabilities;
   filteredLiabilities.forEach((liability) => {
     unifiedCalculator.addSource(convertLiabilityToLiabilitySource(liability));
+    // 負債返済に伴う資産減少用ExpenseSourceを追加
+    if (liability.assetSourceId) {
+      unifiedCalculator.addSource({
+        id: `liability-repayment-${liability.id}`,
+        name: `負債返済: ${liability.name}`,
+        type: "expense",
+        calculate: (monthIndex) => {
+          // 返済サイクルに基づく返済額（支出）を計算
+          const amount = calculateCyclesForMonth(liability.cycles, monthIndex);
+          return { income: 0, expense: amount };
+        },
+        getMetadata: () => ({
+          color: liability.color,
+          originalLiability: liability,
+          assetSourceId: liability.assetSourceId,
+        }),
+      });
+    }
   });
 
   // シミュレーターを作成（年数を月数に変換）
