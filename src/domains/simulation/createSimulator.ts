@@ -129,6 +129,26 @@ export function createSimulator(
         }
       });
 
+      // 資産リターン（利息）を計算し、残高とincomeBreakdownに反映
+      sources.forEach((source) => {
+        if (source.type === "asset") {
+          const currentBalanceNum: number = Number(
+            assetBalances.get(source.id) ?? 0
+          );
+          const metadata = source.getMetadata?.();
+          const returnRate: number = Number(metadata?.returnRate ?? 0);
+          if (returnRate !== 0) {
+            const interest = currentBalanceNum * (returnRate / 12);
+            // 残高に加算
+            assetBalances.set(source.id, currentBalanceNum + interest);
+            // incomeBreakdownに「return_income_{assetId}」として加算
+            const returnIncomeKey = `return_income_${source.id}`;
+            const prev = monthlyIncomeMap.get(returnIncomeKey) || 0;
+            monthlyIncomeMap.set(returnIncomeKey, prev + interest);
+          }
+        }
+      });
+
       // 現在の資産残高をコピー
       assetBalances.forEach((balance, assetId) => {
         monthlyAssetBalances.set(assetId, balance);
