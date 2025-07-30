@@ -33,6 +33,7 @@ const initialState: SimulationState = {
     expenses: [],
     incomes: [],
     financialAssets: [],
+    liabilities: [],
   },
   savedSimulations: [],
   activeSimulationId: null,
@@ -190,6 +191,37 @@ function simulationReducer(
         currentData: {
           ...state.currentData,
           financialAssets: [...otherGroupAssets, ...processedAssets],
+        },
+      };
+    }
+
+    // 負債関連
+    case SIMULATION_ACTION_TYPES.UPSERT_LIABILITIES: {
+      const { groupId, liabilities } = action.payload;
+      const otherGroupLiabilities = state.currentData.liabilities
+        ? state.currentData.liabilities.filter(
+            (liability) => liability.groupId !== groupId
+          )
+        : [];
+      const processedLiabilities = liabilities.map((liability) => {
+        if (!liability.id || liability.id.startsWith("temp-")) {
+          return {
+            ...liability,
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            groupId,
+            // colorは将来的にデフォルト色対応可
+          };
+        }
+        return {
+          ...liability,
+          groupId,
+        };
+      });
+      return {
+        ...state,
+        currentData: {
+          ...state.currentData,
+          liabilities: [...otherGroupLiabilities, ...processedLiabilities],
         },
       };
     }

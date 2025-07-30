@@ -2,6 +2,7 @@ import {
   GroupedExpense,
   GroupedIncome,
   GroupedAsset,
+  GroupedLiability,
 } from "@/domains/group/types";
 import { createCalculator } from "@/domains/shared/createCalculator";
 import { CalculatorSource } from "@/domains/shared/CalculatorSource";
@@ -9,6 +10,8 @@ import { createSimulator } from "@/domains/simulation";
 import { convertExpenseToExpenseSource } from "@/domains/expense/source";
 import { convertIncomeToIncomeSource } from "@/domains/income/source";
 import { convertAssetToAssetSource } from "@/domains/asset/source";
+import { convertLiabilityToLiabilitySource } from "@/domains/liability/source";
+import { calculateCyclesForMonth } from "@/domains/shared";
 
 // チャート用のデータポイント型
 interface SimulationDataPoint {
@@ -54,6 +57,14 @@ function convertToChartData(
       const investmentKey = `investment_${assetId}`;
       chartData[investmentKey] = Math.round(balance);
     });
+
+    // 各負債の個別残高をマイナス値で追加
+    if (lastMonth.liabilityBalances) {
+      lastMonth.liabilityBalances.forEach((balance, liabilityId) => {
+        const liabilityKey = `liability_${liabilityId}`;
+        chartData[liabilityKey] = -Math.round(balance);
+      });
+    }
 
     // unifiedCalculatorから全てのソースを取得
     const sources = unifiedCalculator.getSources();
@@ -152,6 +163,7 @@ function convertToChartData(
  * @param assets 資産情報
  * @param expenses 支出リスト
  * @param incomes 収入リスト
+ * @param liabilities 負債リスト
  * @param simulationYears シミュレーション年数
  * @param activeGroupIds アクティブなグループIDのリスト（指定時はフィルタリング実行）
  */
@@ -159,6 +171,7 @@ export function runFinancialSimulation(
   assets: GroupedAsset[],
   expenses: GroupedExpense[],
   incomes: GroupedIncome[],
+  liabilities: GroupedLiability[],
   simulationYears: number,
   activeGroupIds?: string[]
 ): ChartSimulationResult {
@@ -191,6 +204,54 @@ export function runFinancialSimulation(
   // Asset[]をAssetSourceに変換してCalculatorに追加
   filteredAssets.forEach((asset) => {
     unifiedCalculator.addSource(convertAssetToAssetSource(asset));
+  });
+
+  // Liability[]をLiabilitySourceに変換してCalculatorに追加
+  const filteredLiabilities = activeGroupIds
+    ? liabilities.filter((liability) =>
+        activeGroupIds.includes(liability.groupId)
+      )
+    : liabilities;
+  filteredLiabilities.forEach((liability) => {
+    unifiedCalculator.addSource(convertLiabilityToLiabilitySource(liability));
+    // 負債返済に伴う資産減少用ExpenseSourceを追加
+    if (liability.assetSourceId) {
+      unifiedCalculator.addSource({
+        id: `liability-repayment-${liability.id}`,
+        name: `負債返済: ${liability.name}`,
+        type: "expense",
+        calculate: (monthIndex) => {
+          // 返済サイクルに基づく返済額（支出）を計算
+          // 元本を超えたら返済を止める
+          let totalPaid = 0;
+          let thisMonthAmount = 0;
+          for (let i = 0; i <= monthIndex; i++) {
+            const amt = calculateCyclesForMonth(liability.cycles, i);
+            if (i === monthIndex) thisMonthAmount = amt;
+            totalPaid += amt;
+          }
+          // 今月の支払いで元本を超える場合、残りだけ支払う
+          if (totalPaid - thisMonthAmount >= liability.principal) {
+            return { income: 0, expense: 0 };
+          }
+          if (totalPaid > liability.principal) {
+            return {
+              income: 0,
+              expense: Math.max(
+                0,
+                liability.principal - (totalPaid - thisMonthAmount)
+              ),
+            };
+          }
+          return { income: 0, expense: thisMonthAmount };
+        },
+        getMetadata: () => ({
+          color: liability.color,
+          originalLiability: liability,
+          assetSourceId: liability.assetSourceId,
+        }),
+      });
+    }
   });
 
   // シミュレーターを作成（年数を月数に変換）

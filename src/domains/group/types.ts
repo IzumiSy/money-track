@@ -1,3 +1,5 @@
+import type { Cycle } from "@/domains/shared/Cycle";
+
 /**
  * グループを表す型
  * 収入と支出をまとめる親概念
@@ -48,6 +50,21 @@ export interface GroupedAsset {
 }
 
 /**
+ * グループに所属する負債
+ * 固定額返済のみ対応（将来的に利息や繰上返済拡張可）
+ */
+export interface GroupedLiability {
+  id: string;
+  groupId: string;
+  name: string;
+  cycles: Cycle[]; // 返済サイクル
+  color: string;
+  assetSourceId: string; // 返済元資産ID
+  principal: number; // 元本
+  totalAmount: number; // 返済総額（元本＋利息、現状は元本と同じ）
+}
+
+/**
  * 積立オプション
  */
 export interface ContributionOption {
@@ -71,4 +88,4 @@ export interface WithdrawalOption {
   monthlyAmount: number;
 }
 
-import { Cycle } from "@/domains/shared/Cycle";
+export type { Cycle } from "@/domains/shared/Cycle";

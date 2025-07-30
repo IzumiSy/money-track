@@ -48,6 +48,7 @@ export function createSimulator(
 
     // 資産の初期残高を設定
     const assetBalances = new Map<string, number>();
+    const liabilityBalances = new Map<string, number>();
     const sources = calculator.getSources();
 
     sources.forEach((source) => {
@@ -55,6 +56,11 @@ export function createSimulator(
         const metadata = source.getMetadata?.();
         const baseAmount = (metadata?.baseAmount as number) || 0;
         assetBalances.set(source.id, baseAmount);
+      }
+      if (source.type === "liability") {
+        const metadata = source.getMetadata?.();
+        const principal = (metadata?.principal as number) || 0;
+        liabilityBalances.set(source.id, principal);
       }
     });
 
@@ -111,11 +117,27 @@ export function createSimulator(
             assetBalances.set(assetSourceId, newBalance);
           }
         }
+        // 負債タイプの場合、残高を更新（返済額分だけ減少）
+        if (source?.type === "liability") {
+          const currentBalance = liabilityBalances.get(sourceId) ?? 0;
+          // expense: 返済額
+          const newBalance = Math.max(
+            0,
+            currentBalance - cashFlowChange.expense
+          );
+          liabilityBalances.set(sourceId, newBalance);
+        }
       });
 
       // 現在の資産残高をコピー
       assetBalances.forEach((balance, assetId) => {
         monthlyAssetBalances.set(assetId, balance);
+      });
+
+      // 現在の負債残高をコピー
+      const monthlyLiabilityBalances = new Map<string, number>();
+      liabilityBalances.forEach((balance, liabilityId) => {
+        monthlyLiabilityBalances.set(liabilityId, balance);
       });
 
       // 月ごとのデータを作成
@@ -124,6 +146,7 @@ export function createSimulator(
         incomeBreakdown: monthlyIncomeMap,
         expenseBreakdown: monthlyExpenseMap,
         assetBalances: monthlyAssetBalances,
+        liabilityBalances: monthlyLiabilityBalances,
       });
     }
 
