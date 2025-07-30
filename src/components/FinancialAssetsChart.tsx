@@ -170,6 +170,21 @@ export default function FinancialAssetsChart({
                     name={income.name}
                   />
                 ))}
+              {/* 利回り収入（return_income_）のバーを自動生成 */}
+              {simulationData.length > 0 &&
+                Object.keys(simulationData[0])
+                  .filter((key) => key.startsWith("return_income_"))
+                  .map((key, idx) => (
+                    <Bar
+                      key={key}
+                      dataKey={key}
+                      stackId="b"
+                      fill="#4ade80"
+                      name={`利回り収入 #${idx + 1}`}
+                      opacity={0.9}
+                    />
+                  ))}
+
               {assets
                 .filter((asset) => activeGroupIds.includes(asset.groupId))
                 .map((asset) => {
