@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router";
 import GroupSelector from "./GroupSelector";
 
 export default function Sidebar() {

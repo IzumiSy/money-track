@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import AppLayout from "@/components/AppLayout";
 import { SimulationProvider } from "@/contexts/SimulationContext";
 import { Toaster } from "sonner";
