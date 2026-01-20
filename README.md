@@ -66,7 +66,7 @@ pnpm install
 pnpm dev
 ```
 
-ブラウザで [http://localhost:3000](http://localhost:3000) を開いてアプリケーションを確認できます。
+ブラウザで [http://localhost:5173](http://localhost:5173) を開いてアプリケーションを確認できます。
 
 ### その他のコマンド
 
@@ -74,8 +74,8 @@ pnpm dev
 # プロダクションビルド
 pnpm build
 
-# プロダクションサーバーの起動
-pnpm start
+# プロダクションプレビュー
+pnpm preview
 
 # リンターの実行
 pnpm lint
