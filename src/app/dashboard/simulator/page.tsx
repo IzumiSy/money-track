@@ -1,5 +1,3 @@
-"use client";
-
 import FinancialAssetsChart from "@/components/FinancialAssetsChart";
 import { useAssetManagement } from "@/hooks/useAssetManagement";
 

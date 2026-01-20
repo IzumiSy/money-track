@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { useGroupManagement } from "@/hooks/useGroupManagement";
 import { useIncomeManagement } from "@/hooks/useIncomeManagement";

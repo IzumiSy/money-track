@@ -1,14 +1,11 @@
-"use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, useLocation } from "react-router-dom";
 import GroupSelector from "./GroupSelector";
 
 export default function Sidebar() {
-  const pathname = usePathname();
+  const location = useLocation();
 
   const isActive = (path: string) => {
-    return pathname === path;
+    return location.pathname === path;
   };
 
   const navItems = [
@@ -114,7 +111,7 @@ export default function Sidebar() {
           {navItems.map((item) => (
             <li key={item.href}>
               <Link
-                href={item.href}
+                to={item.href}
                 className={`w-full flex items-center px-4 py-2 text-left rounded-lg transition-colors duration-200 ${
                   isActive(item.href)
                     ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"

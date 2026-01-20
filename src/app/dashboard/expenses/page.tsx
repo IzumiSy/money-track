@@ -1,5 +1,3 @@
-"use client";
-
 import ExpensesForm from "@/components/ExpensesForm";
 import { toast } from "sonner";
 
