@@ -1,5 +1,3 @@
-"use client";
-
 import FinancialAssetsForm from "@/components/FinancialAssetsForm";
 import { toast } from "sonner";
 

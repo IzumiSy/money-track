@@ -1,5 +1,3 @@
-"use client";
-
 import IncomeForm from "@/components/IncomeForm";
 import { toast } from "sonner";
 

@@ -3,10 +3,11 @@
 ## 技術構成
 
 ### 使用技術
-- **Next.js 15.3.3**: React フレームワーク
+- **Vite 6**: ビルドツール・開発サーバー
 - **React 19**: UI ライブラリ
+- **React Router 7**: クライアントサイドルーティング
 - **TypeScript**: 型安全性
-- **Tailwind CSS**: スタイリング
+- **Tailwind CSS 4**: スタイリング
 - **Recharts**: グラフ・チャート表示
 - **Vitest**: テスティングフレームワーク
 - **pnpm**: パッケージマネージャー
@@ -14,13 +15,15 @@
 ### プロジェクト構造
 ```
 src/
-├── app/                    # Next.js App Router
-│   ├── dashboard/         # ダッシュボード関連ページ
-│   │   ├── financial-assets/  # 金融資産ページ
-│   │   ├── income/           # 収入ページ
-│   │   ├── expenses/         # 支出ページ
-│   │   └── simulator/        # シミュレーターページ
-│   └── layout.tsx         # ルートレイアウト
+├── main.tsx                # アプリケーションエントリポイント
+├── App.tsx                 # ルーティング設定
+├── index.css               # グローバルスタイル
+├── app/                    # ページコンポーネント
+│   └── dashboard/         # ダッシュボード関連ページ
+│       ├── financial-assets/  # 金融資産ページ
+│       ├── income/           # 収入ページ
+│       ├── expenses/         # 支出ページ
+│       └── simulator/        # シミュレーターページ
 ├── components/            # React コンポーネント
 ├── contexts/             # React Context（状態管理）
 ├── domains/              # ドメインロジック
