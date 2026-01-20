@@ -729,3 +729,317 @@ UI Components → PluginProvider → SimulationContext
                      ↓
                   Simulator
 ```
+
+---
+
+## 追加設計事項
+
+以下は、プラグインアーキテクチャを実装する際に考慮すべき追加の設計事項です。
+
+### 1. SimulationContextの動的状態管理
+
+現在の固定フィールド構造から動的なプラグインデータストアへ移行します。
+
+```typescript
+// 動的データストア構造
+interface SimulationState {
+  groups: Group[];
+  pluginData: Record<string, unknown[]>;  // { "income": GroupedIncome[], "asset": GroupedAsset[], ... }
+  savedSimulations: SavedSimulation[];
+  activeSimulationId: string | null;
+}
+
+// 汎用アクション
+type SimulationAction =
+  | { type: "UPSERT_PLUGIN_DATA"; payload: { pluginType: string; groupId: string; data: unknown[] } }
+  | { type: "DELETE_PLUGIN_DATA"; payload: { pluginType: string; ids: string[] } }
+  | { type: "ADD_GROUP"; payload: Group }
+  // ...
+```
+
+プラグイン登録時に`pluginData[plugin.type]`が自動初期化されます。
+
+---
+
+### 2. 永続化とシリアライズ
+
+プラグイン別のシリアライザで永続化を制御します。
+
+```typescript
+interface SourcePlugin<TData> {
+  // ... 既存 ...
+  
+  /** データのシリアライズ（オプション） */
+  serialize?(data: TData[]): unknown;
+  /** デシリアライズ（オプション） */
+  deserialize?(raw: unknown): TData[];
+  /** スキーマバージョン */
+  readonly schemaVersion?: number;
+}
+
+// 保存フォーマット
+interface PersistedSimulation {
+  version: number;
+  groups: Group[];
+  pluginData: Record<string, { version: number; data: unknown }>;
+}
+```
+
+ロード時に各プラグインの`deserialize`を呼び、未登録プラグインのデータは破棄します。
+
+---
+
+### 3. プラグイン間の依存関係
+
+明示的な依存宣言とトポロジカルソートで解決します。
+
+```typescript
+interface SourcePlugin<TData> {
+  // ... 既存 ...
+  
+  /** このプラグインが依存する他プラグインのtype */
+  readonly dependencies?: readonly string[];
+}
+
+// レジストリ側で依存解決
+function createPluginRegistry(): PluginRegistry {
+  return {
+    register(plugin) {
+      // 依存プラグインが全て登録済みかチェック
+      const missing = plugin.dependencies?.filter(dep => !this.hasPlugin(dep));
+      if (missing?.length) {
+        throw new Error(`Plugin "${plugin.type}" requires: ${missing.join(", ")}`);
+      }
+      plugins.set(plugin.type, plugin);
+    },
+    
+    // 依存順にソートして取得
+    getAllPluginsSorted() {
+      return topologicalSort(plugins);
+    },
+  };
+}
+```
+
+---
+
+### 4. チャート表示の順序制御
+
+`ChartBarConfig`に優先度を追加します。
+
+```typescript
+interface ChartBarConfig {
+  dataKeyPrefix: string;
+  stackId: string;
+  category: "balance" | "income" | "expense";
+  
+  /** カテゴリ内での表示優先度（小さいほど先） */
+  priority?: number;
+  
+  /** レンダリング順序（zIndex的な役割） */
+  renderOrder?: number;
+  
+  nameSuffix?: string;
+  opacity?: number;
+}
+
+// カテゴリ自体の順序はシステム定義
+const CATEGORY_ORDER = { balance: 0, income: 1, expense: 2 } as const;
+```
+
+---
+
+### 5. グループ関連付けのオプション化
+
+グループに属さないデータも扱えるようにします。
+
+```typescript
+interface SourcePlugin<TData> {
+  // ... 既存 ...
+  
+  /** グループに属するデータかどうか（デフォルト: true） */
+  readonly isGroupScoped?: boolean;
+  
+  /** データからgroupIdを取得（isGroupScoped=trueの場合必須） */
+  getGroupId?(data: TData): string;
+}
+
+// グローバルデータ（グループに属さない）の例
+export const GlobalSettingsPlugin: SourcePlugin<GlobalSettings> = {
+  type: "globalSettings",
+  isGroupScoped: false,
+  // ...
+};
+```
+
+---
+
+### 6. バリデーションとエラーハンドリング
+
+Result型とエラー報告機構を導入します。
+
+```typescript
+type Result<T, E = Error> = { ok: true; value: T } | { ok: false; error: E };
+
+interface SourcePlugin<TData> {
+  // ... 既存 ...
+  
+  /** データのバリデーション */
+  validate?(data: TData): Result<TData, ValidationError[]>;
+}
+
+interface MonthlyProcessingContext {
+  // ... 既存 ...
+  
+  /** エラー報告用 */
+  reportError(error: SimulationError): void;
+  
+  /** 前の月のスナップショット（リカバリー用） */
+  previousSnapshot?: MonthlySnapshot;
+}
+```
+
+Simulatorは各プラグインの処理をtry-catchでラップし、エラーがあってもシミュレーション全体は継続します。
+
+---
+
+### 7. テストユーティリティ
+
+プラグインのテストを容易にするヘルパーを提供します。
+
+```typescript
+// domains/shared/plugin/testing.ts
+
+/** テスト用のモックレジストリ */
+export function createMockRegistry(plugins: SourcePlugin[]): PluginRegistry;
+
+/** プラグイン単体テスト用ヘルパー */
+export function testPlugin<TData>(
+  plugin: SourcePlugin<TData>,
+  testCases: {
+    data: TData;
+    expectedSource: Partial<CalculatorSource>;
+    monthlyEffectAssertions?: (context: MonthlyProcessingContext) => void;
+  }[]
+): void;
+
+/** シミュレーション結果の検証ヘルパー */
+export function assertSimulationResult(
+  result: SimulationResult,
+  expectations: {
+    month: number;
+    assetBalance?: Record<string, number>;
+    incomeBreakdown?: Record<string, number>;
+  }[]
+): void;
+```
+
+---
+
+### 8. プラグインライフサイクル
+
+登録・削除時のフックを提供します。
+
+```typescript
+interface SourcePlugin<TData> {
+  // ... 既存 ...
+  
+  /** プラグイン登録時に呼ばれる */
+  onRegister?(registry: PluginRegistry): void;
+  
+  /** プラグイン削除時に呼ばれる（クリーンアップ用） */
+  onUnregister?(context: { 
+    deletePluginData: () => void;  // SimulationContextから関連データを削除
+  }): void;
+}
+```
+
+---
+
+### 9. TypeScript型安全性の強化
+
+モジュール拡張で型安全なプラグインアクセスを実現します。
+
+```typescript
+// 各プラグインの型マッピングを定義
+interface PluginDataTypeMap {
+  income: GroupedIncome;
+  expense: GroupedExpense;
+  asset: GroupedAsset;
+  liability: GroupedLiability;
+}
+
+// 型安全なフック
+function usePluginData<K extends keyof PluginDataTypeMap>(
+  pluginType: K
+): PluginContextValue<PluginDataTypeMap[K]>;
+
+// 使用例
+const { data } = usePluginData("income");  // data: GroupedIncome[]
+```
+
+新しいプラグイン追加時はモジュール拡張で型マップを拡張：
+
+```typescript
+// domains/crypto/plugin.ts
+declare module "@/domains/shared/plugin/types" {
+  interface PluginDataTypeMap {
+    crypto: GroupedCrypto;
+  }
+}
+```
+
+---
+
+### 10. Adapter層による移行
+
+既存コンポーネントをプラグインベースに移行するためのアダプターを提供します。
+
+```typescript
+// プラグインベースのSimulatorへのアダプター
+function createPluginAwareSimulator(
+  registry: PluginRegistry,
+  state: SimulationState,
+  params: SimulationParams
+): Simulator {
+  // 全プラグインからソースを収集
+  const sources = registry.getAllPluginsSorted().flatMap(plugin => {
+    const data = state.pluginData[plugin.type] ?? [];
+    return data.map(d => plugin.createSource(d));
+  });
+  
+  return {
+    simulate() {
+      // 各月でプラグインのapplyMonthlyEffect → postMonthlyProcessを順次実行
+    }
+  };
+}
+
+// チャート用アダプター
+function usePluginAwareChartData(
+  registry: PluginRegistry,
+  simulationResult: SimulationResult,
+  sourceMetadata: Map<string, SourceMetadata>
+): ChartBarDefinition[] {
+  return registry.getAllPlugins().flatMap(plugin => 
+    plugin.getChartConfig?.() ?? []
+  ).map(config => generateBarDefinition(config, simulationResult));
+}
+```
+
+---
+
+## 実装優先順位
+
+| 優先度 | 課題 | 理由 |
+|--------|------|------|
+| **高** | 1. 状態管理 | 全ての基盤となる |
+| **高** | 9. 型安全性 | 開発体験に直結 |
+| **高** | 3. 依存関係 | 実装順序に影響 |
+| **中** | 5. グループ関連 | 柔軟性に影響 |
+| **中** | 6. エラーハンドリング | 堅牢性 |
+| **中** | 10. 移行パス | 実装の入口 |
+| **低** | 2. 永続化 | 後から追加可能 |
+| **低** | 4. チャート順序 | 微調整レベル |
+| **低** | 7. テスト戦略 | 並行で整備可能 |
+| **低** | 8. ライフサイクル | 当面不要 |
