@@ -34,7 +34,7 @@ interface ChartSimulationResult {
  */
 function convertToChartData(
   simulationResult: ReturnType<ReturnType<typeof createSimulator>["simulate"]>,
-  unifiedCalculator: ReturnType<typeof createCalculator<CalculatorSource>>
+  unifiedCalculator: ReturnType<typeof createCalculator<CalculatorSource>>,
 ): ChartSimulationResult {
   const { monthlyData, currentMonthlyCashFlow, hasData } = simulationResult;
 
@@ -130,11 +130,6 @@ function convertToChartData(
         }
       });
 
-    // デバッグ: yearlyIncomeMapの全キーを出力
-    Array.from(yearlyIncomeMap.entries()).forEach(([key, amount]) => {
-      chartData[`debug_income_${key}`] = Math.round(amount);
-    });
-
     // 資産の引き出し（収入）を特別なキーで追加
     sources
       .filter((source) => source.type === "asset")
@@ -188,7 +183,7 @@ export function runFinancialSimulation(
   incomes: GroupedIncome[],
   liabilities: GroupedLiability[],
   simulationYears: number,
-  activeGroupIds?: string[]
+  activeGroupIds?: string[],
 ): ChartSimulationResult {
   // activeGroupIdsが指定されている場合はフィルタリング
   const filteredIncomes = activeGroupIds
@@ -224,7 +219,7 @@ export function runFinancialSimulation(
   // Liability[]をLiabilitySourceに変換してCalculatorに追加
   const filteredLiabilities = activeGroupIds
     ? liabilities.filter((liability) =>
-        activeGroupIds.includes(liability.groupId)
+        activeGroupIds.includes(liability.groupId),
       )
     : liabilities;
   filteredLiabilities.forEach((liability) => {
@@ -254,7 +249,7 @@ export function runFinancialSimulation(
               income: 0,
               expense: Math.max(
                 0,
-                liability.principal - (totalPaid - thisMonthAmount)
+                liability.principal - (totalPaid - thisMonthAmount),
               ),
             };
           }
