@@ -146,7 +146,7 @@ src/
 - **GroupSelector**: グループ選択コンポーネント
 
 ### 表示コンポーネント
-- **FinancialAssetsChart**: シミュレーション結果のチャート表示
+- **SimulationChart**: シミュレーション結果のチャート表示
 - **AppLayout**: アプリケーション全体のレイアウト
 - **Sidebar**: ナビゲーションサイドバー
 
@@ -228,7 +228,7 @@ interface SourcePlugin<TData> {
   dependencies?: ReadonlyArray<keyof PluginDataTypeMap>;
 
   // Simulation Logic
-  createSource(data: TData): CalculatorSource;
+  createSources(data: TData): CalculatorSource[];  // 1つのデータから複数ソースを生成可能
   getInitialBalance?(source: CalculatorSource): number;
   applyMonthlyEffect?(context: MonthlyProcessingContext): void;
   postMonthlyProcess?(context: PostMonthlyContext): void;
@@ -245,6 +245,25 @@ interface SourcePlugin<TData> {
   isGroupScoped?: boolean;
 }
 ```
+
+### createSources メソッド
+`createSources`は単一のドメインデータから複数の`CalculatorSource`を生成できます。
+これにより、プラグインは付随する追加ソース（例：負債の返済に伴う支出ソース）を
+一緒に定義でき、シミュレーションコアにプラグイン固有の知識を持たせる必要がなくなります。
+
+例：LiabilityPluginは負債データから以下を生成：
+- メインの負債ソース（type: "liability"）
+- 返済に伴う支出ソース（type: "expense"、返済元資産が指定されている場合）
+
+### チャートデータのキー形式
+シミュレーション結果のチャートデータは以下の命名規則に従います：
+- 残高: `balance_asset_{id}`, `balance_liability_{id}`
+- 収入: `income_{breakdownKey}`
+- 支出: `expense_{breakdownKey}`
+
+各プラグインは`getChartConfig()`で自身が生成するキーのプレフィックスを定義し、
+`SimulationChart`は`generateChartBars()`を使用してプラグインから動的にバー定義を生成します。
+これにより、チャートコンポーネントはプラグイン固有のキープレフィックスを知る必要がありません。
 
 ### 型安全なプラグインデータ管理
 

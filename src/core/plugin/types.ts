@@ -108,8 +108,8 @@ export interface SourcePlugin<TData = unknown> {
   readonly dependencies?: ReadonlyArray<keyof PluginDataTypeMap>;
 
   // ===== Simulation Logic (Pure) =====
-  /** ドメインデータからCalculatorSourceを生成 */
-  createSource(data: TData): CalculatorSource;
+  /** ドメインデータからCalculatorSource(s)を生成 */
+  createSources(data: TData): CalculatorSource[];
   /** 初期残高を取得（残高を持つソースタイプ用） */
   getInitialBalance?(source: CalculatorSource): number;
   /** 月次キャッシュフロー計算後の効果を適用 */

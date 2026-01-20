@@ -35,7 +35,9 @@ export const ExpensePlugin: SourcePlugin<GroupedExpense> = {
   dependencies: ["asset"], // 支出は資産から減算されるため
 
   // Simulation Logic
-  createSource: convertExpenseToExpenseSource,
+  createSources(data) {
+    return [convertExpenseToExpenseSource(data)];
+  },
 
   applyMonthlyEffect(context: MonthlyProcessingContext) {
     const { source, cashFlowChange, assetBalances, expenseBreakdown } = context;
@@ -44,7 +46,7 @@ export const ExpensePlugin: SourcePlugin<GroupedExpense> = {
 
     // 支出を支出内訳に記録
     if (cashFlowChange.expense > 0) {
-      const expenseKey = `expense_${source.id}`;
+      const expenseKey = source.id;
       const prevExpense = expenseBreakdown.get(expenseKey) ?? 0;
       expenseBreakdown.set(expenseKey, prevExpense + cashFlowChange.expense);
 

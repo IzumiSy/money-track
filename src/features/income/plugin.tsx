@@ -35,7 +35,9 @@ export const IncomePlugin: SourcePlugin<GroupedIncome> = {
   dependencies: ["asset"], // 収入は資産に紐づくため
 
   // Simulation Logic
-  createSource: convertIncomeToIncomeSource,
+  createSources(data) {
+    return [convertIncomeToIncomeSource(data)];
+  },
 
   applyMonthlyEffect(context: MonthlyProcessingContext) {
     const { source, cashFlowChange, assetBalances, incomeBreakdown } = context;
@@ -44,7 +46,7 @@ export const IncomePlugin: SourcePlugin<GroupedIncome> = {
 
     // 収入を収入内訳に記録
     if (cashFlowChange.income > 0) {
-      const incomeKey = `income_${source.id}`;
+      const incomeKey = source.id;
       const prevIncome = incomeBreakdown.get(incomeKey) ?? 0;
       incomeBreakdown.set(incomeKey, prevIncome + cashFlowChange.income);
 

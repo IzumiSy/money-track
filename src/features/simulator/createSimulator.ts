@@ -1,4 +1,10 @@
 import { Calculator, CalculatorSource } from "@/core/calculator";
+import { PluginRegistry } from "@/core/plugin/registry";
+import {
+  MonthlyProcessingContext,
+  PostMonthlyContext,
+  PluginDataTypeMap,
+} from "@/core/plugin/types";
 import {
   SimulationParams,
   Simulator,
@@ -10,11 +16,13 @@ import {
  * 財務シミュレーターを作成する
  * @param calculator - 収入・支出の計算を行うCalculatorインスタンス
  * @param params - シミュレーションパラメータ
+ * @param pluginRegistry - プラグインレジストリ
  * @returns Simulatorインスタンス
  */
 export function createSimulator(
   calculator: Calculator<CalculatorSource>,
   params: SimulationParams,
+  pluginRegistry: PluginRegistry,
 ): Simulator {
   const { simulationMonths } = params;
 
@@ -46,21 +54,23 @@ export function createSimulator(
     // 月額のキャッシュフローを計算（現在時点での有効な収入・支出）
     const currentMonthlyCashFlow = getCurrentMonthlyCashFlow();
 
-    // 資産の初期残高を設定
+    // 資産・負債の初期残高を設定
     const assetBalances = new Map<string, number>();
     const liabilityBalances = new Map<string, number>();
     const sources = calculator.getSources();
 
     sources.forEach((source) => {
-      if (source.type === "asset") {
-        const metadata = source.getMetadata?.();
-        const baseAmount = (metadata?.baseAmount as number) || 0;
-        assetBalances.set(source.id, baseAmount);
-      }
-      if (source.type === "liability") {
-        const metadata = source.getMetadata?.();
-        const principal = (metadata?.principal as number) || 0;
-        liabilityBalances.set(source.id, principal);
+      const plugin = pluginRegistry.getPlugin(
+        source.type as keyof PluginDataTypeMap,
+      );
+
+      if (plugin?.getInitialBalance) {
+        const initialBalance = plugin.getInitialBalance(source);
+        if (source.type === "asset") {
+          assetBalances.set(source.id, initialBalance);
+        } else if (source.type === "liability") {
+          liabilityBalances.set(source.id, initialBalance);
+        }
       }
     });
 
@@ -69,8 +79,8 @@ export function createSimulator(
 
     for (let monthIndex = 0; monthIndex < simulationMonths; monthIndex++) {
       // 月の収入・支出を集計するためのマップ（IDをキーとする）
-      const monthlyIncomeMap = new Map<string, number>();
-      const monthlyExpenseMap = new Map<string, number>();
+      const incomeBreakdown = new Map<string, number>();
+      const expenseBreakdown = new Map<string, number>();
       const monthlyAssetBalances = new Map<string, number>();
 
       // 月のbreakdownを取得して、収入・支出を集計
@@ -79,74 +89,48 @@ export function createSimulator(
       // breakdownから全ての収入・支出を集計（キーはsourceId）
       Object.entries(monthlyBreakdown).forEach(([sourceId, cashFlowChange]) => {
         const source = sources.find((s) => s.id === sourceId);
+        if (!source) return;
 
+        // プラグインを取得して月次処理を実行
+        const plugin = pluginRegistry.getPlugin(
+          source.type as keyof PluginDataTypeMap,
+        );
+
+        const context: MonthlyProcessingContext = {
+          monthIndex,
+          source,
+          cashFlowChange,
+          assetBalances,
+          liabilityBalances,
+          incomeBreakdown,
+          expenseBreakdown,
+          allSources: sources,
+        };
+
+        plugin?.applyMonthlyEffect?.(context);
+
+        // 収入・支出の基本集計
         if (cashFlowChange.income > 0) {
-          monthlyIncomeMap.set(sourceId, cashFlowChange.income);
+          incomeBreakdown.set(sourceId, cashFlowChange.income);
         }
         if (cashFlowChange.expense > 0) {
-          monthlyExpenseMap.set(sourceId, cashFlowChange.expense);
-        }
-
-        // 資産タイプの場合、残高を更新
-        if (source?.type === "asset") {
-          const currentBalance = assetBalances.get(sourceId) || 0;
-          // 積立（expense）で残高増加、引き出し（income）で残高減少
-          const newBalance =
-            currentBalance + cashFlowChange.expense - cashFlowChange.income;
-          assetBalances.set(sourceId, newBalance);
-        }
-
-        // 収入タイプの場合、対象資産の残高を増加
-        if (source?.type === "income") {
-          const metadata = source.getMetadata?.();
-          const assetSourceId = metadata?.assetSourceId as string | undefined;
-          if (assetSourceId) {
-            const currentBalance = assetBalances.get(assetSourceId) || 0;
-            const newBalance = currentBalance + cashFlowChange.income;
-            assetBalances.set(assetSourceId, newBalance);
-          }
-        }
-
-        // 支出タイプの場合、対象資産の残高を減少
-        if (source?.type === "expense") {
-          const metadata = source.getMetadata?.();
-          const assetSourceId = metadata?.assetSourceId as string | undefined;
-          if (assetSourceId) {
-            const currentBalance = assetBalances.get(assetSourceId) || 0;
-            const newBalance = currentBalance - cashFlowChange.expense;
-            assetBalances.set(assetSourceId, newBalance);
-          }
-        }
-        // 負債タイプの場合、残高を更新（返済額分だけ減少）
-        if (source?.type === "liability") {
-          const currentBalance = liabilityBalances.get(sourceId) ?? 0;
-          // expense: 返済額
-          const newBalance = Math.max(
-            0,
-            currentBalance - cashFlowChange.expense,
-          );
-          liabilityBalances.set(sourceId, newBalance);
+          expenseBreakdown.set(sourceId, cashFlowChange.expense);
         }
       });
 
-      // 資産リターン（利息）を計算し、残高とincomeBreakdownに反映
-      sources.forEach((source) => {
-        if (source.type === "asset") {
-          const currentBalanceNum: number = Number(
-            assetBalances.get(source.id) ?? 0,
-          );
-          const metadata = source.getMetadata?.();
-          const returnRate: number = Number(metadata?.returnRate ?? 0);
-          if (returnRate !== 0) {
-            const interest = currentBalanceNum * (returnRate / 12);
-            // 残高に加算
-            assetBalances.set(source.id, currentBalanceNum + interest);
-            // incomeBreakdownに「return_income_{assetId}」として加算
-            const returnIncomeKey = `return_income_${source.id}`;
-            const prev = monthlyIncomeMap.get(returnIncomeKey) || 0;
-            monthlyIncomeMap.set(returnIncomeKey, prev + interest);
-          }
-        }
+      // 月末処理（全ソース処理後）
+      const postContext: PostMonthlyContext = {
+        monthIndex,
+        assetBalances,
+        liabilityBalances,
+        incomeBreakdown,
+        expenseBreakdown,
+        allSources: sources,
+      };
+
+      // 依存関係順に各プラグインの月末処理を実行
+      pluginRegistry.getAllPluginsSorted().forEach((plugin) => {
+        plugin.postMonthlyProcess?.(postContext);
       });
 
       // 現在の資産残高をコピー
@@ -163,8 +147,8 @@ export function createSimulator(
       // 月ごとのデータを作成
       monthlyData.push({
         monthIndex,
-        incomeBreakdown: monthlyIncomeMap,
-        expenseBreakdown: monthlyExpenseMap,
+        incomeBreakdown,
+        expenseBreakdown,
         assetBalances: monthlyAssetBalances,
         liabilityBalances: monthlyLiabilityBalances,
       });

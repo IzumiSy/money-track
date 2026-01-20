@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { runFinancialSimulation } from "./financialSimulation";
 import {
   GroupedIncome,
@@ -6,6 +6,30 @@ import {
   GroupedAsset,
 } from "@/features/group/types";
 import { Cycle } from "@/core/calculator/Cycle";
+import { createPluginRegistry, PluginRegistry } from "@/core/plugin/registry";
+import { AssetPlugin } from "@/features/asset/plugin";
+import { IncomePlugin } from "@/features/income/plugin";
+import { ExpensePlugin } from "@/features/expense/plugin";
+import { LiabilityPlugin } from "@/features/liability/plugin";
+
+/**
+ * テスト用のプラグインレジストリを作成
+ */
+function createTestPluginRegistry(): PluginRegistry {
+  const registry = createPluginRegistry();
+  registry.register(AssetPlugin);
+  registry.register(IncomePlugin);
+  registry.register(ExpensePlugin);
+  registry.register(LiabilityPlugin);
+  return registry;
+}
+
+// テスト用プラグインレジストリ
+let pluginRegistry: PluginRegistry;
+
+beforeAll(() => {
+  pluginRegistry = createTestPluginRegistry();
+});
 
 // Helper function to create a monthly cycle
 function createMonthlyCycle(amount: number, startMonthIndex: number): Cycle {
@@ -32,14 +56,22 @@ describe("runFinancialSimulation", () => {
   ];
 
   it("初期資産のみの場合、資産額が変わらないこと", () => {
-    const result = runFinancialSimulation(defaultAssets, [], [], [], 5);
+    const result = runFinancialSimulation(
+      defaultAssets,
+      [],
+      [],
+      [],
+      5,
+      undefined,
+      pluginRegistry,
+    );
 
     expect(result.hasData).toBe(true);
     expect(result.simulationData).toHaveLength(5);
 
     // 各年の資産額が初期値と同じであること
     result.simulationData.forEach((data) => {
-      expect(data.investment_1).toBe(1000000);
+      expect(data.balance_asset_1).toBe(1000000);
     });
   });
 
@@ -55,14 +87,26 @@ describe("runFinancialSimulation", () => {
       },
     ];
 
-    const result = runFinancialSimulation(defaultAssets, [], incomes, [], 2);
+    const result = runFinancialSimulation(
+      defaultAssets,
+      [],
+      incomes,
+      [],
+      2,
+      undefined,
+      pluginRegistry,
+    );
 
     expect(result.hasData).toBe(true);
     expect(result.simulationData).toHaveLength(2);
 
     // 収入により資産残高が増加する
-    expect(result.simulationData[0].investment_1).toBe(1000000 + 100000 * 12); // 初期資産 + 月10万円×12ヶ月
-    expect(result.simulationData[1].investment_1).toBe(1000000 + 100000 * 24); // 初期資産 + 月10万円×24ヶ月
+    expect(result.simulationData[0].balance_asset_1).toBe(
+      1000000 + 100000 * 12,
+    ); // 初期資産 + 月10万円×12ヶ月
+    expect(result.simulationData[1].balance_asset_1).toBe(
+      1000000 + 100000 * 24,
+    ); // 初期資産 + 月10万円×24ヶ月
   });
 
   it("支出がある場合、対象資産が減少すること", () => {
@@ -77,13 +121,21 @@ describe("runFinancialSimulation", () => {
       },
     ];
 
-    const result = runFinancialSimulation(defaultAssets, expenses, [], [], 2);
+    const result = runFinancialSimulation(
+      defaultAssets,
+      expenses,
+      [],
+      [],
+      2,
+      undefined,
+      pluginRegistry,
+    );
 
     expect(result.hasData).toBe(true);
 
     // 支出により資産残高が減少する
-    expect(result.simulationData[0].investment_1).toBe(1000000 - 20000 * 12); // 初期資産 - 月2万円×12ヶ月
-    expect(result.simulationData[1].investment_1).toBe(1000000 - 20000 * 24); // 初期資産 - 月2万円×24ヶ月
+    expect(result.simulationData[0].balance_asset_1).toBe(1000000 - 20000 * 12); // 初期資産 - 月2万円×12ヶ月
+    expect(result.simulationData[1].balance_asset_1).toBe(1000000 - 20000 * 24); // 初期資産 - 月2万円×24ヶ月
   });
 
   it("資産の積立がある場合、資産が増加すること", () => {
@@ -115,14 +167,16 @@ describe("runFinancialSimulation", () => {
       [],
       [],
       2,
+      undefined,
+      pluginRegistry,
     );
 
     expect(result.hasData).toBe(true);
 
     // 1年目: 初期資産 + 12ヶ月分の積立
-    expect(result.simulationData[0].investment_1).toBe(1000000 + 50000 * 12);
+    expect(result.simulationData[0].balance_asset_1).toBe(1000000 + 50000 * 12);
     // 2年目: 1年目の資産 + 12ヶ月分の積立
-    expect(result.simulationData[1].investment_1).toBe(1000000 + 50000 * 24);
+    expect(result.simulationData[1].balance_asset_1).toBe(1000000 + 50000 * 24);
   });
 
   it("資産の引き出しがある場合、資産が減少すること", () => {
@@ -148,14 +202,26 @@ describe("runFinancialSimulation", () => {
       },
     ];
 
-    const result = runFinancialSimulation(assetsWithWithdrawal, [], [], [], 2);
+    const result = runFinancialSimulation(
+      assetsWithWithdrawal,
+      [],
+      [],
+      [],
+      2,
+      undefined,
+      pluginRegistry,
+    );
 
     expect(result.hasData).toBe(true);
 
     // 1年目: 初期資産 - 12ヶ月分の引き出し
-    expect(result.simulationData[0].investment_1).toBe(5000000 - 100000 * 12);
+    expect(result.simulationData[0].balance_asset_1).toBe(
+      5000000 - 100000 * 12,
+    );
     // 2年目: 1年目の資産 - 12ヶ月分の引き出し
-    expect(result.simulationData[1].investment_1).toBe(5000000 - 100000 * 24);
+    expect(result.simulationData[1].balance_asset_1).toBe(
+      5000000 - 100000 * 24,
+    );
   });
 
   it("複数の資産がある場合、合計が正しく計算されること", () => {
@@ -191,12 +257,20 @@ describe("runFinancialSimulation", () => {
       },
     ];
 
-    const result = runFinancialSimulation(multipleAssets, [], [], [], 1);
+    const result = runFinancialSimulation(
+      multipleAssets,
+      [],
+      [],
+      [],
+      1,
+      undefined,
+      pluginRegistry,
+    );
 
     expect(result.hasData).toBe(true);
 
     // 1年目: 現金100万はそのまま、投資信託は50万 + 積立3万×12ヶ月
-    expect(result.simulationData[0].investment_1).toBe(1000000);
-    expect(result.simulationData[0].investment_2).toBe(500000 + 30000 * 12);
+    expect(result.simulationData[0].balance_asset_1).toBe(1000000);
+    expect(result.simulationData[0].balance_asset_2).toBe(500000 + 30000 * 12);
   });
 });

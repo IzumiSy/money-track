@@ -38,7 +38,9 @@ export const AssetPlugin: SourcePlugin<GroupedAsset> = {
   description: "預金、投資信託、株式などの金融資産を管理",
 
   // Simulation Logic
-  createSource: convertAssetToAssetSource,
+  createSources(data) {
+    return [convertAssetToAssetSource(data)];
+  },
 
   getInitialBalance(source) {
     const metadata = source.getMetadata?.();
@@ -57,7 +59,7 @@ export const AssetPlugin: SourcePlugin<GroupedAsset> = {
 
     // 積立を支出内訳に記録
     if (cashFlowChange.expense > 0) {
-      const expenseKey = `investment_expense_${source.id}`;
+      const expenseKey = `investment_${source.id}`;
       const prevExpense = expenseBreakdown.get(expenseKey) ?? 0;
       expenseBreakdown.set(expenseKey, prevExpense + cashFlowChange.expense);
     }
@@ -78,7 +80,7 @@ export const AssetPlugin: SourcePlugin<GroupedAsset> = {
           const interest = currentBalance * (returnRate / 12);
           assetBalances.set(source.id, currentBalance + interest);
 
-          const returnIncomeKey = `return_income_${source.id}`;
+          const returnIncomeKey = `return_${source.id}`;
           const prev = incomeBreakdown.get(returnIncomeKey) ?? 0;
           incomeBreakdown.set(returnIncomeKey, prev + interest);
         }
@@ -89,13 +91,13 @@ export const AssetPlugin: SourcePlugin<GroupedAsset> = {
   getChartConfig() {
     return [
       {
-        dataKeyPrefix: "investment_",
+        dataKeyPrefix: "balance_asset_",
         stackId: "balance",
         category: "balance",
         priority: 1,
       },
       {
-        dataKeyPrefix: "investment_expense_",
+        dataKeyPrefix: "expense_investment_",
         stackId: "expense",
         category: "expense",
         nameSuffix: " 積立",
@@ -103,7 +105,7 @@ export const AssetPlugin: SourcePlugin<GroupedAsset> = {
         priority: 2,
       },
       {
-        dataKeyPrefix: "sellback_income_",
+        dataKeyPrefix: "income_sellback_",
         stackId: "income",
         category: "income",
         nameSuffix: " 売却益",
@@ -111,7 +113,7 @@ export const AssetPlugin: SourcePlugin<GroupedAsset> = {
         priority: 3,
       },
       {
-        dataKeyPrefix: "return_income_",
+        dataKeyPrefix: "income_return_",
         stackId: "income",
         category: "income",
         nameSuffix: " 利回り",

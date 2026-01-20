@@ -1,6 +1,9 @@
 import { GroupedLiability } from "@/features/group/types";
 import { SourcePlugin, MonthlyProcessingContext } from "@/core/plugin/types";
-import { convertLiabilityToLiabilitySource } from "./source";
+import {
+  convertLiabilityToLiabilitySource,
+  createLiabilityRepaymentSource,
+} from "./source";
 import LiabilitiesForm from "./LiabilitiesForm";
 
 /**
@@ -32,7 +35,14 @@ export const LiabilityPlugin: SourcePlugin<GroupedLiability> = {
   dependencies: ["asset"], // 返済は資産から行われるため
 
   // Simulation Logic
-  createSource: convertLiabilityToLiabilitySource,
+  createSources(data: GroupedLiability) {
+    const sources = [convertLiabilityToLiabilitySource(data)];
+    const repaymentSource = createLiabilityRepaymentSource(data);
+    if (repaymentSource) {
+      sources.push(repaymentSource);
+    }
+    return sources;
+  },
 
   getInitialBalance(source) {
     const metadata = source.getMetadata?.();
@@ -61,7 +71,7 @@ export const LiabilityPlugin: SourcePlugin<GroupedLiability> = {
       liabilityBalances.set(source.id, newLiabilityBalance);
 
       // 返済を支出内訳に記録
-      const expenseKey = `liability_expense_${source.id}`;
+      const expenseKey = `repayment_${source.id}`;
       const prevExpense = expenseBreakdown.get(expenseKey) ?? 0;
       expenseBreakdown.set(expenseKey, prevExpense + cashFlowChange.expense);
 
@@ -80,13 +90,13 @@ export const LiabilityPlugin: SourcePlugin<GroupedLiability> = {
   getChartConfig() {
     return [
       {
-        dataKeyPrefix: "liability_",
+        dataKeyPrefix: "balance_liability_",
         stackId: "balance",
         category: "balance",
         priority: 10, // 資産の後に表示
       },
       {
-        dataKeyPrefix: "liability_expense_",
+        dataKeyPrefix: "expense_repayment_",
         stackId: "expense",
         category: "expense",
         nameSuffix: " 返済",
