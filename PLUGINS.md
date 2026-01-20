@@ -4,6 +4,22 @@
 
 本ドキュメントは、計算ソース（金融資産、負債、収入、支出など）をプラグインとして独立的に扱うためのアーキテクチャ設計を記述します。
 
+### 目次
+
+1. [設計目標](#設計目標)
+2. [アーキテクチャ全体図](#アーキテクチャ全体図)
+3. [インターフェース定義](#インターフェース定義)
+4. [プラグイン実装例](#プラグイン実装例)
+5. [データフロー](#データフロー)
+6. [UI統合](#ui統合)
+7. [チャート統合](#チャート統合)
+8. [新規プラグイン追加ガイド](#新規プラグイン追加ガイド)
+9. [ディレクトリ構造](#ディレクトリ構造)
+10. [設計原則](#設計原則)
+11. [追加設計事項](#追加設計事項)
+12. [実装方針（決定事項）](#実装方針決定事項)
+13. [実装優先順位](#実装優先順位)
+
 ### 設計目標
 
 - **拡張性**: 新しいソースタイプを追加する際、コアのSimulatorやChartコンポーネントを修正する必要がない
@@ -334,10 +350,6 @@ interface PluginContextValue<TData = unknown> {
   /** 現在のプラグイン */
   plugin: SourcePlugin<TData>;
   
-  /** 現在選択中のグループID */
-  selectedGroupId: string;
-  setSelectedGroupId: (id: string) => void;
-  
   /** このプラグインタイプのデータ（グループでフィルタ済み） */
   data: TData[];
   
@@ -348,8 +360,11 @@ interface PluginContextValue<TData = unknown> {
   getByGroupId: (groupId: string) => TData[];
   
   /** 他のプラグインのデータにアクセス */
-  getOtherPluginData: <T>(pluginType: string, groupId?: string) => T[];
+  getOtherPluginData: <K extends keyof PluginDataTypeMap>(pluginType: K, groupId?: string) => PluginDataTypeMap[K][];
 }
+
+// selectedGroupIdはSimulationContextでグローバル管理
+// const { selectedGroupId, setSelectedGroupId } = useSimulationContext();
 ```
 
 ### usePluginData フック
@@ -358,10 +373,12 @@ interface PluginContextValue<TData = unknown> {
 // hooks/usePluginData.ts
 
 /**
- * プラグインのデータにアクセスするフック
+ * プラグインのデータにアクセスする型安全なフック
  * PluginProvider内で使用する
+ * 
+ * @template K - PluginDataTypeMapのキー（"income" | "expense" | "asset" | "liability" | ...）
  */
-export function usePluginData<TData>(): PluginContextValue<TData> {
+export function usePluginData<K extends keyof PluginDataTypeMap>(): PluginContextValue<PluginDataTypeMap[K]> {
   const context = useContext(PluginDataContext);
   
   if (!context) {
@@ -371,8 +388,11 @@ export function usePluginData<TData>(): PluginContextValue<TData> {
     );
   }
   
-  return context as PluginContextValue<TData>;
+  return context as PluginContextValue<PluginDataTypeMap[K]>;
 }
+
+// 使用例
+// const { data } = usePluginData<"income">();  // data: GroupedIncome[]
 ```
 
 ### データフロー図
@@ -388,10 +408,15 @@ export function usePluginData<TData>(): PluginContextValue<TData> {
 │  │                                                                          │   │
 │  │   state: {                                                               │   │
 │  │     groups: Group[],                                                     │   │
-│  │     incomes: GroupedIncome[],        <- plugin.type = "income"           │   │
-│  │     expenses: GroupedExpense[],      <- plugin.type = "expense"          │   │
-│  │     assets: GroupedAsset[],          <- plugin.type = "asset"            │   │
-│  │     liabilities: GroupedLiability[], <- plugin.type = "liability"        │   │
+│  │     selectedGroupId: string | null,   <- グローバルで管理                │   │
+│  │     pluginData: {                     <- 動的プラグインデータストア      │   │
+│  │       "income": GroupedIncome[],                                         │   │
+│  │       "expense": GroupedExpense[],                                       │   │
+│  │       "asset": GroupedAsset[],                                           │   │
+│  │       "liability": GroupedLiability[],                                   │   │
+│  │     },                                                                   │   │
+│  │     savedSimulations: SavedSimulation[],                                 │   │
+│  │     activeSimulationId: string | null,                                   │   │
 │  │   }                                                                      │   │
 │  └──────────────────────────────────────────────────────────────────────────┘   │
 │                                      ▲                                          │
@@ -401,8 +426,7 @@ export function usePluginData<TData>(): PluginContextValue<TData> {
 │  │                         PluginProvider                                   │   │
 │  │                                                                          │   │
 │  │   • Holds plugin information                                             │   │
-│  │   • Manages selectedGroupId                                              │   │
-│  │   • Extracts data of matching type from SimulationContext                │   │
+│  │   • Extracts data of matching type from SimulationContext.pluginData     │   │
 │  │   • Provides upsert, getByGroupId, getOtherPluginData                    │   │
 │  └──────────────────────────────────────────────────────────────────────────┘   │
 │                                      ▲                                          │
@@ -736,32 +760,7 @@ UI Components → PluginProvider → SimulationContext
 
 以下は、プラグインアーキテクチャを実装する際に考慮すべき追加の設計事項です。
 
-### 1. SimulationContextの動的状態管理
-
-現在の固定フィールド構造から動的なプラグインデータストアへ移行します。
-
-```typescript
-// 動的データストア構造
-interface SimulationState {
-  groups: Group[];
-  pluginData: Record<string, unknown[]>;  // { "income": GroupedIncome[], "asset": GroupedAsset[], ... }
-  savedSimulations: SavedSimulation[];
-  activeSimulationId: string | null;
-}
-
-// 汎用アクション
-type SimulationAction =
-  | { type: "UPSERT_PLUGIN_DATA"; payload: { pluginType: string; groupId: string; data: unknown[] } }
-  | { type: "DELETE_PLUGIN_DATA"; payload: { pluginType: string; ids: string[] } }
-  | { type: "ADD_GROUP"; payload: Group }
-  // ...
-```
-
-プラグイン登録時に`pluginData[plugin.type]`が自動初期化されます。
-
----
-
-### 2. 永続化とシリアライズ
+### 1. 永続化とシリアライズ
 
 プラグイン別のシリアライザで永続化を制御します。
 
@@ -789,7 +788,7 @@ interface PersistedSimulation {
 
 ---
 
-### 3. プラグイン間の依存関係
+### 2. プラグイン間の依存関係
 
 明示的な依存宣言とトポロジカルソートで解決します。
 
@@ -823,7 +822,7 @@ function createPluginRegistry(): PluginRegistry {
 
 ---
 
-### 4. チャート表示の順序制御
+### 3. チャート表示の順序制御
 
 `ChartBarConfig`に優先度を追加します。
 
@@ -849,7 +848,7 @@ const CATEGORY_ORDER = { balance: 0, income: 1, expense: 2 } as const;
 
 ---
 
-### 5. グループ関連付けのオプション化
+### 4. グループ関連付けのオプション化
 
 グループに属さないデータも扱えるようにします。
 
@@ -874,7 +873,7 @@ export const GlobalSettingsPlugin: SourcePlugin<GlobalSettings> = {
 
 ---
 
-### 6. バリデーションとエラーハンドリング
+### 5. バリデーションとエラーハンドリング
 
 Result型とエラー報告機構を導入します。
 
@@ -903,7 +902,7 @@ Simulatorは各プラグインの処理をtry-catchでラップし、エラー�
 
 ---
 
-### 7. テストユーティリティ
+### 6. テストユーティリティ
 
 プラグインのテストを容易にするヘルパーを提供します。
 
@@ -936,7 +935,7 @@ export function assertSimulationResult(
 
 ---
 
-### 8. プラグインライフサイクル
+### 7. プラグインライフサイクル
 
 登録・削除時のフックを提供します。
 
@@ -956,12 +955,40 @@ interface SourcePlugin<TData> {
 
 ---
 
-### 9. TypeScript型安全性の強化
+## 実装方針（決定事項）
 
-モジュール拡張で型安全なプラグインアクセスを実現します。
+以下は実装時の方針として決定された事項です。
+
+### 移行戦略: Big Bang
+
+本番稼働前のため、段階的移行ではなく一括で新アーキテクチャに移行します。
+
+- 既存の固定フィールド構造（`incomes`, `expenses`, `financialAssets`, `liabilities`）を廃止
+- `pluginData: Record<string, unknown[]>` 構造に完全移行
+- 既存のカスタムフック（`useIncomeManagement`等）も`usePluginData`に置き換え
+
+### Registry初期化: シングルトン
+
+モジュールレベルでシングルトンとして初期化します。
 
 ```typescript
-// 各プラグインの型マッピングを定義
+// domains/shared/plugin/defaultRegistry.ts
+export const globalRegistry = createPluginRegistry();
+globalRegistry.register(IncomePlugin);
+globalRegistry.register(ExpensePlugin);
+globalRegistry.register(AssetPlugin);
+globalRegistry.register(LiabilityPlugin);
+```
+
+- アクセスが簡単でコードがシンプル
+- テスト時はモジュールモック（`vi.mock`）で対応
+
+### 型安全性: PluginDataTypeMap
+
+モジュール拡張による型マップで型安全性を確保します。
+
+```typescript
+// domains/shared/plugin/types.ts
 interface PluginDataTypeMap {
   income: GroupedIncome;
   expense: GroupedExpense;
@@ -970,15 +997,11 @@ interface PluginDataTypeMap {
 }
 
 // 型安全なフック
-function usePluginData<K extends keyof PluginDataTypeMap>(
-  pluginType: K
-): PluginContextValue<PluginDataTypeMap[K]>;
-
-// 使用例
-const { data } = usePluginData("income");  // data: GroupedIncome[]
+function usePluginData<K extends keyof PluginDataTypeMap>(): 
+  PluginContextValue<PluginDataTypeMap[K]>;
 ```
 
-新しいプラグイン追加時はモジュール拡張で型マップを拡張：
+新規プラグイン追加時はモジュール拡張で型マップを拡張：
 
 ```typescript
 // domains/crypto/plugin.ts
@@ -989,57 +1012,40 @@ declare module "@/domains/shared/plugin/types" {
 }
 ```
 
----
+### フォーム互換: 即時移行
 
-### 10. Adapter層による移行
+既存のフォームコンポーネント（`IncomeForm`, `ExpensesForm`等）を`usePluginData`を使うように書き換えます。
 
-既存コンポーネントをプラグインベースに移行するためのアダプターを提供します。
+- 互換レイヤーは設けない
+- 既存のドメイン別フック（`useIncomeManagement`等）は廃止
+
+### GroupId管理: グローバルContext
+
+`selectedGroupId`は`SimulationContext`でグローバルに管理します。
 
 ```typescript
-// プラグインベースのSimulatorへのアダプター
-function createPluginAwareSimulator(
-  registry: PluginRegistry,
-  state: SimulationState,
-  params: SimulationParams
-): Simulator {
-  // 全プラグインからソースを収集
-  const sources = registry.getAllPluginsSorted().flatMap(plugin => {
-    const data = state.pluginData[plugin.type] ?? [];
-    return data.map(d => plugin.createSource(d));
-  });
-  
-  return {
-    simulate() {
-      // 各月でプラグインのapplyMonthlyEffect → postMonthlyProcessを順次実行
-    }
-  };
-}
-
-// チャート用アダプター
-function usePluginAwareChartData(
-  registry: PluginRegistry,
-  simulationResult: SimulationResult,
-  sourceMetadata: Map<string, SourceMetadata>
-): ChartBarDefinition[] {
-  return registry.getAllPlugins().flatMap(plugin => 
-    plugin.getChartConfig?.() ?? []
-  ).map(config => generateBarDefinition(config, simulationResult));
+interface SimulationState {
+  selectedGroupId: string | null;
+  pluginData: Record<string, unknown[]>;
+  // ...
 }
 ```
+
+- ページ間で選択状態が維持される
+- 一貫したUXを提供
 
 ---
 
 ## 実装優先順位
 
-| 優先度 | 課題 | 理由 |
-|--------|------|------|
-| **高** | 1. 状態管理 | 全ての基盤となる |
-| **高** | 9. 型安全性 | 開発体験に直結 |
-| **高** | 3. 依存関係 | 実装順序に影響 |
-| **中** | 5. グループ関連 | 柔軟性に影響 |
-| **中** | 6. エラーハンドリング | 堅牢性 |
-| **中** | 10. 移行パス | 実装の入口 |
-| **低** | 2. 永続化 | 後から追加可能 |
-| **低** | 4. チャート順序 | 微調整レベル |
-| **低** | 7. テスト戦略 | 並行で整備可能 |
-| **低** | 8. ライフサイクル | 当面不要 |
+追加設計事項の実装優先順位です。
+
+| 優先度 | 追加設計事項 | 理由 |
+|--------|-------------|------|
+| **高** | 2. プラグイン間の依存関係 | 実装順序に影響 |
+| **中** | 4. グループ関連付けのオプション化 | 柔軟性に影響 |
+| **中** | 5. バリデーションとエラーハンドリング | 堅牢性 |
+| **低** | 1. 永続化とシリアライズ | 後から追加可能 |
+| **低** | 3. チャート表示の順序制御 | 微調整レベル |
+| **低** | 6. テストユーティリティ | 並行で整備可能 |
+| **低** | 7. プラグインライフサイクル | 当面不要 |
