@@ -12,12 +12,15 @@ import LiabilitiesPage from "@/app/dashboard/liabilities/page";
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/money-track">
       <SimulationProvider>
         <Routes>
           {/* Root redirect to simulator */}
-          <Route path="/" element={<Navigate to="/dashboard/simulator" replace />} />
-          
+          <Route
+            path="/"
+            element={<Navigate to="/dashboard/simulator" replace />}
+          />
+
           {/* Dashboard routes with layout */}
           <Route
             path="/dashboard/*"
@@ -26,7 +29,10 @@ function App() {
                 <Routes>
                   <Route path="simulator" element={<SimulatorPage />} />
                   <Route path="expenses" element={<ExpensesPage />} />
-                  <Route path="financial-assets" element={<FinancialAssetsPage />} />
+                  <Route
+                    path="financial-assets"
+                    element={<FinancialAssetsPage />}
+                  />
                   <Route path="income" element={<IncomePage />} />
                   <Route path="liabilities" element={<LiabilitiesPage />} />
                 </Routes>
