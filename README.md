@@ -91,6 +91,14 @@ pnpm test
 
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)**: 技術構成とアーキテクチャ設計
 
+## デプロイ
+
+このプロジェクトはGitHub Pagesにデプロイされています。`main`ブランチにプッシュすると、自動的にデプロイが実行されます。
+
+### 手動デプロイ
+
+GitHub Actionsの「Deploy to GitHub Pages」ワークフローから手動でデプロイを実行することもできます。
+
 ## ライセンス
 
 このプロジェクトはプライベートプロジェクトです。
