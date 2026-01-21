@@ -1,20 +1,39 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useGroupManagement } from "@/features/group/hooks";
 import { useIncomeManagement } from "./hooks";
 import { useAssetManagement } from "@/features/asset/hooks";
-import { GroupedIncome } from "@/features/group/types";
+import { GroupedIncome, Group, GroupedAsset } from "@/features/group/types";
 import { Cycle, CycleType } from "@/core/calculator/Cycle";
 import {
   convertIndexToYearMonth,
   convertYearMonthToIndex,
 } from "@/core/calculator/TimeRange";
 
-interface IncomePageProps {
-  onSubmit?: () => void;
+interface UseIncomePageResult {
+  groups: Group[];
+  selectedGroupId: string;
+  setSelectedGroupId: (id: string) => void;
+  draftIncomes: GroupedIncome[];
+  groupAssets: GroupedAsset[];
+  handleSubmit: (e: React.FormEvent, onSubmit?: () => void) => void;
+  handleAddIncome: () => void;
+  handleUpdateIncome: (
+    id: string,
+    field: keyof GroupedIncome,
+    value: string | Cycle[],
+  ) => void;
+  handleRemoveIncome: (id: string) => void;
+  handleAddCycle: (incomeId: string) => void;
+  handleUpdateCycle: (
+    incomeId: string,
+    cycleId: string,
+    updates: Partial<Cycle>,
+  ) => void;
+  handleRemoveCycle: (incomeId: string, cycleId: string) => void;
 }
 
-export default function IncomePage({ onSubmit }: IncomePageProps) {
+export function useIncomePage(): UseIncomePageResult {
   const { groups } = useGroupManagement();
   const { upsertIncomes, getIncomesByGroupId } = useIncomeManagement();
   const { getAssetsByGroupId } = useAssetManagement();
@@ -22,6 +41,8 @@ export default function IncomePage({ onSubmit }: IncomePageProps) {
     groups.length > 0 ? groups[0].id : "",
   );
   const [draftIncomes, setDraftIncomes] = useState<GroupedIncome[]>([]);
+
+  const groupAssets = getAssetsByGroupId(selectedGroupId);
 
   // コンテキストの収入データをドラフトステートに同期（グループIDでフィルタ）
   useEffect(() => {
@@ -44,14 +65,14 @@ export default function IncomePage({ onSubmit }: IncomePageProps) {
     return colors[index % colors.length];
   };
 
-  const handleAddIncome = () => {
+  const handleAddIncome = useCallback(() => {
     if (!selectedGroupId) {
       alert("グループを選択してください");
       return;
     }
 
-    const groupAssets = getAssetsByGroupId(selectedGroupId);
-    if (groupAssets.length === 0) {
+    const assets = getAssetsByGroupId(selectedGroupId);
+    if (assets.length === 0) {
       alert("先に資産を作成してください");
       return;
     }
@@ -62,78 +83,123 @@ export default function IncomePage({ onSubmit }: IncomePageProps) {
       name: "",
       cycles: [],
       color: getDefaultColor(draftIncomes.length),
-      assetSourceId: groupAssets[0].id, // デフォルトで最初の資産を選択
+      assetSourceId: assets[0].id, // デフォルトで最初の資産を選択
     };
-    setDraftIncomes([...draftIncomes, newIncome]);
-  };
+    setDraftIncomes((prev) => [...prev, newIncome]);
+  }, [selectedGroupId, getAssetsByGroupId, draftIncomes.length]);
 
-  const handleUpdateIncome = (
-    id: string,
-    field: keyof GroupedIncome,
-    value: string | Cycle[],
-  ) => {
-    setDraftIncomes(
-      draftIncomes.map((income) =>
-        income.id === id ? { ...income, [field]: value } : income,
-      ),
-    );
-  };
+  const handleUpdateIncome = useCallback(
+    (id: string, field: keyof GroupedIncome, value: string | Cycle[]) => {
+      setDraftIncomes((prev) =>
+        prev.map((income) =>
+          income.id === id ? { ...income, [field]: value } : income,
+        ),
+      );
+    },
+    [],
+  );
 
-  const handleRemoveIncome = (id: string) => {
+  const handleRemoveIncome = useCallback((id: string) => {
     if (confirm("この収入を削除しますか？")) {
-      setDraftIncomes(draftIncomes.filter((income) => income.id !== id));
+      setDraftIncomes((prev) => prev.filter((income) => income.id !== id));
     }
+  }, []);
+
+  const handleAddCycle = useCallback(
+    (incomeId: string) => {
+      const income = draftIncomes.find((i) => i.id === incomeId);
+      if (!income) return;
+
+      const newCycle: Cycle = {
+        id: Date.now().toString(),
+        type: "monthly",
+        startMonthIndex: 0, // 1年1ヶ月目
+        amount: 0,
+      };
+
+      handleUpdateIncome(incomeId, "cycles", [...income.cycles, newCycle]);
+    },
+    [draftIncomes, handleUpdateIncome],
+  );
+
+  const handleUpdateCycle = useCallback(
+    (incomeId: string, cycleId: string, updates: Partial<Cycle>) => {
+      const income = draftIncomes.find((i) => i.id === incomeId);
+      if (!income) return;
+
+      const updatedCycles = income.cycles.map((cycle) =>
+        cycle.id === cycleId ? { ...cycle, ...updates } : cycle,
+      );
+
+      handleUpdateIncome(incomeId, "cycles", updatedCycles);
+    },
+    [draftIncomes, handleUpdateIncome],
+  );
+
+  const handleRemoveCycle = useCallback(
+    (incomeId: string, cycleId: string) => {
+      const income = draftIncomes.find((i) => i.id === incomeId);
+      if (!income) return;
+
+      const updatedCycles = income.cycles.filter(
+        (cycle) => cycle.id !== cycleId,
+      );
+      handleUpdateIncome(incomeId, "cycles", updatedCycles);
+    },
+    [draftIncomes, handleUpdateIncome],
+  );
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent, onSubmit?: () => void) => {
+      e.preventDefault();
+
+      // upsertIncomesを使用して収入データを一括更新
+      upsertIncomes(selectedGroupId, draftIncomes);
+
+      toast.success("収入情報を保存しました");
+
+      if (onSubmit) {
+        onSubmit();
+      }
+    },
+    [selectedGroupId, draftIncomes, upsertIncomes],
+  );
+
+  return {
+    groups,
+    selectedGroupId,
+    setSelectedGroupId,
+    draftIncomes,
+    groupAssets,
+    handleSubmit,
+    handleAddIncome,
+    handleUpdateIncome,
+    handleRemoveIncome,
+    handleAddCycle,
+    handleUpdateCycle,
+    handleRemoveCycle,
   };
+}
 
-  const handleAddCycle = (incomeId: string) => {
-    const income = draftIncomes.find((i) => i.id === incomeId);
-    if (!income) return;
+interface IncomePageProps {
+  onSubmit?: () => void;
+}
 
-    const newCycle: Cycle = {
-      id: Date.now().toString(),
-      type: "monthly",
-      startMonthIndex: 0, // 1年1ヶ月目
-      amount: 0,
-    };
-
-    handleUpdateIncome(incomeId, "cycles", [...income.cycles, newCycle]);
-  };
-
-  const handleUpdateCycle = (
-    incomeId: string,
-    cycleId: string,
-    updates: Partial<Cycle>,
-  ) => {
-    const income = draftIncomes.find((i) => i.id === incomeId);
-    if (!income) return;
-
-    const updatedCycles = income.cycles.map((cycle) =>
-      cycle.id === cycleId ? { ...cycle, ...updates } : cycle,
-    );
-
-    handleUpdateIncome(incomeId, "cycles", updatedCycles);
-  };
-
-  const handleRemoveCycle = (incomeId: string, cycleId: string) => {
-    const income = draftIncomes.find((i) => i.id === incomeId);
-    if (!income) return;
-
-    const updatedCycles = income.cycles.filter((cycle) => cycle.id !== cycleId);
-    handleUpdateIncome(incomeId, "cycles", updatedCycles);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // upsertIncomesを使用して収入データを一括更新
-    upsertIncomes(selectedGroupId, draftIncomes);
-
-    toast.success("収入情報を保存しました");
-
-    if (onSubmit) {
-      onSubmit();
-    }
-  };
+export default function IncomePage({ onSubmit }: IncomePageProps) {
+  const {
+    groups,
+    selectedGroupId,
+    setSelectedGroupId,
+    draftIncomes,
+    groupAssets,
+    handleSubmit,
+    handleAddIncome,
+    handleUpdateIncome,
+    handleRemoveIncome,
+    handleAddCycle,
+    handleUpdateCycle,
+    handleRemoveCycle,
+  } = useIncomePage();
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -141,7 +207,7 @@ export default function IncomePage({ onSubmit }: IncomePageProps) {
         収入の設定
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={(e) => handleSubmit(e, onSubmit)} className="space-y-6">
         {/* グループ選択 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -239,7 +305,7 @@ export default function IncomePage({ onSubmit }: IncomePageProps) {
                         }
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
                       >
-                        {getAssetsByGroupId(selectedGroupId).map((asset) => (
+                        {groupAssets.map((asset) => (
                           <option key={asset.id} value={asset.id}>
                             {asset.name}
                           </option>

@@ -1,18 +1,39 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useGroupManagement } from "@/features/group/hooks";
 import { useLiabilityManagement } from "./hooks";
 import { useAssetManagement } from "@/features/asset/hooks";
-import { GroupedLiability, Cycle } from "@/features/group/types";
+import { GroupedLiability, Cycle, Group, GroupedAsset } from "@/features/group/types";
 
-interface LiabilitiesPageProps {
-  onSubmit?: () => void;
+interface UseLiabilitiesPageResult {
+  groups: Group[];
+  selectedGroupId: string;
+  setSelectedGroupId: (id: string) => void;
+  draftLiabilities: GroupedLiability[];
+  validationError: string | null;
+  groupAssets: GroupedAsset[];
+  handleSubmit: (e: React.FormEvent, onSubmit?: () => void) => void;
+  addLiability: () => void;
+  updateLiability: (
+    id: string,
+    field: keyof GroupedLiability,
+    value: string | number | Cycle[],
+  ) => void;
+  removeLiability: (id: string) => void;
+  addCycle: (liabilityId: string) => void;
+  updateCycle: (
+    liabilityId: string,
+    cycleId: string,
+    field: keyof Cycle,
+    value: string | number,
+  ) => void;
+  removeCycle: (liabilityId: string, cycleId: string) => void;
 }
 
-export default function LiabilitiesPage({ onSubmit }: LiabilitiesPageProps) {
+export function useLiabilitiesPage(): UseLiabilitiesPageResult {
   const { groups } = useGroupManagement();
   const { upsertLiabilities, getLiabilitiesByGroup } = useLiabilityManagement();
-  const { assets, getAssetsByGroupId } = useAssetManagement();
+  const { getAssetsByGroupId } = useAssetManagement();
   const [selectedGroupId, setSelectedGroupId] = useState<string>(
     groups.length > 0 ? groups[0].id : "",
   );
@@ -21,30 +42,35 @@ export default function LiabilitiesPage({ onSubmit }: LiabilitiesPageProps) {
   );
   const [validationError, setValidationError] = useState<string | null>(null);
 
+  const groupAssets = getAssetsByGroupId(selectedGroupId);
+
   // グループ変更時に負債データを同期
   useEffect(() => {
     const groupLiabilities = getLiabilitiesByGroup(selectedGroupId);
     setDraftLiabilities(groupLiabilities);
   }, [getLiabilitiesByGroup, selectedGroupId]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // バリデーション: すべての負債にassetSourceIdが必要
-    for (const liability of draftLiabilities) {
-      if (!liability.assetSourceId) {
-        setValidationError("すべての負債に返済元資産を選択してください。");
-        return;
+  const handleSubmit = useCallback(
+    (e: React.FormEvent, onSubmit?: () => void) => {
+      e.preventDefault();
+      // バリデーション: すべての負債にassetSourceIdが必要
+      for (const liability of draftLiabilities) {
+        if (!liability.assetSourceId) {
+          setValidationError("すべての負債に返済元資産を選択してください。");
+          return;
+        }
       }
-    }
-    setValidationError(null);
-    upsertLiabilities(selectedGroupId, draftLiabilities);
+      setValidationError(null);
+      upsertLiabilities(selectedGroupId, draftLiabilities);
 
-    toast.success("負債情報を保存しました");
+      toast.success("負債情報を保存しました");
 
-    if (onSubmit) onSubmit();
-  };
+      if (onSubmit) onSubmit();
+    },
+    [draftLiabilities, selectedGroupId, upsertLiabilities],
+  );
 
-  const addLiability = () => {
+  const addLiability = useCallback(() => {
     if (!selectedGroupId) {
       alert("グループを選択してください");
       return;
@@ -59,71 +85,121 @@ export default function LiabilitiesPage({ onSubmit }: LiabilitiesPageProps) {
       principal: 0,
       totalAmount: 0,
     };
-    setDraftLiabilities([...draftLiabilities, newLiability]);
-  };
+    setDraftLiabilities((prev) => [...prev, newLiability]);
+  }, [selectedGroupId]);
 
-  const updateLiability = (
-    id: string,
-    field: keyof GroupedLiability,
-    value: string | number | Cycle[],
-  ) => {
-    setDraftLiabilities(
-      draftLiabilities.map((liability) =>
-        liability.id === id ? { ...liability, [field]: value } : liability,
-      ),
-    );
-  };
+  const updateLiability = useCallback(
+    (
+      id: string,
+      field: keyof GroupedLiability,
+      value: string | number | Cycle[],
+    ) => {
+      setDraftLiabilities((prev) =>
+        prev.map((liability) =>
+          liability.id === id ? { ...liability, [field]: value } : liability,
+        ),
+      );
+    },
+    [],
+  );
 
-  const removeLiability = (id: string) => {
+  const removeLiability = useCallback((id: string) => {
     if (confirm("この負債を削除しますか？")) {
-      setDraftLiabilities(
-        draftLiabilities.filter((liability) => liability.id !== id),
+      setDraftLiabilities((prev) =>
+        prev.filter((liability) => liability.id !== id),
       );
     }
-  };
+  }, []);
 
   // 返済サイクルの追加・編集・削除
-  const addCycle = (liabilityId: string) => {
-    const liability = draftLiabilities.find((l) => l.id === liabilityId);
-    if (!liability) return;
-    const newCycle: Cycle = {
-      id: Date.now().toString(),
-      type: "monthly",
-      amount: 0,
-      startMonthIndex: 0,
-    };
-    updateLiability(liabilityId, "cycles", [...liability.cycles, newCycle]);
-  };
+  const addCycle = useCallback(
+    (liabilityId: string) => {
+      const liability = draftLiabilities.find((l) => l.id === liabilityId);
+      if (!liability) return;
+      const newCycle: Cycle = {
+        id: Date.now().toString(),
+        type: "monthly",
+        amount: 0,
+        startMonthIndex: 0,
+      };
+      updateLiability(liabilityId, "cycles", [...liability.cycles, newCycle]);
+    },
+    [draftLiabilities, updateLiability],
+  );
 
-  const updateCycle = (
-    liabilityId: string,
-    cycleId: string,
-    field: keyof Cycle,
-    value: string | number,
-  ) => {
-    const liability = draftLiabilities.find((l) => l.id === liabilityId);
-    if (!liability) return;
-    const updatedCycles = liability.cycles.map((cycle) =>
-      cycle.id === cycleId ? { ...cycle, [field]: value } : cycle,
-    );
-    updateLiability(liabilityId, "cycles", updatedCycles);
-  };
+  const updateCycle = useCallback(
+    (
+      liabilityId: string,
+      cycleId: string,
+      field: keyof Cycle,
+      value: string | number,
+    ) => {
+      const liability = draftLiabilities.find((l) => l.id === liabilityId);
+      if (!liability) return;
+      const updatedCycles = liability.cycles.map((cycle) =>
+        cycle.id === cycleId ? { ...cycle, [field]: value } : cycle,
+      );
+      updateLiability(liabilityId, "cycles", updatedCycles);
+    },
+    [draftLiabilities, updateLiability],
+  );
 
-  const removeCycle = (liabilityId: string, cycleId: string) => {
-    const liability = draftLiabilities.find((l) => l.id === liabilityId);
-    if (!liability) return;
-    const updatedCycles = liability.cycles.filter(
-      (cycle) => cycle.id !== cycleId,
-    );
-    updateLiability(liabilityId, "cycles", updatedCycles);
+  const removeCycle = useCallback(
+    (liabilityId: string, cycleId: string) => {
+      const liability = draftLiabilities.find((l) => l.id === liabilityId);
+      if (!liability) return;
+      const updatedCycles = liability.cycles.filter(
+        (cycle) => cycle.id !== cycleId,
+      );
+      updateLiability(liabilityId, "cycles", updatedCycles);
+    },
+    [draftLiabilities, updateLiability],
+  );
+
+  return {
+    groups,
+    selectedGroupId,
+    setSelectedGroupId,
+    draftLiabilities,
+    validationError,
+    groupAssets,
+    handleSubmit,
+    addLiability,
+    updateLiability,
+    removeLiability,
+    addCycle,
+    updateCycle,
+    removeCycle,
   };
+}
+
+interface LiabilitiesPageProps {
+  onSubmit?: () => void;
+}
+
+export default function LiabilitiesPage({ onSubmit }: LiabilitiesPageProps) {
+  const {
+    groups,
+    selectedGroupId,
+    setSelectedGroupId,
+    draftLiabilities,
+    validationError,
+    groupAssets,
+    handleSubmit,
+    addLiability,
+    updateLiability,
+    removeLiability,
+    addCycle,
+    updateCycle,
+    removeCycle,
+  } = useLiabilitiesPage();
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
       <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
         負債の入力
       </h2>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={(e) => handleSubmit(e, onSubmit)} className="space-y-6">
         {/* グループ選択 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -191,7 +267,7 @@ export default function LiabilitiesPage({ onSubmit }: LiabilitiesPageProps) {
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                         返済元資産
                       </label>
-                      {assets.length === 0 ? (
+                      {groupAssets.length === 0 ? (
                         <div className="text-xs text-red-500">
                           資産がありません。先に資産を追加してください。
                         </div>
@@ -208,7 +284,7 @@ export default function LiabilitiesPage({ onSubmit }: LiabilitiesPageProps) {
                           className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs dark:bg-gray-600 dark:text-white"
                         >
                           <option value="">選択してください</option>
-                          {getAssetsByGroupId(selectedGroupId).map((asset) => (
+                          {groupAssets.map((asset) => (
                             <option key={asset.id} value={asset.id}>
                               {asset.name}
                             </option>

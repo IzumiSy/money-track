@@ -1,20 +1,39 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useGroupManagement } from "@/features/group/hooks";
 import { useExpenseManagement } from "./hooks";
 import { useAssetManagement } from "@/features/asset/hooks";
-import { GroupedExpense } from "@/features/group/types";
+import { GroupedExpense, Group, GroupedAsset } from "@/features/group/types";
 import { Cycle, CycleType } from "@/core/calculator/Cycle";
 import {
   convertIndexToYearMonth,
   convertYearMonthToIndex,
 } from "@/core/calculator/TimeRange";
 
-interface ExpensesPageProps {
-  onSubmit?: () => void;
+interface UseExpensesPageResult {
+  groups: Group[];
+  selectedGroupId: string;
+  setSelectedGroupId: (id: string) => void;
+  draftExpenses: GroupedExpense[];
+  groupAssets: GroupedAsset[];
+  handleSubmit: (e: React.FormEvent, onSubmit?: () => void) => void;
+  handleAddExpense: () => void;
+  handleUpdateExpense: (
+    id: string,
+    field: keyof GroupedExpense,
+    value: string | Cycle[],
+  ) => void;
+  handleRemoveExpense: (id: string) => void;
+  handleAddCycle: (expenseId: string) => void;
+  handleUpdateCycle: (
+    expenseId: string,
+    cycleId: string,
+    updates: Partial<Cycle>,
+  ) => void;
+  handleRemoveCycle: (expenseId: string, cycleId: string) => void;
 }
 
-export default function ExpensesPage({ onSubmit }: ExpensesPageProps) {
+export function useExpensesPage(): UseExpensesPageResult {
   const { groups } = useGroupManagement();
   const { upsertExpenses, getExpensesByGroupId } = useExpenseManagement();
   const { getAssetsByGroupId } = useAssetManagement();
@@ -22,6 +41,8 @@ export default function ExpensesPage({ onSubmit }: ExpensesPageProps) {
     groups.length > 0 ? groups[0].id : "",
   );
   const [draftExpenses, setDraftExpenses] = useState<GroupedExpense[]>([]);
+
+  const groupAssets = getAssetsByGroupId(selectedGroupId);
 
   // コンテキストの支出データをドラフトステートに同期（グループIDでフィルタ）
   useEffect(() => {
@@ -44,14 +65,14 @@ export default function ExpensesPage({ onSubmit }: ExpensesPageProps) {
     return colors[index % colors.length];
   };
 
-  const handleAddExpense = () => {
+  const handleAddExpense = useCallback(() => {
     if (!selectedGroupId) {
       alert("グループを選択してください");
       return;
     }
 
-    const groupAssets = getAssetsByGroupId(selectedGroupId);
-    if (groupAssets.length === 0) {
+    const assets = getAssetsByGroupId(selectedGroupId);
+    if (assets.length === 0) {
       alert("先に資産を作成してください");
       return;
     }
@@ -62,80 +83,123 @@ export default function ExpensesPage({ onSubmit }: ExpensesPageProps) {
       name: "",
       cycles: [],
       color: getDefaultColor(draftExpenses.length),
-      assetSourceId: groupAssets[0].id, // デフォルトで最初の資産を選択
+      assetSourceId: assets[0].id, // デフォルトで最初の資産を選択
     };
-    setDraftExpenses([...draftExpenses, newExpense]);
-  };
+    setDraftExpenses((prev) => [...prev, newExpense]);
+  }, [selectedGroupId, getAssetsByGroupId, draftExpenses.length]);
 
-  const handleUpdateExpense = (
-    id: string,
-    field: keyof GroupedExpense,
-    value: string | Cycle[],
-  ) => {
-    setDraftExpenses(
-      draftExpenses.map((expense) =>
-        expense.id === id ? { ...expense, [field]: value } : expense,
-      ),
-    );
-  };
+  const handleUpdateExpense = useCallback(
+    (id: string, field: keyof GroupedExpense, value: string | Cycle[]) => {
+      setDraftExpenses((prev) =>
+        prev.map((expense) =>
+          expense.id === id ? { ...expense, [field]: value } : expense,
+        ),
+      );
+    },
+    [],
+  );
 
-  const handleRemoveExpense = (id: string) => {
+  const handleRemoveExpense = useCallback((id: string) => {
     if (confirm("この支出を削除しますか？")) {
-      setDraftExpenses(draftExpenses.filter((expense) => expense.id !== id));
+      setDraftExpenses((prev) => prev.filter((expense) => expense.id !== id));
     }
+  }, []);
+
+  const handleAddCycle = useCallback(
+    (expenseId: string) => {
+      const expense = draftExpenses.find((e) => e.id === expenseId);
+      if (!expense) return;
+
+      const newCycle: Cycle = {
+        id: Date.now().toString(),
+        type: "monthly",
+        startMonthIndex: 0, // 1年1ヶ月目
+        amount: 0,
+      };
+
+      handleUpdateExpense(expenseId, "cycles", [...expense.cycles, newCycle]);
+    },
+    [draftExpenses, handleUpdateExpense],
+  );
+
+  const handleUpdateCycle = useCallback(
+    (expenseId: string, cycleId: string, updates: Partial<Cycle>) => {
+      const expense = draftExpenses.find((e) => e.id === expenseId);
+      if (!expense) return;
+
+      const updatedCycles = expense.cycles.map((cycle) =>
+        cycle.id === cycleId ? { ...cycle, ...updates } : cycle,
+      );
+
+      handleUpdateExpense(expenseId, "cycles", updatedCycles);
+    },
+    [draftExpenses, handleUpdateExpense],
+  );
+
+  const handleRemoveCycle = useCallback(
+    (expenseId: string, cycleId: string) => {
+      const expense = draftExpenses.find((e) => e.id === expenseId);
+      if (!expense) return;
+
+      const updatedCycles = expense.cycles.filter(
+        (cycle) => cycle.id !== cycleId,
+      );
+      handleUpdateExpense(expenseId, "cycles", updatedCycles);
+    },
+    [draftExpenses, handleUpdateExpense],
+  );
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent, onSubmit?: () => void) => {
+      e.preventDefault();
+
+      // upsertExpensesを使用して支出データを一括更新
+      upsertExpenses(selectedGroupId, draftExpenses);
+
+      toast.success("支出が保存されました");
+
+      if (onSubmit) {
+        onSubmit();
+      }
+    },
+    [selectedGroupId, draftExpenses, upsertExpenses],
+  );
+
+  return {
+    groups,
+    selectedGroupId,
+    setSelectedGroupId,
+    draftExpenses,
+    groupAssets,
+    handleSubmit,
+    handleAddExpense,
+    handleUpdateExpense,
+    handleRemoveExpense,
+    handleAddCycle,
+    handleUpdateCycle,
+    handleRemoveCycle,
   };
+}
 
-  const handleAddCycle = (expenseId: string) => {
-    const expense = draftExpenses.find((e) => e.id === expenseId);
-    if (!expense) return;
+interface ExpensesPageProps {
+  onSubmit?: () => void;
+}
 
-    const newCycle: Cycle = {
-      id: Date.now().toString(),
-      type: "monthly",
-      startMonthIndex: 0, // 1年1ヶ月目
-      amount: 0,
-    };
-
-    handleUpdateExpense(expenseId, "cycles", [...expense.cycles, newCycle]);
-  };
-
-  const handleUpdateCycle = (
-    expenseId: string,
-    cycleId: string,
-    updates: Partial<Cycle>,
-  ) => {
-    const expense = draftExpenses.find((e) => e.id === expenseId);
-    if (!expense) return;
-
-    const updatedCycles = expense.cycles.map((cycle) =>
-      cycle.id === cycleId ? { ...cycle, ...updates } : cycle,
-    );
-
-    handleUpdateExpense(expenseId, "cycles", updatedCycles);
-  };
-
-  const handleRemoveCycle = (expenseId: string, cycleId: string) => {
-    const expense = draftExpenses.find((e) => e.id === expenseId);
-    if (!expense) return;
-
-    const updatedCycles = expense.cycles.filter(
-      (cycle) => cycle.id !== cycleId,
-    );
-    handleUpdateExpense(expenseId, "cycles", updatedCycles);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // upsertExpensesを使用して支出データを一括更新
-    upsertExpenses(selectedGroupId, draftExpenses);
-
-    toast.success("支出が保存されました");
-
-    if (onSubmit) {
-      onSubmit();
-    }
-  };
+export default function ExpensesPage({ onSubmit }: ExpensesPageProps) {
+  const {
+    groups,
+    selectedGroupId,
+    setSelectedGroupId,
+    draftExpenses,
+    groupAssets,
+    handleSubmit,
+    handleAddExpense,
+    handleUpdateExpense,
+    handleRemoveExpense,
+    handleAddCycle,
+    handleUpdateCycle,
+    handleRemoveCycle,
+  } = useExpensesPage();
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -143,7 +207,7 @@ export default function ExpensesPage({ onSubmit }: ExpensesPageProps) {
         支出の設定
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={(e) => handleSubmit(e, onSubmit)} className="space-y-6">
         {/* グループ選択 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -245,7 +309,7 @@ export default function ExpensesPage({ onSubmit }: ExpensesPageProps) {
                         }
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white text-sm"
                       >
-                        {getAssetsByGroupId(selectedGroupId).map((asset) => (
+                        {groupAssets.map((asset) => (
                           <option key={asset.id} value={asset.id}>
                             {asset.name}
                           </option>

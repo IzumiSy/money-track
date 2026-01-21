@@ -16,8 +16,18 @@ import { usePluginRegistry } from "@/core/plugin/usePluginRegistry";
 import { generateChartBars, SourceDataInfo } from "@/core/plugin/chartHelpers";
 import { PluginDataTypeMap } from "@/core/plugin/types";
 import { runFinancialSimulation } from "./financialSimulation";
+import { Group } from "@/features/group/types";
 
-export default function SimulatorPage() {
+interface UseSimulatorPageResult {
+  simulationYears: number;
+  setSimulationYears: (years: number) => void;
+  activeGroups: Group[];
+  simulationData: ReturnType<typeof runFinancialSimulation>["simulationData"];
+  hasData: boolean;
+  chartBars: ReturnType<typeof generateChartBars>;
+}
+
+export function useSimulatorPage(): UseSimulatorPageResult {
   const [simulationYears, setSimulationYears] = useState(30);
   const { state } = useSimulation();
   const { getActiveGroups } = useGroupManagement();
@@ -74,6 +84,28 @@ export default function SimulatorPage() {
       activeGroupIds,
     );
   }, [registry, simulationData, sourceDataMap, activeGroupIds]);
+
+  return {
+    simulationYears,
+    setSimulationYears,
+    activeGroups,
+    simulationData,
+    hasData,
+    chartBars,
+  };
+}
+
+export default function SimulatorPage() {
+  const {
+    simulationYears,
+    setSimulationYears,
+    activeGroups,
+    simulationData,
+    hasData,
+    chartBars,
+  } = useSimulatorPage();
+
+  const activeGroupIds = activeGroups.map((g) => g.id);
 
   // データが0の場合の処理
   if (!hasData || activeGroupIds.length === 0) {

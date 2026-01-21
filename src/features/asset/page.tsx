@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useGroupManagement } from "@/features/group/hooks";
 import { useAssetManagement } from "./hooks";
@@ -6,15 +6,46 @@ import {
   GroupedAsset,
   ContributionOption,
   WithdrawalOption,
+  Group,
 } from "@/features/group/types";
 
-interface FinancialAssetsPageProps {
-  onSubmit?: () => void;
+interface UseFinancialAssetsPageResult {
+  groups: Group[];
+  selectedGroupId: string;
+  setSelectedGroupId: (id: string) => void;
+  draftAssets: GroupedAsset[];
+  handleSubmit: (e: React.FormEvent, onSubmit?: () => void) => void;
+  addAsset: () => void;
+  updateAsset: (
+    id: string,
+    field: keyof GroupedAsset,
+    value:
+      | string
+      | number
+      | boolean
+      | ContributionOption[]
+      | WithdrawalOption[],
+  ) => void;
+  removeAsset: (id: string) => void;
+  addContributionOption: (assetId: string) => void;
+  updateContributionOption: (
+    assetId: string,
+    optionId: string,
+    field: string,
+    value: string | number,
+  ) => void;
+  removeContributionOption: (assetId: string, optionId: string) => void;
+  addWithdrawalOption: (assetId: string) => void;
+  updateWithdrawalOption: (
+    assetId: string,
+    optionId: string,
+    field: string,
+    value: string | number,
+  ) => void;
+  removeWithdrawalOption: (assetId: string, optionId: string) => void;
 }
 
-export default function FinancialAssetsPage({
-  onSubmit,
-}: FinancialAssetsPageProps) {
+export function useFinancialAssetsPage(): UseFinancialAssetsPageResult {
   const { groups } = useGroupManagement();
   const { upsertAssets, getAssetsByGroupId } = useAssetManagement();
   const [selectedGroupId, setSelectedGroupId] = useState<string>(
@@ -28,18 +59,21 @@ export default function FinancialAssetsPage({
     setDraftAssets(groupAssets);
   }, [getAssetsByGroupId, selectedGroupId]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = useCallback(
+    (e: React.FormEvent, onSubmit?: () => void) => {
+      e.preventDefault();
 
-    // upsertAssetsを使用して資産データを一括更新
-    upsertAssets(selectedGroupId, draftAssets);
+      // upsertAssetsを使用して資産データを一括更新
+      upsertAssets(selectedGroupId, draftAssets);
 
-    toast.success("資産情報を保存しました");
+      toast.success("資産情報を保存しました");
 
-    if (onSubmit) {
-      onSubmit();
-    }
-  };
+      if (onSubmit) {
+        onSubmit();
+      }
+    },
+    [selectedGroupId, draftAssets, upsertAssets],
+  );
 
   // 資産ごとに異なるデフォルト色を設定
   const getDefaultColor = (index: number) => {
@@ -55,7 +89,7 @@ export default function FinancialAssetsPage({
     return colors[index % colors.length];
   };
 
-  const addAsset = () => {
+  const addAsset = useCallback(() => {
     if (!selectedGroupId) {
       alert("グループを選択してください");
       return;
@@ -71,123 +105,176 @@ export default function FinancialAssetsPage({
       contributionOptions: [],
       withdrawalOptions: [],
     };
-    setDraftAssets([...draftAssets, newAsset]);
-  };
+    setDraftAssets((prev) => [...prev, newAsset]);
+  }, [selectedGroupId, draftAssets.length]);
 
-  const updateAsset = (
-    id: string,
-    field: keyof GroupedAsset,
-    value:
-      | string
-      | number
-      | boolean
-      | ContributionOption[]
-      | WithdrawalOption[],
-  ) => {
-    setDraftAssets(
-      draftAssets.map((asset) =>
-        asset.id === id ? { ...asset, [field]: value } : asset,
-      ),
-    );
-  };
+  const updateAsset = useCallback(
+    (
+      id: string,
+      field: keyof GroupedAsset,
+      value:
+        | string
+        | number
+        | boolean
+        | ContributionOption[]
+        | WithdrawalOption[],
+    ) => {
+      setDraftAssets((prev) =>
+        prev.map((asset) =>
+          asset.id === id ? { ...asset, [field]: value } : asset,
+        ),
+      );
+    },
+    [],
+  );
 
-  const removeAsset = (id: string) => {
+  const removeAsset = useCallback((id: string) => {
     if (confirm("この資産を削除しますか？")) {
-      setDraftAssets(draftAssets.filter((asset) => asset.id !== id));
+      setDraftAssets((prev) => prev.filter((asset) => asset.id !== id));
     }
+  }, []);
+
+  const addContributionOption = useCallback(
+    (assetId: string) => {
+      const asset = draftAssets.find((a) => a.id === assetId);
+      if (!asset) return;
+
+      const newOption = {
+        id: Date.now().toString(),
+        startYear: 0,
+        startMonth: 1,
+        endYear: 10,
+        endMonth: 12,
+        monthlyAmount: 0,
+      };
+
+      updateAsset(assetId, "contributionOptions", [
+        ...asset.contributionOptions,
+        newOption,
+      ]);
+    },
+    [draftAssets, updateAsset],
+  );
+
+  const updateContributionOption = useCallback(
+    (assetId: string, optionId: string, field: string, value: string | number) => {
+      const asset = draftAssets.find((a) => a.id === assetId);
+      if (!asset) return;
+
+      const updatedOptions = asset.contributionOptions.map((option) =>
+        option.id === optionId ? { ...option, [field]: value } : option,
+      );
+
+      updateAsset(assetId, "contributionOptions", updatedOptions);
+    },
+    [draftAssets, updateAsset],
+  );
+
+  const removeContributionOption = useCallback(
+    (assetId: string, optionId: string) => {
+      const asset = draftAssets.find((a) => a.id === assetId);
+      if (!asset) return;
+
+      const updatedOptions = asset.contributionOptions.filter(
+        (option) => option.id !== optionId,
+      );
+
+      updateAsset(assetId, "contributionOptions", updatedOptions);
+    },
+    [draftAssets, updateAsset],
+  );
+
+  const addWithdrawalOption = useCallback(
+    (assetId: string) => {
+      const asset = draftAssets.find((a) => a.id === assetId);
+      if (!asset) return;
+
+      const newOption = {
+        id: Date.now().toString(),
+        startYear: 0,
+        startMonth: 1,
+        endYear: 10,
+        endMonth: 12,
+        monthlyAmount: 0,
+      };
+
+      updateAsset(assetId, "withdrawalOptions", [
+        ...asset.withdrawalOptions,
+        newOption,
+      ]);
+    },
+    [draftAssets, updateAsset],
+  );
+
+  const updateWithdrawalOption = useCallback(
+    (assetId: string, optionId: string, field: string, value: string | number) => {
+      const asset = draftAssets.find((a) => a.id === assetId);
+      if (!asset) return;
+
+      const updatedOptions = asset.withdrawalOptions.map((option) =>
+        option.id === optionId ? { ...option, [field]: value } : option,
+      );
+
+      updateAsset(assetId, "withdrawalOptions", updatedOptions);
+    },
+    [draftAssets, updateAsset],
+  );
+
+  const removeWithdrawalOption = useCallback(
+    (assetId: string, optionId: string) => {
+      const asset = draftAssets.find((a) => a.id === assetId);
+      if (!asset) return;
+
+      const updatedOptions = asset.withdrawalOptions.filter(
+        (option) => option.id !== optionId,
+      );
+
+      updateAsset(assetId, "withdrawalOptions", updatedOptions);
+    },
+    [draftAssets, updateAsset],
+  );
+
+  return {
+    groups,
+    selectedGroupId,
+    setSelectedGroupId,
+    draftAssets,
+    handleSubmit,
+    addAsset,
+    updateAsset,
+    removeAsset,
+    addContributionOption,
+    updateContributionOption,
+    removeContributionOption,
+    addWithdrawalOption,
+    updateWithdrawalOption,
+    removeWithdrawalOption,
   };
+}
 
-  const addContributionOption = (assetId: string) => {
-    const asset = draftAssets.find((a) => a.id === assetId);
-    if (!asset) return;
+interface FinancialAssetsPageProps {
+  onSubmit?: () => void;
+}
 
-    const newOption = {
-      id: Date.now().toString(),
-      startYear: 0,
-      startMonth: 1,
-      endYear: 10,
-      endMonth: 12,
-      monthlyAmount: 0,
-    };
-
-    updateAsset(assetId, "contributionOptions", [
-      ...asset.contributionOptions,
-      newOption,
-    ]);
-  };
-
-  const updateContributionOption = (
-    assetId: string,
-    optionId: string,
-    field: string,
-    value: string | number,
-  ) => {
-    const asset = draftAssets.find((a) => a.id === assetId);
-    if (!asset) return;
-
-    const updatedOptions = asset.contributionOptions.map((option) =>
-      option.id === optionId ? { ...option, [field]: value } : option,
-    );
-
-    updateAsset(assetId, "contributionOptions", updatedOptions);
-  };
-
-  const removeContributionOption = (assetId: string, optionId: string) => {
-    const asset = draftAssets.find((a) => a.id === assetId);
-    if (!asset) return;
-
-    const updatedOptions = asset.contributionOptions.filter(
-      (option) => option.id !== optionId,
-    );
-
-    updateAsset(assetId, "contributionOptions", updatedOptions);
-  };
-
-  const addWithdrawalOption = (assetId: string) => {
-    const asset = draftAssets.find((a) => a.id === assetId);
-    if (!asset) return;
-
-    const newOption = {
-      id: Date.now().toString(),
-      startYear: 0,
-      startMonth: 1,
-      endYear: 10,
-      endMonth: 12,
-      monthlyAmount: 0,
-    };
-
-    updateAsset(assetId, "withdrawalOptions", [
-      ...asset.withdrawalOptions,
-      newOption,
-    ]);
-  };
-
-  const updateWithdrawalOption = (
-    assetId: string,
-    optionId: string,
-    field: string,
-    value: string | number,
-  ) => {
-    const asset = draftAssets.find((a) => a.id === assetId);
-    if (!asset) return;
-
-    const updatedOptions = asset.withdrawalOptions.map((option) =>
-      option.id === optionId ? { ...option, [field]: value } : option,
-    );
-
-    updateAsset(assetId, "withdrawalOptions", updatedOptions);
-  };
-
-  const removeWithdrawalOption = (assetId: string, optionId: string) => {
-    const asset = draftAssets.find((a) => a.id === assetId);
-    if (!asset) return;
-
-    const updatedOptions = asset.withdrawalOptions.filter(
-      (option) => option.id !== optionId,
-    );
-
-    updateAsset(assetId, "withdrawalOptions", updatedOptions);
-  };
+export default function FinancialAssetsPage({
+  onSubmit,
+}: FinancialAssetsPageProps) {
+  const {
+    groups,
+    selectedGroupId,
+    setSelectedGroupId,
+    draftAssets,
+    handleSubmit,
+    addAsset,
+    updateAsset,
+    removeAsset,
+    addContributionOption,
+    updateContributionOption,
+    removeContributionOption,
+    addWithdrawalOption,
+    updateWithdrawalOption,
+    removeWithdrawalOption,
+  } = useFinancialAssetsPage();
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -195,7 +282,7 @@ export default function FinancialAssetsPage({
         金融資産の入力
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={(e) => handleSubmit(e, onSubmit)} className="space-y-6">
         {/* グループ選択 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
