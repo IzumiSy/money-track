@@ -48,7 +48,11 @@ export const AssetPlugin: SourcePlugin<GroupedAsset> = {
   },
 
   applyMonthlyEffect(context: MonthlyProcessingContext) {
-    const { source, cashFlowChange, assetBalances, expenseBreakdown } = context;
+    const { source, cashFlowChange, sourceBalances, cashOutflows } =
+      context;
+
+    const assetBalances = sourceBalances.get("asset");
+    if (!assetBalances) return;
 
     // 資産自体のキャッシュフローによる残高変動
     const currentBalance = assetBalances.get(source.id) ?? 0;
@@ -57,16 +61,19 @@ export const AssetPlugin: SourcePlugin<GroupedAsset> = {
       currentBalance + cashFlowChange.expense - cashFlowChange.income;
     assetBalances.set(source.id, newBalance);
 
-    // 積立を支出内訳に記録
+    // 積立をキャッシュアウトに記録
     if (cashFlowChange.expense > 0) {
       const expenseKey = `investment_${source.id}`;
-      const prevExpense = expenseBreakdown.get(expenseKey) ?? 0;
-      expenseBreakdown.set(expenseKey, prevExpense + cashFlowChange.expense);
+      const prevExpense = cashOutflows.get(expenseKey) ?? 0;
+      cashOutflows.set(expenseKey, prevExpense + cashFlowChange.expense);
     }
   },
 
   postMonthlyProcess(context: PostMonthlyContext) {
-    const { assetBalances, incomeBreakdown, allSources } = context;
+    const { sourceBalances, cashInflows, allSources } = context;
+
+    const assetBalances = sourceBalances.get("asset");
+    if (!assetBalances) return;
 
     // 資産リターン（利息）を計算
     allSources
@@ -81,8 +88,8 @@ export const AssetPlugin: SourcePlugin<GroupedAsset> = {
           assetBalances.set(source.id, currentBalance + interest);
 
           const returnIncomeKey = `return_${source.id}`;
-          const prev = incomeBreakdown.get(returnIncomeKey) ?? 0;
-          incomeBreakdown.set(returnIncomeKey, prev + interest);
+          const prev = cashInflows.get(returnIncomeKey) ?? 0;
+          cashInflows.set(returnIncomeKey, prev + interest);
         }
       });
   },

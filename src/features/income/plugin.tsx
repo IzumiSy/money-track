@@ -40,23 +40,26 @@ export const IncomePlugin: SourcePlugin<GroupedIncome> = {
   },
 
   applyMonthlyEffect(context: MonthlyProcessingContext) {
-    const { source, cashFlowChange, assetBalances, incomeBreakdown } = context;
+    const { source, cashFlowChange, sourceBalances, cashInflows } = context;
     const metadata = source.getMetadata?.();
     const assetSourceId = metadata?.assetSourceId as string | undefined;
 
-    // 収入を収入内訳に記録
+    // 収入をキャッシュインに記録
     if (cashFlowChange.income > 0) {
       const incomeKey = source.id;
-      const prevIncome = incomeBreakdown.get(incomeKey) ?? 0;
-      incomeBreakdown.set(incomeKey, prevIncome + cashFlowChange.income);
+      const prevIncome = cashInflows.get(incomeKey) ?? 0;
+      cashInflows.set(incomeKey, prevIncome + cashFlowChange.income);
 
       // 収入を指定された資産に加算
       if (assetSourceId) {
-        const currentBalance = assetBalances.get(assetSourceId) ?? 0;
-        assetBalances.set(
-          assetSourceId,
-          currentBalance + cashFlowChange.income,
-        );
+        const assetBalances = sourceBalances.get("asset");
+        if (assetBalances) {
+          const currentBalance = assetBalances.get(assetSourceId) ?? 0;
+          assetBalances.set(
+            assetSourceId,
+            currentBalance + cashFlowChange.income,
+          );
+        }
       }
     }
   },

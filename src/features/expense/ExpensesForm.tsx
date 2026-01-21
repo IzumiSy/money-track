@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useGroupManagement } from "@/features/group/useGroupManagement";
-import { useExpenseManagement } from "./useExpenseManagement";
-import { useAssetManagement } from "@/features/asset/useAssetManagement";
+import { useGroupManagement } from "@/features/group/hooks";
+import { useExpenseManagement } from "./hooks";
+import { useAssetManagement } from "@/features/asset/hooks";
 import { GroupedExpense } from "@/features/group/types";
 import { Cycle, CycleType } from "@/core/calculator/Cycle";
 import {

@@ -11,6 +11,7 @@ import { AssetPlugin } from "@/features/asset/plugin";
 import { IncomePlugin } from "@/features/income/plugin";
 import { ExpensePlugin } from "@/features/expense/plugin";
 import { LiabilityPlugin } from "@/features/liability/plugin";
+import { PluginDataStore } from "./types";
 
 /**
  * テスト用のプラグインレジストリを作成
@@ -22,6 +23,23 @@ function createTestPluginRegistry(): PluginRegistry {
   registry.register(ExpensePlugin);
   registry.register(LiabilityPlugin);
   return registry;
+}
+
+/**
+ * テスト用のPluginDataStoreを作成するヘルパー
+ */
+function createPluginDataStore(
+  assets: GroupedAsset[] = [],
+  incomes: GroupedIncome[] = [],
+  expenses: GroupedExpense[] = [],
+  liabilities: GroupedAsset[] = [],
+): PluginDataStore {
+  return {
+    asset: assets,
+    income: incomes,
+    expense: expenses,
+    liability: liabilities as unknown as PluginDataStore["liability"],
+  };
 }
 
 // テスト用プラグインレジストリ
@@ -56,11 +74,9 @@ describe("runFinancialSimulation", () => {
   ];
 
   it("初期資産のみの場合、資産額が変わらないこと", () => {
+    const pluginData = createPluginDataStore(defaultAssets);
     const result = runFinancialSimulation(
-      defaultAssets,
-      [],
-      [],
-      [],
+      pluginData,
       5,
       undefined,
       pluginRegistry,
@@ -87,11 +103,9 @@ describe("runFinancialSimulation", () => {
       },
     ];
 
+    const pluginData = createPluginDataStore(defaultAssets, incomes);
     const result = runFinancialSimulation(
-      defaultAssets,
-      [],
-      incomes,
-      [],
+      pluginData,
       2,
       undefined,
       pluginRegistry,
@@ -121,11 +135,9 @@ describe("runFinancialSimulation", () => {
       },
     ];
 
+    const pluginData = createPluginDataStore(defaultAssets, [], expenses);
     const result = runFinancialSimulation(
-      defaultAssets,
-      expenses,
-      [],
-      [],
+      pluginData,
       2,
       undefined,
       pluginRegistry,
@@ -161,11 +173,9 @@ describe("runFinancialSimulation", () => {
       },
     ];
 
+    const pluginData = createPluginDataStore(assetsWithContribution);
     const result = runFinancialSimulation(
-      assetsWithContribution,
-      [],
-      [],
-      [],
+      pluginData,
       2,
       undefined,
       pluginRegistry,
@@ -202,11 +212,9 @@ describe("runFinancialSimulation", () => {
       },
     ];
 
+    const pluginData = createPluginDataStore(assetsWithWithdrawal);
     const result = runFinancialSimulation(
-      assetsWithWithdrawal,
-      [],
-      [],
-      [],
+      pluginData,
       2,
       undefined,
       pluginRegistry,
@@ -257,11 +265,9 @@ describe("runFinancialSimulation", () => {
       },
     ];
 
+    const pluginData = createPluginDataStore(multipleAssets);
     const result = runFinancialSimulation(
-      multipleAssets,
-      [],
-      [],
-      [],
+      pluginData,
       1,
       undefined,
       pluginRegistry,

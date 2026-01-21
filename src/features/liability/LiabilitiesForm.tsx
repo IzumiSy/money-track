@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useGroupManagement } from "@/features/group/useGroupManagement";
-import { useLiabilityManagement } from "./useLiabilityManagement";
-import { useAssetManagement } from "@/features/asset/useAssetManagement";
+import { useGroupManagement } from "@/features/group/hooks";
+import { useLiabilityManagement } from "./hooks";
+import { useAssetManagement } from "@/features/asset/hooks";
 import { GroupedLiability, Cycle } from "@/features/group/types";
 
 interface LiabilitiesFormProps {

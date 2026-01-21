@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { useFinancialSimulation } from "@/features/simulator/useFinancialSimulation";
 import { useSimulation } from "@/features/simulator/context";
-import { useGroupManagement } from "@/features/group/useGroupManagement";
+import { useGroupManagement } from "@/features/group/hooks";
 import { usePluginRegistry } from "@/core/plugin/usePluginRegistry";
 import { generateChartBars, SourceDataInfo } from "@/core/plugin/chartHelpers";
 import { PluginDataTypeMap } from "@/core/plugin/types";
@@ -31,10 +31,7 @@ export default function SimulationChart() {
   const activeGroupIds = activeGroups.map((g) => g.id);
 
   const { simulationData, hasData } = useFinancialSimulation({
-    assets: pluginData.asset,
-    expenses: pluginData.expense,
-    incomes: pluginData.income,
-    liabilities: pluginData.liability,
+    pluginData,
     simulationYears,
     activeGroupIds,
   });

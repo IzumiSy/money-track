@@ -71,14 +71,12 @@ export interface MonthlyProcessingContext {
   source: CalculatorSource;
   /** このソースのキャッシュフロー変化 */
   cashFlowChange: CashFlowChange;
-  /** 資産残高マップ（資産ID -> 残高） */
-  assetBalances: Map<string, number>;
-  /** 負債残高マップ（負債ID -> 残高） */
-  liabilityBalances: Map<string, number>;
-  /** 収入内訳マップ（収入キー -> 金額） */
-  incomeBreakdown: Map<string, number>;
-  /** 支出内訳マップ（支出キー -> 金額） */
-  expenseBreakdown: Map<string, number>;
+  /** 残高マップ（プラグインタイプ -> ソースID -> 残高） */
+  sourceBalances: Map<string, Map<string, number>>;
+  /** キャッシュイン内訳マップ（キー -> 金額） */
+  cashInflows: Map<string, number>;
+  /** キャッシュアウト内訳マップ（キー -> 金額） */
+  cashOutflows: Map<string, number>;
   /** 全ソース（読み取り専用） */
   allSources: readonly CalculatorSource[];
 }

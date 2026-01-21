@@ -40,23 +40,27 @@ export const ExpensePlugin: SourcePlugin<GroupedExpense> = {
   },
 
   applyMonthlyEffect(context: MonthlyProcessingContext) {
-    const { source, cashFlowChange, assetBalances, expenseBreakdown } = context;
+    const { source, cashFlowChange, sourceBalances, cashOutflows } =
+      context;
     const metadata = source.getMetadata?.();
     const assetSourceId = metadata?.assetSourceId as string | undefined;
 
-    // 支出を支出内訳に記録
+    // 支出をキャッシュアウトに記録
     if (cashFlowChange.expense > 0) {
       const expenseKey = source.id;
-      const prevExpense = expenseBreakdown.get(expenseKey) ?? 0;
-      expenseBreakdown.set(expenseKey, prevExpense + cashFlowChange.expense);
+      const prevExpense = cashOutflows.get(expenseKey) ?? 0;
+      cashOutflows.set(expenseKey, prevExpense + cashFlowChange.expense);
 
       // 支出を指定された資産から減算
       if (assetSourceId) {
-        const currentBalance = assetBalances.get(assetSourceId) ?? 0;
-        assetBalances.set(
-          assetSourceId,
-          currentBalance - cashFlowChange.expense,
-        );
+        const assetBalances = sourceBalances.get("asset");
+        if (assetBalances) {
+          const currentBalance = assetBalances.get(assetSourceId) ?? 0;
+          assetBalances.set(
+            assetSourceId,
+            currentBalance - cashFlowChange.expense,
+          );
+        }
       }
     }
   },

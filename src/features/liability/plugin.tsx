@@ -50,38 +50,39 @@ export const LiabilityPlugin: SourcePlugin<GroupedLiability> = {
   },
 
   applyMonthlyEffect(context: MonthlyProcessingContext) {
-    const {
-      source,
-      cashFlowChange,
-      assetBalances,
-      liabilityBalances,
-      expenseBreakdown,
-    } = context;
+    const { source, cashFlowChange, sourceBalances, cashOutflows } =
+      context;
     const metadata = source.getMetadata?.();
     const assetSourceId = metadata?.assetSourceId as string | undefined;
 
     // 返済額（expense）を処理
     if (cashFlowChange.expense > 0) {
       // 負債残高を減少
-      const currentLiabilityBalance = liabilityBalances.get(source.id) ?? 0;
-      const newLiabilityBalance = Math.max(
-        0,
-        currentLiabilityBalance - cashFlowChange.expense,
-      );
-      liabilityBalances.set(source.id, newLiabilityBalance);
+      const liabilityBalances = sourceBalances.get("liability");
+      if (liabilityBalances) {
+        const currentLiabilityBalance = liabilityBalances.get(source.id) ?? 0;
+        const newLiabilityBalance = Math.max(
+          0,
+          currentLiabilityBalance - cashFlowChange.expense,
+        );
+        liabilityBalances.set(source.id, newLiabilityBalance);
+      }
 
-      // 返済を支出内訳に記録
+      // 返済をキャッシュアウトに記録
       const expenseKey = `repayment_${source.id}`;
-      const prevExpense = expenseBreakdown.get(expenseKey) ?? 0;
-      expenseBreakdown.set(expenseKey, prevExpense + cashFlowChange.expense);
+      const prevExpense = cashOutflows.get(expenseKey) ?? 0;
+      cashOutflows.set(expenseKey, prevExpense + cashFlowChange.expense);
 
       // 返済元資産から減算
       if (assetSourceId) {
-        const currentAssetBalance = assetBalances.get(assetSourceId) ?? 0;
-        assetBalances.set(
-          assetSourceId,
-          currentAssetBalance - cashFlowChange.expense,
-        );
+        const assetBalances = sourceBalances.get("asset");
+        if (assetBalances) {
+          const currentAssetBalance = assetBalances.get(assetSourceId) ?? 0;
+          assetBalances.set(
+            assetSourceId,
+            currentAssetBalance - cashFlowChange.expense,
+          );
+        }
       }
     }
   },

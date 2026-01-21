@@ -97,11 +97,21 @@ describe("createSimulator", () => {
 
       const result = simulator.simulate();
 
-      expect(result.monthlyData[0].assetBalances.get("asset-1")).toBe(1050000);
-      expect(result.monthlyData[5].assetBalances.get("asset-1")).toBe(1300000);
-      expect(result.monthlyData[11].assetBalances.get("asset-1")).toBe(1600000);
-      expect(result.monthlyData[12].assetBalances.get("asset-1")).toBe(1600000);
-      expect(result.monthlyData[23].assetBalances.get("asset-1")).toBe(1600000);
+      expect(
+        result.monthlyData[0].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(1050000);
+      expect(
+        result.monthlyData[5].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(1300000);
+      expect(
+        result.monthlyData[11].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(1600000);
+      expect(
+        result.monthlyData[12].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(1600000);
+      expect(
+        result.monthlyData[23].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(1600000);
     });
 
     it("資産の引き出しによる残高減少が正しく追跡される", () => {
@@ -130,12 +140,24 @@ describe("createSimulator", () => {
 
       const result = simulator.simulate();
 
-      expect(result.monthlyData[0].assetBalances.get("asset-1")).toBe(5000000);
-      expect(result.monthlyData[11].assetBalances.get("asset-1")).toBe(5000000);
-      expect(result.monthlyData[12].assetBalances.get("asset-1")).toBe(4900000);
-      expect(result.monthlyData[23].assetBalances.get("asset-1")).toBe(3800000);
-      expect(result.monthlyData[24].assetBalances.get("asset-1")).toBe(3800000);
-      expect(result.monthlyData[35].assetBalances.get("asset-1")).toBe(3800000);
+      expect(
+        result.monthlyData[0].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(5000000);
+      expect(
+        result.monthlyData[11].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(5000000);
+      expect(
+        result.monthlyData[12].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(4900000);
+      expect(
+        result.monthlyData[23].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(3800000);
+      expect(
+        result.monthlyData[24].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(3800000);
+      expect(
+        result.monthlyData[35].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(3800000);
     });
 
     it("複数の資産が独立して管理される", () => {
@@ -174,13 +196,27 @@ describe("createSimulator", () => {
 
       const result = simulator.simulate();
 
-      expect(result.monthlyData[0].assetBalances.get("asset-1")).toBe(30000);
-      expect(result.monthlyData[0].assetBalances.get("asset-2")).toBe(980000);
-      expect(result.monthlyData[5].assetBalances.get("asset-1")).toBe(180000);
-      expect(result.monthlyData[5].assetBalances.get("asset-2")).toBe(880000);
-      expect(result.monthlyData[11].assetBalances.get("asset-1")).toBe(360000);
-      expect(result.monthlyData[11].assetBalances.get("asset-2")).toBe(760000);
-      expect(result.monthlyData[0].assetBalances.has("income-1")).toBe(false);
+      expect(
+        result.monthlyData[0].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(30000);
+      expect(
+        result.monthlyData[0].sourceBalances.get("asset")?.get("asset-2"),
+      ).toBe(980000);
+      expect(
+        result.monthlyData[5].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(180000);
+      expect(
+        result.monthlyData[5].sourceBalances.get("asset")?.get("asset-2"),
+      ).toBe(880000);
+      expect(
+        result.monthlyData[11].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(360000);
+      expect(
+        result.monthlyData[11].sourceBalances.get("asset")?.get("asset-2"),
+      ).toBe(760000);
+      expect(
+        result.monthlyData[0].sourceBalances.get("asset")?.has("income-1"),
+      ).toBe(false);
     });
 
     it("積立と引き出しが同時に発生する資産の残高が正しく計算される", () => {
@@ -212,12 +248,24 @@ describe("createSimulator", () => {
 
       const result = simulator.simulate();
 
-      expect(result.monthlyData[0].assetBalances.get("asset-1")).toBe(2050000);
-      expect(result.monthlyData[5].assetBalances.get("asset-1")).toBe(2300000);
-      expect(result.monthlyData[6].assetBalances.get("asset-1")).toBe(2320000);
-      expect(result.monthlyData[11].assetBalances.get("asset-1")).toBe(2420000);
-      expect(result.monthlyData[12].assetBalances.get("asset-1")).toBe(2390000);
-      expect(result.monthlyData[17].assetBalances.get("asset-1")).toBe(2240000);
+      expect(
+        result.monthlyData[0].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(2050000);
+      expect(
+        result.monthlyData[5].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(2300000);
+      expect(
+        result.monthlyData[6].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(2320000);
+      expect(
+        result.monthlyData[11].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(2420000);
+      expect(
+        result.monthlyData[12].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(2390000);
+      expect(
+        result.monthlyData[17].sourceBalances.get("asset")?.get("asset-1"),
+      ).toBe(2240000);
     });
   });
 });

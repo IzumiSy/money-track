@@ -1,15 +1,9 @@
-import {
-  GroupedExpense,
-  GroupedIncome,
-  GroupedAsset,
-  GroupedLiability,
-} from "@/features/group/types";
 import { createCalculator } from "@/core/calculator/createCalculator";
 import { CalculatorSource } from "@/core/calculator/CalculatorSource";
 import { createSimulator } from "./createSimulator";
 import { PluginRegistry } from "@/core/plugin/registry";
 import { globalRegistry } from "@/core/plugin/defaultRegistry";
-import { PluginDataTypeMap } from "@/core/plugin/types";
+import { PluginDataStore } from "./types";
 
 // チャート用のデータポイント型
 interface SimulationDataPoint {
@@ -50,43 +44,45 @@ function convertToChartData(
       year: `${year + 1}年目`,
     };
 
-    // 資産残高を追加（プレフィックス: balance_asset_）
-    lastMonth.assetBalances.forEach((balance, assetId) => {
-      chartData[`balance_asset_${assetId}`] = Math.round(balance);
+    // 各プラグインタイプの残高を追加
+    // キー形式: balance_{pluginType}_{sourceId}
+    // 負債は負の値として表示
+    lastMonth.sourceBalances.forEach((balanceMap, pluginType) => {
+      balanceMap.forEach((balance, sourceId) => {
+        const isNegative = pluginType === "liability";
+        chartData[`balance_${pluginType}_${sourceId}`] = isNegative
+          ? -Math.round(balance)
+          : Math.round(balance);
+      });
     });
 
-    // 負債残高を追加（プレフィックス: balance_liability_、マイナス値）
-    lastMonth.liabilityBalances.forEach((balance, liabilityId) => {
-      chartData[`balance_liability_${liabilityId}`] = -Math.round(balance);
-    });
-
-    // 年間の収入・支出を集計
-    const yearlyIncomeMap = new Map<string, number>();
-    const yearlyExpenseMap = new Map<string, number>();
+    // 年間のキャッシュフローを集計
+    const yearlyCashInflows = new Map<string, number>();
+    const yearlyCashOutflows = new Map<string, number>();
 
     yearMonths.forEach((monthData) => {
-      // 収入の集計
-      monthData.incomeBreakdown.forEach((amount, key) => {
-        const current = yearlyIncomeMap.get(key) || 0;
-        yearlyIncomeMap.set(key, current + amount);
+      // キャッシュインの集計
+      monthData.cashInflows.forEach((amount, key) => {
+        const current = yearlyCashInflows.get(key) || 0;
+        yearlyCashInflows.set(key, current + amount);
       });
 
-      // 支出の集計
-      monthData.expenseBreakdown.forEach((amount, key) => {
-        const current = yearlyExpenseMap.get(key) || 0;
-        yearlyExpenseMap.set(key, current + amount);
+      // キャッシュアウトの集計
+      monthData.cashOutflows.forEach((amount, key) => {
+        const current = yearlyCashOutflows.get(key) || 0;
+        yearlyCashOutflows.set(key, current + amount);
       });
     });
 
-    // 収入をチャートデータに追加（プレフィックス: income_）
-    yearlyIncomeMap.forEach((amount, key) => {
+    // キャッシュインをチャートデータに追加（プレフィックス: income_）
+    yearlyCashInflows.forEach((amount, key) => {
       if (amount > 0) {
         chartData[`income_${key}`] = Math.round(amount);
       }
     });
 
-    // 支出をチャートデータに追加（プレフィックス: expense_、マイナス値）
-    yearlyExpenseMap.forEach((amount, key) => {
+    // キャッシュアウトをチャートデータに追加（プレフィックス: expense_、マイナス値）
+    yearlyCashOutflows.forEach((amount, key) => {
       if (amount > 0) {
         chartData[`expense_${key}`] = -Math.round(amount);
       }
@@ -111,7 +107,9 @@ function convertToChartData(
     initialTotal: (() => {
       if (!monthlyData[0]) return 0;
       let total = 0;
-      monthlyData[0].assetBalances.forEach((balance) => {
+      // asset タイプの残高のみを初期総額として集計
+      const assetBalances = monthlyData[0].sourceBalances.get("asset");
+      assetBalances?.forEach((balance) => {
         total += balance;
       });
       return total;
@@ -123,39 +121,23 @@ function convertToChartData(
  * 財務シミュレーションを実行する純粋関数
  * プラグインレジストリを使用してデータをソースに変換
  *
- * @param assets 資産情報
- * @param expenses 支出リスト
- * @param incomes 収入リスト
- * @param liabilities 負債リスト
+ * @param pluginData 全プラグインのデータを含むストア
  * @param simulationYears シミュレーション年数
  * @param activeGroupIds アクティブなグループIDのリスト（指定時はフィルタリング実行）
  * @param pluginRegistry プラグインレジストリ（省略時はグローバルレジストリを使用）
  */
 export function runFinancialSimulation(
-  assets: GroupedAsset[],
-  expenses: GroupedExpense[],
-  incomes: GroupedIncome[],
-  liabilities: GroupedLiability[],
+  pluginData: PluginDataStore,
   simulationYears: number,
   activeGroupIds?: string[],
   pluginRegistry: PluginRegistry = globalRegistry,
 ): ChartSimulationResult {
-  // プラグインデータをマッピング
-  const pluginDataMap: {
-    [K in keyof PluginDataTypeMap]?: PluginDataTypeMap[K][];
-  } = {
-    asset: assets,
-    expense: expenses,
-    income: incomes,
-    liability: liabilities,
-  };
-
   // 統合されたCalculatorインスタンスを作成
   const unifiedCalculator = createCalculator<CalculatorSource>();
 
   // 各プラグインを使用してソースを作成・追加
   pluginRegistry.getAllPluginsSorted().forEach((plugin) => {
-    const dataArray = pluginDataMap[plugin.type];
+    const dataArray = pluginData[plugin.type];
     if (!dataArray) return;
 
     dataArray.forEach((data) => {

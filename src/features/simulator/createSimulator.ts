@@ -54,11 +54,11 @@ export function createSimulator(
     // 月額のキャッシュフローを計算（現在時点での有効な収入・支出）
     const currentMonthlyCashFlow = getCurrentMonthlyCashFlow();
 
-    // 資産・負債の初期残高を設定
-    const assetBalances = new Map<string, number>();
-    const liabilityBalances = new Map<string, number>();
+    // 残高マップ（プラグインタイプ -> ソースID -> 残高）
+    const sourceBalances = new Map<string, Map<string, number>>();
     const sources = calculator.getSources();
 
+    // 各ソースの初期残高を設定
     sources.forEach((source) => {
       const plugin = pluginRegistry.getPlugin(
         source.type as keyof PluginDataTypeMap,
@@ -66,11 +66,10 @@ export function createSimulator(
 
       if (plugin?.getInitialBalance) {
         const initialBalance = plugin.getInitialBalance(source);
-        if (source.type === "asset") {
-          assetBalances.set(source.id, initialBalance);
-        } else if (source.type === "liability") {
-          liabilityBalances.set(source.id, initialBalance);
+        if (!sourceBalances.has(source.type)) {
+          sourceBalances.set(source.type, new Map<string, number>());
         }
+        sourceBalances.get(source.type)!.set(source.id, initialBalance);
       }
     });
 
@@ -78,10 +77,9 @@ export function createSimulator(
     const monthlyData: MonthlySimulationData[] = [];
 
     for (let monthIndex = 0; monthIndex < simulationMonths; monthIndex++) {
-      // 月の収入・支出を集計するためのマップ（IDをキーとする）
-      const incomeBreakdown = new Map<string, number>();
-      const expenseBreakdown = new Map<string, number>();
-      const monthlyAssetBalances = new Map<string, number>();
+      // 月のキャッシュフローを集計するためのマップ（IDをキーとする）
+      const cashInflows = new Map<string, number>();
+      const cashOutflows = new Map<string, number>();
 
       // 月のbreakdownを取得して、収入・支出を集計
       const monthlyBreakdown = calculator.getBreakdown(monthIndex);
@@ -100,31 +98,29 @@ export function createSimulator(
           monthIndex,
           source,
           cashFlowChange,
-          assetBalances,
-          liabilityBalances,
-          incomeBreakdown,
-          expenseBreakdown,
+          sourceBalances,
+          cashInflows,
+          cashOutflows,
           allSources: sources,
         };
 
         plugin?.applyMonthlyEffect?.(context);
 
-        // 収入・支出の基本集計
+        // キャッシュフローの基本集計
         if (cashFlowChange.income > 0) {
-          incomeBreakdown.set(sourceId, cashFlowChange.income);
+          cashInflows.set(sourceId, cashFlowChange.income);
         }
         if (cashFlowChange.expense > 0) {
-          expenseBreakdown.set(sourceId, cashFlowChange.expense);
+          cashOutflows.set(sourceId, cashFlowChange.expense);
         }
       });
 
       // 月末処理（全ソース処理後）
       const postContext: PostMonthlyContext = {
         monthIndex,
-        assetBalances,
-        liabilityBalances,
-        incomeBreakdown,
-        expenseBreakdown,
+        sourceBalances,
+        cashInflows,
+        cashOutflows,
         allSources: sources,
       };
 
@@ -133,30 +129,28 @@ export function createSimulator(
         plugin.postMonthlyProcess?.(postContext);
       });
 
-      // 現在の資産残高をコピー
-      assetBalances.forEach((balance, assetId) => {
-        monthlyAssetBalances.set(assetId, balance);
-      });
-
-      // 現在の負債残高をコピー
-      const monthlyLiabilityBalances = new Map<string, number>();
-      liabilityBalances.forEach((balance, liabilityId) => {
-        monthlyLiabilityBalances.set(liabilityId, balance);
+      // 現在の残高をコピー
+      const monthlySourceBalances = new Map<string, Map<string, number>>();
+      sourceBalances.forEach((balanceMap, pluginType) => {
+        const copiedMap = new Map<string, number>();
+        balanceMap.forEach((balance, sourceId) => {
+          copiedMap.set(sourceId, balance);
+        });
+        monthlySourceBalances.set(pluginType, copiedMap);
       });
 
       // 月ごとのデータを作成
       monthlyData.push({
         monthIndex,
-        incomeBreakdown,
-        expenseBreakdown,
-        assetBalances: monthlyAssetBalances,
-        liabilityBalances: monthlyLiabilityBalances,
+        cashInflows,
+        cashOutflows,
+        sourceBalances: monthlySourceBalances,
       });
     }
 
     // データが存在するかどうかの判定
     const totalMonthlyCashFlow = calculator.calculateTotal(0);
-    const hasData = totalMonthlyCashFlow.income > 0 || assetBalances.size > 0;
+    const hasData = totalMonthlyCashFlow.income > 0 || sourceBalances.size > 0;
 
     return {
       monthlyData,

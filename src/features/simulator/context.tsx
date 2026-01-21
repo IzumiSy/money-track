@@ -14,6 +14,7 @@ import {
   SIMULATION_ACTION_TYPES,
 } from "./types";
 import { PluginDataTypeMap } from "@/core/plugin/types";
+import { globalRegistry } from "@/core/plugin/defaultRegistry";
 
 interface SimulationContextType {
   state: SimulationState;
@@ -24,19 +25,22 @@ const SimulationContext = createContext<SimulationContextType | undefined>(
   undefined,
 );
 
-// 空のプラグインデータストア
-const emptyPluginDataStore: PluginDataStore = {
-  income: [],
-  expense: [],
-  asset: [],
-  liability: [],
-};
+/**
+ * プラグインレジストリから空のPluginDataStoreを作成
+ */
+function createEmptyPluginDataStore(): PluginDataStore {
+  const store: Partial<PluginDataStore> = {};
+  globalRegistry.getAllPlugins().forEach((plugin) => {
+    (store as Record<string, unknown[]>)[plugin.type as string] = [];
+  });
+  return store as PluginDataStore;
+}
 
 // 初期状態
 const initialState: SimulationState = {
   currentData: {
     groups: [],
-    pluginData: { ...emptyPluginDataStore },
+    pluginData: createEmptyPluginDataStore(),
   },
   savedSimulations: [],
   activeSimulationId: null,
@@ -111,20 +115,14 @@ function simulationReducer(
       const groupId = action.payload;
       // 全プラグインデータからgroupIdに紐づくデータを削除
       const currentPluginData = state.currentData.pluginData;
-      const newPluginData: PluginDataStore = {
-        income: currentPluginData.income.filter(
-          (item) => item.groupId !== groupId,
-        ),
-        expense: currentPluginData.expense.filter(
-          (item) => item.groupId !== groupId,
-        ),
-        asset: currentPluginData.asset.filter(
-          (item) => item.groupId !== groupId,
-        ),
-        liability: currentPluginData.liability.filter(
-          (item) => item.groupId !== groupId,
-        ),
-      };
+      const newPluginData = Object.fromEntries(
+        Object.entries(currentPluginData).map(([key, items]) => [
+          key,
+          (items as Array<{ groupId: string }>).filter(
+            (item) => item.groupId !== groupId,
+          ),
+        ]),
+      ) as PluginDataStore;
 
       return {
         ...state,

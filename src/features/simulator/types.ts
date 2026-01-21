@@ -11,10 +11,10 @@ import { PluginDataTypeMap } from "@/core/plugin/types";
  */
 export interface MonthlySimulationData {
   monthIndex: number;
-  incomeBreakdown: Map<string, number>;
-  expenseBreakdown: Map<string, number>;
-  assetBalances: Map<string, number>;
-  liabilityBalances: Map<string, number>;
+  cashInflows: Map<string, number>;
+  cashOutflows: Map<string, number>;
+  /** 残高マップ（プラグインタイプ -> ソースID -> 残高） */
+  sourceBalances: Map<string, Map<string, number>>;
 }
 
 /**

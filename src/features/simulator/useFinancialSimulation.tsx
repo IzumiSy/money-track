@@ -1,17 +1,9 @@
 import { useMemo } from "react";
-import {
-  GroupedExpense,
-  GroupedIncome,
-  GroupedAsset,
-  GroupedLiability,
-} from "@/features/group/types";
+import { PluginDataStore } from "./types";
 import { runFinancialSimulation } from "./financialSimulation";
 
 interface UseFinancialSimulationProps {
-  assets: GroupedAsset[];
-  expenses?: GroupedExpense[];
-  incomes?: GroupedIncome[];
-  liabilities?: GroupedLiability[];
+  pluginData: PluginDataStore;
   simulationYears: number;
   activeGroupIds?: string[];
 }
@@ -21,21 +13,11 @@ interface UseFinancialSimulationProps {
  * グループフィルタリング機能をサポート
  */
 export function useFinancialSimulation({
-  assets,
-  expenses = [],
-  incomes = [],
-  liabilities = [],
+  pluginData,
   simulationYears,
   activeGroupIds,
 }: UseFinancialSimulationProps) {
   return useMemo(() => {
-    return runFinancialSimulation(
-      assets,
-      expenses,
-      incomes,
-      liabilities,
-      simulationYears,
-      activeGroupIds,
-    );
-  }, [assets, expenses, incomes, liabilities, simulationYears, activeGroupIds]);
+    return runFinancialSimulation(pluginData, simulationYears, activeGroupIds);
+  }, [pluginData, simulationYears, activeGroupIds]);
 }

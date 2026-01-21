@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useGroupManagement } from "@/features/group/useGroupManagement";
-import { useAssetManagement } from "./useAssetManagement";
+import { useGroupManagement } from "@/features/group/hooks";
+import { useAssetManagement } from "./hooks";
 import {
   GroupedAsset,
   ContributionOption,

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useGroupManagement } from "./useGroupManagement";
+import { useGroupManagement } from "./hooks";
 
 export default function GroupSelector() {
   const { groups, addGroup, updateGroup, deleteGroup, toggleGroupActive } =
