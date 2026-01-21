@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Sidebar from "./Sidebar";
-import { useSimulationManagement } from "@/features/simulator/useSimulationManagement";
+import { useSimulationManagement } from "@/features/simulator/hooks";
 
 interface AppLayoutProps {
   children: React.ReactNode;

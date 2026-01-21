@@ -4,7 +4,7 @@ import {
   convertLiabilityToLiabilitySource,
   createLiabilityRepaymentSource,
 } from "./source";
-import LiabilitiesForm from "./LiabilitiesForm";
+import LiabilitiesPage from "./page";
 
 /**
  * 負債管理アイコン
@@ -50,8 +50,7 @@ export const LiabilityPlugin: SourcePlugin<GroupedLiability> = {
   },
 
   applyMonthlyEffect(context: MonthlyProcessingContext) {
-    const { source, cashFlowChange, sourceBalances, cashOutflows } =
-      context;
+    const { source, cashFlowChange, sourceBalances, cashOutflows } = context;
     const metadata = source.getMetadata?.();
     const assetSourceId = metadata?.assetSourceId as string | undefined;
 
@@ -115,7 +114,7 @@ export const LiabilityPlugin: SourcePlugin<GroupedLiability> = {
     path: "/dashboard/liabilities",
     label: "負債",
     order: 2,
-    component: LiabilitiesForm,
+    component: LiabilitiesPage,
     icon: LiabilityIcon,
   },
 

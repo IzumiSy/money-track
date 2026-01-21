@@ -1,7 +1,7 @@
 import { GroupedExpense } from "@/features/group/types";
 import { SourcePlugin, MonthlyProcessingContext } from "@/core/plugin/types";
 import { convertExpenseToExpenseSource } from "./source";
-import ExpensesForm from "./ExpensesForm";
+import ExpensesPage from "./page";
 
 /**
  * 支出管理アイコン
@@ -40,8 +40,7 @@ export const ExpensePlugin: SourcePlugin<GroupedExpense> = {
   },
 
   applyMonthlyEffect(context: MonthlyProcessingContext) {
-    const { source, cashFlowChange, sourceBalances, cashOutflows } =
-      context;
+    const { source, cashFlowChange, sourceBalances, cashOutflows } = context;
     const metadata = source.getMetadata?.();
     const assetSourceId = metadata?.assetSourceId as string | undefined;
 
@@ -86,7 +85,7 @@ export const ExpensePlugin: SourcePlugin<GroupedExpense> = {
     path: "/dashboard/expenses",
     label: "支出",
     order: 4,
-    component: ExpensesForm,
+    component: ExpensesPage,
     icon: ExpenseIcon,
   },
 

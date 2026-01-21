@@ -5,7 +5,7 @@ import {
   PostMonthlyContext,
 } from "@/core/plugin/types";
 import { convertAssetToAssetSource } from "./source";
-import FinancialAssetsForm from "./FinancialAssetsForm";
+import FinancialAssetsPage from "./page";
 
 /**
  * 金融資産管理アイコン
@@ -48,8 +48,7 @@ export const AssetPlugin: SourcePlugin<GroupedAsset> = {
   },
 
   applyMonthlyEffect(context: MonthlyProcessingContext) {
-    const { source, cashFlowChange, sourceBalances, cashOutflows } =
-      context;
+    const { source, cashFlowChange, sourceBalances, cashOutflows } = context;
 
     const assetBalances = sourceBalances.get("asset");
     if (!assetBalances) return;
@@ -138,7 +137,7 @@ export const AssetPlugin: SourcePlugin<GroupedAsset> = {
     path: "/dashboard/financial-assets",
     label: "金融資産",
     order: 1,
-    component: FinancialAssetsForm,
+    component: FinancialAssetsPage,
     icon: AssetIcon,
   },
 

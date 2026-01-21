@@ -18,5 +18,5 @@ export {
   DEFAULT_ASSET_COLORS,
 } from "./types";
 export { runFinancialSimulation } from "./financialSimulation";
-export { default as SimulationChart } from "./SimulationChart";
 export { SimulationProvider, useSimulation } from "./context";
+export { useSimulationManagement } from "./hooks";

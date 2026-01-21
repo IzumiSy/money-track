@@ -146,7 +146,7 @@ src/
 - **GroupSelector**: グループ選択コンポーネント
 
 ### 表示コンポーネント
-- **SimulationChart**: シミュレーション結果のチャート表示
+- **SimulatorPage**: シミュレーション結果のチャート表示（page.tsx）
 - **AppLayout**: アプリケーション全体のレイアウト
 - **Sidebar**: ナビゲーションサイドバー
 
@@ -210,6 +210,35 @@ src/
 計算ソース（金融資産、負債、収入、支出など）をプラグインとして独立的に扱うアーキテクチャ。
 新しいソースタイプを追加する際、コアのSimulatorやChartコンポーネントを修正する必要がない。
 
+### アーキテクチャ全体図
+```
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                            Plugin Architecture                                   │
+├──────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌────────────────────────────────────────────────────────────────────────────┐  │
+│  │                         SourcePlugin<TData>                                │  │
+│  │                                                                            │  │
+│  │   Pure Domain Logic                          UI (Free)                     │  │
+│  │  ┌─────────────────────────────┐           ┌─────────────────────────────┐ │  │
+│  │  │ • type                      │           │ • pageInfo.component        │ │  │
+│  │  │ • createSource()            │           │                             │ │  │
+│  │  │ • applyMonthlyEffect()      │           │   -> Any React component    │ │  │
+│  │  │ • postMonthlyProcess()      │           │   -> Fully customizable     │ │  │
+│  │  │ • getChartConfig()          │           │   -> Reuse existing comps   │ │  │
+│  │  └─────────────────────────────┘           └─────────────────────────────┘ │  │
+│  └────────────────────────────────────────────────────────────────────────────┘  │
+│                                       │                                          │
+│              ┌────────────────────────┼────────────────────────┐                 │
+│              ▼                        ▼                        ▼                 │
+│  ┌──────────────-─────┐  ┌────────────────────┐  ┌────────────────────┐          │
+│  │PluginAwareSimulator│  │ PluginAwareChart   │  │ Sidebar / Router   │          │
+│  │                    │  │                    │  │ (auto-integration) │          │
+│  └──────────────-─────┘  └────────────────────┘  └────────────────────┘          │
+│                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────┘
+```
+
 ### 設計目標
 - **拡張性**: 新しいソースタイプの追加が容易（Open/Closed Principle）
 - **型安全性**: プラグインタイプとデータ型の静的な対応付け
@@ -255,6 +284,49 @@ interface SourcePlugin<TData> {
 - メインの負債ソース（type: "liability"）
 - 返済に伴う支出ソース（type: "expense"、返済元資産が指定されている場合）
 
+### プラグインデータフロー
+```
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                                 Data Flow                                        │
+├──────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌──────────────────────────────────────────────────────────────────────────┐    │
+│  │                         SimulationContext                                │    │
+│  │                         (Single Source of Truth)                         │    │
+│  │                                                                          │    │
+│  │   state: {                                                               │    │
+│  │     groups: Group[],                                                     │    │
+│  │     selectedGroupId: string | null,   <- globally managed                │    │
+│  │     pluginData: {                     <- dynamic plugin data store       │    │
+│  │       "income": GroupedIncome[],                                         │    │
+│  │       "expense": GroupedExpense[],                                       │    │
+│  │       "asset": GroupedAsset[],                                           │    │
+│  │       "liability": GroupedLiability[],                                   │    │
+│  │     },                                                                   │    │
+│  │   }                                                                      │    │
+│  └──────────────────────────────────────────────────────────────────────────┘    │
+│                                      ▲                                           │
+│                                      │ dispatch                                  │
+│                                      │                                           │
+│  ┌──────────────────────────────────────────────────────────────────────────┐    │
+│  │                         PluginProvider                                   │    │
+│  │                                                                          │    │
+│  │   • Holds plugin information                                             │    │
+│  │   • Extracts data of matching type from SimulationContext.pluginData     │    │
+│  │   • Provides upsert, getByGroupId, getOtherPluginData                    │    │
+│  └──────────────────────────────────────────────────────────────────────────┘    │
+│                                      ▲                                           │
+│                                      │ usePluginData()                           │
+│                                      │                                           │
+│  ┌──────────────────────────────────────────────────────────────────────────┐    │
+│  │                    pageInfo.component (e.g., IncomeForm)                 │    │
+│  │                                                                          │    │
+│  │   const { plugin, data, upsert, getOtherPluginData } = usePluginData();  │    │
+│  └──────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────┘
+```
+
 ### チャートデータのキー形式
 シミュレーション結果のチャートデータは以下の命名規則に従います：
 - 残高: `balance_asset_{id}`, `balance_liability_{id}`
@@ -262,7 +334,7 @@ interface SourcePlugin<TData> {
 - 支出: `expense_{breakdownKey}`
 
 各プラグインは`getChartConfig()`で自身が生成するキーのプレフィックスを定義し、
-`SimulationChart`は`generateChartBars()`を使用してプラグインから動的にバー定義を生成します。
+`SimulatorPage`は`generateChartBars()`を使用してプラグインから動的にバー定義を生成します。
 これにより、チャートコンポーネントはプラグイン固有のキープレフィックスを知る必要がありません。
 
 ### 型安全なプラグインデータ管理
@@ -323,6 +395,37 @@ type SimulationAction =
 6. `features/xxx/plugin.tsx` - プラグインを実装
 7. `features/xxx/index.ts` - エクスポートを定義
 8. `App.tsx` でプラグインをレジストリに登録
+
+#### 追加時のチェックリスト
+| # | タスク | ファイル | 必須 |
+|---|--------|----------|------|
+| 1 | ドメイン型を定義 | `features/xxx/types.ts` | ✅ |
+| 2 | 変換関数を実装 | `features/xxx/source.ts` | ✅ |
+| 3 | UIコンポーネントを作成 | `features/xxx/page.tsx` | ✅ |
+| 4 | プラグインを実装 | `features/xxx/plugin.tsx` | ✅ |
+| 5 | レジストリに登録 | `App.tsx` | ✅ |
+| ❌ | Simulatorを修正 | - | 不要 |
+| ❌ | Chartを修正 | - | 不要 |
+| ❌ | Sidebarを修正 | - | 不要 |
+| ❌ | ルーティングを修正 | - | 不要 |
+
+### 関心の分離
+| レイヤー | 責務 |
+|----------|------|
+| **Plugin (Domain)** | シミュレーションロジック、チャート設定 |
+| **Plugin (UI)** | 入力フォーム（任意のReactコンポーネント） |
+| **PluginProvider** | データアクセスAPI、プラグイン情報の注入 |
+| **Simulator** | プラグインのライフサイクル実行 |
+| **Chart** | プラグインからバー定義を動的生成 |
+
+### 依存関係の方向
+```
+UI Components → PluginProvider → SimulationContext
+                     ↓
+                  Plugins → CalculatorSource
+                     ↓
+                  Simulator
+```
 
 ### UI統合
 - **Sidebar**: プラグインから動的にナビゲーションメニューを生成

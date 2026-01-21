@@ -1,7 +1,7 @@
 import { GroupedIncome } from "@/features/group/types";
 import { SourcePlugin, MonthlyProcessingContext } from "@/core/plugin/types";
 import { convertIncomeToIncomeSource } from "./source";
-import IncomeForm from "./IncomeForm";
+import IncomePage from "./page";
 
 /**
  * 収入管理アイコン
@@ -85,7 +85,7 @@ export const IncomePlugin: SourcePlugin<GroupedIncome> = {
     path: "/dashboard/income",
     label: "収入",
     order: 3,
-    component: IncomeForm,
+    component: IncomePage,
     icon: IncomeIcon,
   },
 
